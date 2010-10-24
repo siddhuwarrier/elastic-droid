@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    
+    <string name="app_name">Elastic Droid</string>
+<string name="internet_permission">android.permission.INTERNET</string>
+</resources>
