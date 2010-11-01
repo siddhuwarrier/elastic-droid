@@ -2,5 +2,5 @@
 <resources>
     
     <string name="app_name">Elastic Droid</string>
-<string name="internet_permission">android.permission.INTERNET</string>
+
 </resources>
