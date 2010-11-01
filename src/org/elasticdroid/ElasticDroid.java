@@ -1,53 +1,67 @@
+/**
+ *  This file is part of ElasticDroid.
+ *
+ * ElasticDroid is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+
+ * ElasticDroid is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with ElasticDroid.  If not, see <http://www.gnu.org/licenses/>.
+ * 
+ * Authored by Siddhu Warrier on 22 Oct 2010
+ */
+
 package org.elasticdroid;
 
+import java.util.Observable;
+import java.util.Observer;
 import java.util.regex.Pattern;
 
+import org.elasticdroid.R;
+import org.elasticdroid.model.LoginModel;
+
 import android.app.Activity;
-import android.graphics.Color;
-import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.widget.EditText;
-import android.widget.TextView;
 
 
-public class ElasticDroid extends Activity implements OnClickListener {
+public class ElasticDroid extends Activity implements OnClickListener, Observer {
 	/** 
 	 * Private members
 	 */
 	private String username;
 	private String accessKey;
 	private String secretAccessKey;
+	private LoginModel loginModel; 
 	
-	/** Called when the activity is first created. */
+	/** 
+	 * Called when the activity is first created. 
+	 * 
+	 */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-    	//AWSCredentials credentials = new BasicAWSCredentials("FILL_IN_HERE", 
-    		//	"FILL_IN_HERE");    
-    	//AmazonEC2 ec2 = new AmazonEC2Client(credentials);
-    	
-        //DescribeAvailabilityZonesResult availabilityZonesResult = ec2.describeAvailabilityZones();
-        //Log.v(this.getLocalClassName(),"You have access to " + availabilityZonesResult.getAvailabilityZones().size() +
-                //" Availability Zones.");
-        
-        //TODO check in SQLite DB if you have login info
         setContentView(R.layout.login);
         
-        //set action listeners for the buttons
-        View loginButton = findViewById(R.id.loginButton);
-        //this class will listen to the login buttons
-        loginButton.setOnClickListener(this);
+        loginModel = new LoginModel();//create the Login model to do the grunt work
+        loginModel.addObserver(this);//add this activity as an observer
+        
+        View loginButton = findViewById(R.id.loginButton);//set action listeners for the buttons
+        loginButton.setOnClickListener(this);//this class will listen to the login buttons
     }
 
     /**
-     * @brief Handles the event of the login button being clicked.
-     * @author siddhu
+     * @brief Handles the event of the login button being clicked. 
+     * 
      */
 	@Override
 	public void onClick(View buttonClicked) {
@@ -55,20 +69,23 @@ public class ElasticDroid extends Activity implements OnClickListener {
 		switch (buttonClicked.getId()) {
 		
 		case R.id.loginButton:
-			if (!validateLoginDetails()) {
-				Log.v(this.getClass().getName(), "Please enter correct login details.");
+			//if the data passes basic checks, then try accessing AWS
+			if (validateLoginDetails()) {
+				loginModel.verifyCredentials(username, accessKey, secretAccessKey);
+				//note: username, accesskey, and secretaccesskey set in the validateLoginDetails
+				//method
+				//TODO display error (or 
 			}
 			break;
 		}
 	}	
 	
 	/**
-	 * @brief Private method to validate the login details
+	 * @brief Private method to perform basic validity checks on the credentials entered.
 	 * 
 	 * @return false if any of the fields isn't filled, or the email address is invalid.
 	 * true otherwise
 	 * 
-	 * @author Siddhu Warrier
 	 */
 	private boolean validateLoginDetails() {
 		/*
@@ -79,9 +96,6 @@ public class ElasticDroid extends Activity implements OnClickListener {
 		EditText editTextUsername = (EditText)findViewById(R.id.usernameEntry);
 		EditText editTextAccessKey = (EditText)findViewById(R.id.akEntry);
 		EditText editTextSecretAccessKey = (EditText)findViewById(R.id.sakEntry);
-		TextView textViewUsername = (TextView)findViewById(R.id.usernameTextView);
-		TextView textViewAccessKey = (TextView)findViewById(R.id.akTextView);
-		TextView textViewSecretAccessKey = (TextView)findViewById(R.id.sakTextView);
 		
 		//get the strings from the username.
 		username = editTextUsername.getText().toString(); //get the username
@@ -125,7 +139,24 @@ public class ElasticDroid extends Activity implements OnClickListener {
 			return false;		
 		}
 		
-		//if all of the validation checks succeeded, return true
+		//if all of the validation checks succeeded, check with the model.
 		return true;
+	}
+
+	/* 
+	 * Method called when the LoginModel makes a change. This will be used
+	 * to decide whether the next activity should be called.
+	 */
+	@Override
+	public void update(Observable loginModel, Object data) {
+		//data is a boolean if verifyCredentials called on the LoginModel
+		if (data instanceof Boolean) {
+			if ((Boolean)data) {
+				Log.i(this.getClass().getName(), "Valid credentials");
+			}
+			else {
+				Log.e(this.getClass().getName(), "Invalid credentials");
+			}
+		}
 	}
 }
