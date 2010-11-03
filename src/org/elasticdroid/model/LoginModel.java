@@ -21,8 +21,6 @@ package org.elasticdroid.model;
 import org.elasticdroid.GenericActivity;
 import org.elasticdroid.utils.DialogConstants;
 
-import android.app.ProgressDialog;
-import android.os.AsyncTask;
 import android.util.Log;
 
 import com.amazonaws.AmazonClientException;
@@ -40,19 +38,15 @@ import com.amazonaws.services.ec2.AmazonEC2Client;
  *
  * 1 Nov 2010
  */
-public class LoginModel extends AsyncTask<String, Void, Object> {
-
-	private GenericActivity activity;
-	private boolean complete;
+public class LoginModel extends GenericModel<String, Void, Object> {	
 	
 	/**
-	 * Constructor. Saves the activity that called this. This is used to return the data
-	 * back to the (Generic)Activity.
-	 * @param activity The Android UI activity that created LoginModel
+	 * To call super Constructor alone. To read what this constructor
+	 * does, please refer to the superclass documentation.
+	 * @param genericActivity The activity which started this model
 	 */
-	public LoginModel(GenericActivity activity) {
-		this.activity = activity;
-		complete = false;
+	public LoginModel(GenericActivity genericActivity) {
+		super(genericActivity);
 	}
 	
 	/**
@@ -67,7 +61,6 @@ public class LoginModel extends AsyncTask<String, Void, Object> {
 	 */
 	@Override
 	protected Object doInBackground(String... params) {
-		// TODO Auto-generated method stub
 		//we need username, accessKey, secretAccessKey
 		if (params.length != 3) {
 			Log.e(this.getClass().getName(), "Need 3 params."); //TODO do something better.
@@ -107,7 +100,6 @@ public class LoginModel extends AsyncTask<String, Void, Object> {
 	 */
 	@Override
 	protected void onPostExecute(Object result) {
-		complete = true;
 		//just return the result produced to the Activity.
 		//we could process it here, but I want to keep the MVC pattern clean.
 		//Call me a f*cking pedant, if you will.
@@ -118,16 +110,4 @@ public class LoginModel extends AsyncTask<String, Void, Object> {
 			activity.processModelResults(result);
 		}
 	}
-	
-	/**
-	 * Set the activity object referred to by the model. This is used
-	 * by the activity to reset itself to null when it is being destroyed temporarily
-	 * (for instance whenever the screen orientation is changed), and to
-	 * reset it whenever the object is restored after being destroyed.
-	 * @param activity the GenericActivity referred to in the Model 
-	 */
-	public void setActivity(GenericActivity activity) {
-		this.activity = activity;
-	}
-	
 }

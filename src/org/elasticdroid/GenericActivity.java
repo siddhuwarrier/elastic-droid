@@ -38,4 +38,5 @@ public abstract class GenericActivity extends Activity {
 	 * @param result
 	 */
 	public abstract void processModelResults(Object result);
+	
 }

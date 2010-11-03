@@ -28,6 +28,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -54,7 +55,10 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 	private String accessKey;
 	private String secretAccessKey;
 	private LoginModel loginModel;
+	private AlertDialog alertDialogBox;
     private boolean progressDialogDisplayed;
+    private boolean alertDialogDisplayed;
+    private String alertDialogMessage;
     
     
 	/** 
@@ -77,10 +81,53 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
         	loginModel = null;
         }
         
+        //create the alert dialog
+		alertDialogBox = new AlertDialog.Builder(this).create(); //create alert box to
+		
+		//add a neutral OK button and set action.
+		alertDialogBox.setButton("Ok", new DialogInterface.OnClickListener() {			 
+            //click listener on the alert box - unlock orientation when clicked.
+			//this is to prevent orientation changing when alert box locked.
+            public void onClick(DialogInterface arg0, int arg1) {
+            	alertDialogDisplayed = false;
+            	alertDialogBox.dismiss();
+            }
+		});
+        
         View loginButton = findViewById(R.id.loginButton);//set action listeners for the buttons
         loginButton.setOnClickListener(this);//this class will listen to the login buttons
     }
-
+    
+    /**
+     * This method re-launches a dialog box if necessary. 
+     * 
+     * This derives from the Android lifecycle. When an Activity is destroyed and recreated, 
+     * this is the order of calls made:
+     * *onSaveInstanceState()
+     * *onDestroy()
+     * *onCreate()
+     * *onStart()
+     * *onRestoreInstanceState()
+     * *onResume()
+     * 
+     *  So it is only in onRestoreInstanceState that we have restored the values of 
+     *  alertDialogDisplayed and alertDialogMessage. So if we need to re-display it,
+     *  we should override onResume() as well. 
+     */
+    @Override
+    public void onResume(){
+    	
+    	super.onResume(); //call base class method
+    	
+        //check if an alert dialog was displayed before
+        //remember: booleans are false by default and will be set to true
+        //only if this object was destroyed and recreated when a dialog was displyaed.
+		Log.v("onCreate()", "Recreating dialog box if necessary...");
+        if (alertDialogDisplayed) {
+        	alertDialogBox.setMessage(alertDialogMessage);
+        	alertDialogBox.show();
+        }
+    }
     /**
      * @brief Handles the event of the login button being clicked. 
      * 
@@ -172,15 +219,7 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 		//dismiss the progress bar
 		if (progressDialogDisplayed) {
 			dismissDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
-		}
-		AlertDialog.Builder errorBox = new AlertDialog.Builder(this); //create alert box to
-		
-		//add a neutral OK button.
-		errorBox.setNeutralButton("Ok", new DialogInterface.OnClickListener() {			 
-            // empty click listener on the alert box
-            public void onClick(DialogInterface arg0, int arg1) {
-            }
-		});
+		}		
 		/*
 		 * The result returned by the model can be:
 		 * a) AmazonServiceException: if authentication failed (typically).
@@ -192,29 +231,39 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 				//set errors in the access key and secret access key fields.
 				((EditText)findViewById(R.id.akEntry)).setError("Invalid credentials");
 				((EditText)findViewById(R.id.sakEntry)).setError("Invalid credentials");
-				errorBox.setMessage("Invalid Access Key. Please re-enter your Access and/or Secret Access keys.");
-				Log.e(this.getClass().getName(), "Invalid access key");
+				
+				alertDialogMessage = "Invalid Access Key. Please re-enter your " +
+						"Access and/or Secret Access keys.";
 			} 
 			else if (((AmazonServiceException)result).getStatusCode() == HttpStatus.SC_FORBIDDEN) {
-				errorBox.setMessage("Invalid Secret Access key. Please re-enter your Secret Access key.");
+				alertDialogBox.setMessage("Invalid Secret Access key. Please re-enter your Secret Access key.");
 				((EditText)findViewById(R.id.sakEntry)).setError("Invalid Secret Access key.");
 			}
 			else {
 				//TODO a wrong SecretAccessKey is handled using a different error if the AccessKey is right.
 				//Handle this.
-				errorBox.setMessage("Unexpected error: " + ((AmazonServiceException)result).
+				alertDialogMessage = "Unexpected error: " + ((AmazonServiceException)result).
 						getStatusCode() + "--" + ((AmazonServiceException)result).getMessage()
-						+ ". Please file a bug report.");
-				Log.e(this.getClass().getName(), "Unexpected error");
-			}
+						+ ". Please file a bug report.";
+			}	
 			
-			errorBox.show();//show error
+			//whatever the error, display the error
+			//and set the boolean to true. This is so that we know we should redisplay
+			//dialog on restore.
+			Log.e(this.getClass().getName(), alertDialogMessage);
+			
+			alertDialogDisplayed = true;
+			alertDialogBox.setMessage(alertDialogMessage);
+			alertDialogBox.show();//show error
 		}
 		else if (result instanceof AmazonClientException) {
-			errorBox.setMessage("Unable to connect to AWS. Are you " +
-			"connected to the Internet?");
+			alertDialogMessage = "Unable to connect to AWS. Are you " +
+			"connected to the Internet?";
+			Log.e(this.getClass().getName(), alertDialogMessage);
 			
-			errorBox.show(); //show error 
+			alertDialogDisplayed = true;
+			alertDialogBox.setMessage(alertDialogMessage);
+			alertDialogBox.show();//show error
 		}
 		else {
 			Log.v(this.getClass().getName(), "Valid credentials");
@@ -262,4 +311,32 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 		//if some other sort of dialog...
         return super.onCreateDialog(id);
 	}
+	
+	/**
+	 * Save dialog boxes if any
+	 */
+	@Override
+	public void onSaveInstanceState(Bundle saveState) {
+		Log.v(this.getClass().getName(), "Save instance state...");
+		
+		//if a dialog is displayed when this happens, dismiss it
+		if (alertDialogDisplayed) {
+			alertDialogBox.dismiss();
+		}
+		saveState.putBoolean("alertDialogDisplayed", alertDialogDisplayed);
+		saveState.putString("alertDialogMessage", alertDialogMessage);
+		//call the superclass (Activity)'s save state method
+		super.onSaveInstanceState(saveState);
+	}
+	
+	@Override
+	public void onRestoreInstanceState(Bundle stateToRestore) {
+		Log.v(this.getClass().getName(), "Restore instance state...");
+		
+		super.onRestoreInstanceState(stateToRestore);
+		alertDialogDisplayed = stateToRestore.getBoolean("alertDialogDisplayed");
+		Log.v(this.getClass().getName(), "alertDialogDisplayed = " + alertDialogDisplayed);
+		alertDialogMessage = stateToRestore.getString("alertDialogMessage");
+	}
+	
 }//end of class
