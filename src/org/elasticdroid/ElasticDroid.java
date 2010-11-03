@@ -19,30 +19,42 @@
 
 package org.elasticdroid;
 
-import java.util.Observable;
-import java.util.Observer;
 import java.util.regex.Pattern;
 
-import org.elasticdroid.R;
 import org.elasticdroid.model.LoginModel;
+import org.elasticdroid.utils.Constants;
 
-import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
 
-public class ElasticDroid extends Activity implements OnClickListener, Observer {
+/**
+ * An activity class that inherits from GenericActivity which inherits from Activity.
+ * This is because Java doesn't allow Multiple Inheritance like nice languages like C do! ;)
+ * @author Siddhu Warrier
+ *
+ * 2 Nov 2010
+ */
+public class ElasticDroid extends GenericActivity implements OnClickListener {
 	/** 
 	 * Private members
 	 */
 	private String username;
 	private String accessKey;
 	private String secretAccessKey;
-	private LoginModel loginModel; 
-	
+	private LoginModel loginModel;
+    private boolean progressDialogDisplayed;
+    
+    
 	/** 
 	 * Called when the activity is first created. 
 	 * 
@@ -52,8 +64,13 @@ public class ElasticDroid extends Activity implements OnClickListener, Observer 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.login);
         
-        loginModel = new LoginModel();//create the Login model to do the grunt work
-        loginModel.addObserver(this);//add this activity as an observer
+        //restore model if the activity was reloaded in the middle of model processing
+        Object retained = getLastNonConfigurationInstance();
+        if (retained instanceof LoginModel) {
+            Log.i(this.getClass().getName(), "Reclaiming previous background task.");
+            loginModel = (LoginModel) retained;
+            loginModel.setActivity(this); //tell loginModel that this is the new recreated activity
+        } //if not, just ignore the retained crap
         
         View loginButton = findViewById(R.id.loginButton);//set action listeners for the buttons
         loginButton.setOnClickListener(this);//this class will listen to the login buttons
@@ -66,15 +83,13 @@ public class ElasticDroid extends Activity implements OnClickListener, Observer 
 	@Override
 	public void onClick(View buttonClicked) {
 		//check which button generated the onClick
-		switch (buttonClicked.getId()) {
 		
+		switch (buttonClicked.getId()) {
 		case R.id.loginButton:
 			//if the data passes basic checks, then try accessing AWS
 			if (validateLoginDetails()) {
-				loginModel.verifyCredentials(username, accessKey, secretAccessKey);
-				//note: username, accesskey, and secretaccesskey set in the validateLoginDetails
-				//method
-				//TODO display error (or 
+				loginModel = new LoginModel(this);
+				loginModel.execute(username, accessKey, secretAccessKey);
 			}
 			break;
 		}
@@ -142,21 +157,102 @@ public class ElasticDroid extends Activity implements OnClickListener, Observer 
 		//if all of the validation checks succeeded, check with the model.
 		return true;
 	}
-
-	/* 
-	 * Method called when the LoginModel makes a change. This will be used
-	 * to decide whether the next activity should be called.
+	
+	/**
+	 * Process results from model. Called by onPostExecute() method
+	 * in any given Model class.
+	 * 
+	 * Displays either an error message (if result is an exeception)
+	 * or the next activity.
+	 * @see org.elasticdroid.GenericActivity#processModelResults(java.lang.Object)
 	 */
 	@Override
-	public void update(Observable loginModel, Object data) {
-		//data is a boolean if verifyCredentials called on the LoginModel
-		if (data instanceof Boolean) {
-			if ((Boolean)data) {
-				Log.i(this.getClass().getName(), "Valid credentials");
-			}
-			else {
+	public void processModelResults(Object result) {
+		Log.v(this.getClass().getName(), "Processing model results...");
+		
+		//dismiss the progress bar
+		if (progressDialogDisplayed) {
+			dismissDialog(Constants.PROGRESS_DIALOG.ordinal());
+		}
+		AlertDialog.Builder errorBox = new AlertDialog.Builder(this); //create alert box to
+		
+		//add a neutral OK button.
+		errorBox.setNeutralButton("Ok", new DialogInterface.OnClickListener() {			 
+            // empty click listener on the alert box
+            public void onClick(DialogInterface arg0, int arg1) {
+            }
+		});
+		
+		/*
+		 * The result returned by the model can be:
+		 * a) AmazonServiceException: if authentication failed (typically).
+		 * b) AmazonClientException: if communication to AWS failed (user not connected to internet?).
+		 * c) null: if the credentials have been validated.
+		 */
+		if (result instanceof AmazonServiceException) {
+			if (((AmazonServiceException)result).getStatusCode() == 401) {
+				//set errors in the access key and secret access key fields.
+				((EditText)findViewById(R.id.akEntry)).setError("Invalid credentials");
+				((EditText)findViewById(R.id.sakEntry)).setError("Invalid credentials");
+				errorBox.setMessage("Invalid credentials. Please re-enter your Access and/or Secret Access keys.");
 				Log.e(this.getClass().getName(), "Invalid credentials");
+			} 
+			else {
+				//TODO a wrong SecretAccessKey is handled using a different error if the AccessKey is right.
+				//Handle this.
+				errorBox.setMessage("Unexpected error: " + ((AmazonServiceException)result).
+						getMessage() + ". Please file a bug report.");
+				Log.e(this.getClass().getName(), "Unexpected error");
 			}
+			
+			errorBox.show();//show error
+		}
+		else if (result instanceof AmazonClientException) {
+			errorBox.setMessage("Unable to connect to AWS. Are you " +
+			"connected to the Internet?");
+			
+			errorBox.show(); //show error 
+		}
+		else {
+			Log.v(this.getClass().getName(), "Valid credentials");
 		}
 	}
-}
+	
+	@Override
+	public Object onRetainNonConfigurationInstance() {
+		Log.v(this.getClass().getName(), "Object about to destroyed...");
+        
+		loginModel.setActivity(null);
+        return loginModel;
+	}
+
+	/**
+	 * Overriden from Activity and not GenericActivity!
+	 * @param id Dialog ID - special treatment for ProgressDialog
+	 * @param dialog - the dialog object itself. 
+	 */
+	@Override
+	protected void onPrepareDialog(int id, Dialog dialog) {
+        super.onPrepareDialog(id, dialog);
+        if (id == Constants.PROGRESS_DIALOG.ordinal()) {
+        	progressDialogDisplayed = true;
+        }
+	}
+
+	/**
+	 *  
+	 * Overriden from Activity and not GenericActivity
+	 * @param id DIalog ID - Special treatment for Constants.PROGRESS_DIALOG
+	 */
+	@Override
+	protected Dialog onCreateDialog(int id) {
+		if (id == Constants.PROGRESS_DIALOG.ordinal()) {
+	        ProgressDialog dialog = new ProgressDialog(this);
+	        dialog.setMessage("Please wait...");
+	        dialog.setCancelable(false);
+	        return dialog;
+		}
+		//if some other sort of dialog...
+        return super.onCreateDialog(id);
+	}
+}//end of class
