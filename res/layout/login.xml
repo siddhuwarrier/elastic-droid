@@ -61,6 +61,7 @@ android:layout_height="fill_parent"
 		        android:id="@+id/sakEntry"
 		        android:layout_width="fill_parent"
 		        android:layout_height="wrap_content"
+		        android:password="true"
 		        android:layout_below="@id/sakTextView"/>
 		        
 		    <!-- Buttons -->
@@ -71,13 +72,6 @@ android:layout_height="fill_parent"
 		        android:layout_below="@id/sakEntry"
 		        android:layout_marginTop="10sp"
 		        android:text="Login" />
-	    	<Button
-	    		android:id="@+id/cancelButton"
-		        android:layout_width="fill_parent"
-		        android:layout_height="wrap_content"
-		        android:layout_below="@id/loginButton"
-		        android:text="Cancel" />
-		    
 		</RelativeLayout>
 	</ScrollView>
 </LinearLayout>

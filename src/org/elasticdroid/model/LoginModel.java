@@ -19,7 +19,7 @@
 package org.elasticdroid.model;
 
 import org.elasticdroid.GenericActivity;
-import org.elasticdroid.utils.Constants;
+import org.elasticdroid.utils.DialogConstants;
 
 import android.app.ProgressDialog;
 import android.os.AsyncTask;
@@ -60,7 +60,7 @@ public class LoginModel extends AsyncTask<String, Void, Object> {
 	 */
 	@Override
 	protected void onPreExecute() {
-		activity.showDialog(Constants.PROGRESS_DIALOG.ordinal()); //the argument is not used
+		activity.showDialog(DialogConstants.PROGRESS_DIALOG.ordinal()); //the argument is not used
 	}
 	/* (non-Javadoc)
 	 * @see android.os.AsyncTask#doInBackground(Params[])

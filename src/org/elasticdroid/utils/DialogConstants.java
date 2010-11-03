@@ -24,6 +24,7 @@ package org.elasticdroid.utils;
  *
  * 2 Nov 2010
  */
-public enum Constants {
+public enum DialogConstants {
 	PROGRESS_DIALOG,
+	
 }

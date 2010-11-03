@@ -22,7 +22,7 @@ package org.elasticdroid;
 import java.util.regex.Pattern;
 
 import org.elasticdroid.model.LoginModel;
-import org.elasticdroid.utils.Constants;
+import org.elasticdroid.utils.DialogConstants;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -36,6 +36,8 @@ import android.widget.EditText;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
+
+import org.apache.commons.httpclient.HttpStatus;
 
 /**
  * An activity class that inherits from GenericActivity which inherits from Activity.
@@ -70,7 +72,10 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
             Log.i(this.getClass().getName(), "Reclaiming previous background task.");
             loginModel = (LoginModel) retained;
             loginModel.setActivity(this); //tell loginModel that this is the new recreated activity
-        } //if not, just ignore the retained crap
+        } 
+        else {
+        	loginModel = null;
+        }
         
         View loginButton = findViewById(R.id.loginButton);//set action listeners for the buttons
         loginButton.setOnClickListener(this);//this class will listen to the login buttons
@@ -82,16 +87,10 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
      */
 	@Override
 	public void onClick(View buttonClicked) {
-		//check which button generated the onClick
-		
-		switch (buttonClicked.getId()) {
-		case R.id.loginButton:
-			//if the data passes basic checks, then try accessing AWS
-			if (validateLoginDetails()) {
-				loginModel = new LoginModel(this);
-				loginModel.execute(username, accessKey, secretAccessKey);
-			}
-			break;
+		//if the data passes basic checks, then try accessing AWS
+		if (validateLoginDetails()) {
+			loginModel = new LoginModel(this);
+			loginModel.execute(username, accessKey, secretAccessKey);
 		}
 	}	
 	
@@ -172,7 +171,7 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 		
 		//dismiss the progress bar
 		if (progressDialogDisplayed) {
-			dismissDialog(Constants.PROGRESS_DIALOG.ordinal());
+			dismissDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
 		}
 		AlertDialog.Builder errorBox = new AlertDialog.Builder(this); //create alert box to
 		
@@ -182,7 +181,6 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
             public void onClick(DialogInterface arg0, int arg1) {
             }
 		});
-		
 		/*
 		 * The result returned by the model can be:
 		 * a) AmazonServiceException: if authentication failed (typically).
@@ -190,18 +188,23 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 		 * c) null: if the credentials have been validated.
 		 */
 		if (result instanceof AmazonServiceException) {
-			if (((AmazonServiceException)result).getStatusCode() == 401) {
+			if (((AmazonServiceException)result).getStatusCode() == HttpStatus.SC_UNAUTHORIZED) {
 				//set errors in the access key and secret access key fields.
 				((EditText)findViewById(R.id.akEntry)).setError("Invalid credentials");
 				((EditText)findViewById(R.id.sakEntry)).setError("Invalid credentials");
-				errorBox.setMessage("Invalid credentials. Please re-enter your Access and/or Secret Access keys.");
-				Log.e(this.getClass().getName(), "Invalid credentials");
+				errorBox.setMessage("Invalid Access Key. Please re-enter your Access and/or Secret Access keys.");
+				Log.e(this.getClass().getName(), "Invalid access key");
 			} 
+			else if (((AmazonServiceException)result).getStatusCode() == HttpStatus.SC_FORBIDDEN) {
+				errorBox.setMessage("Invalid Secret Access key. Please re-enter your Secret Access key.");
+				((EditText)findViewById(R.id.sakEntry)).setError("Invalid Secret Access key.");
+			}
 			else {
 				//TODO a wrong SecretAccessKey is handled using a different error if the AccessKey is right.
 				//Handle this.
 				errorBox.setMessage("Unexpected error: " + ((AmazonServiceException)result).
-						getMessage() + ". Please file a bug report.");
+						getStatusCode() + "--" + ((AmazonServiceException)result).getMessage()
+						+ ". Please file a bug report.");
 				Log.e(this.getClass().getName(), "Unexpected error");
 			}
 			
@@ -222,8 +225,12 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 	public Object onRetainNonConfigurationInstance() {
 		Log.v(this.getClass().getName(), "Object about to destroyed...");
         
-		loginModel.setActivity(null);
-        return loginModel;
+		//if the model is being executed when the onDestroy method is called.
+		if (loginModel != null) {
+			loginModel.setActivity(null);
+			return loginModel;
+		}
+		return null;
 	}
 
 	/**
@@ -234,7 +241,7 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 	@Override
 	protected void onPrepareDialog(int id, Dialog dialog) {
         super.onPrepareDialog(id, dialog);
-        if (id == Constants.PROGRESS_DIALOG.ordinal()) {
+        if (id == DialogConstants.PROGRESS_DIALOG.ordinal()) {
         	progressDialogDisplayed = true;
         }
 	}
@@ -246,7 +253,7 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 	 */
 	@Override
 	protected Dialog onCreateDialog(int id) {
-		if (id == Constants.PROGRESS_DIALOG.ordinal()) {
+		if (id == DialogConstants.PROGRESS_DIALOG.ordinal()) {
 	        ProgressDialog dialog = new ProgressDialog(this);
 	        dialog.setMessage("Please wait...");
 	        dialog.setCancelable(false);
