@@ -236,7 +236,7 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 						"Access and/or Secret Access keys.";
 			} 
 			else if (((AmazonServiceException)result).getStatusCode() == HttpStatus.SC_FORBIDDEN) {
-				alertDialogBox.setMessage("Invalid Secret Access key. Please re-enter your Secret Access key.");
+				alertDialogMessage = "Invalid Secret Access key. Please re-enter your Secret Access key.";
 				((EditText)findViewById(R.id.sakEntry)).setError("Invalid Secret Access key.");
 			}
 			else {

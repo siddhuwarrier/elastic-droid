@@ -92,22 +92,4 @@ public class LoginModel extends GenericModel<String, Void, Object> {
 		
 		return null;
 	}
-	
-	/**
-	 * Called in the *UI thread* after doInBackground completes.
-	 * 
-	 * @param result The results returned by doInBackground
-	 */
-	@Override
-	protected void onPostExecute(Object result) {
-		//just return the result produced to the Activity.
-		//we could process it here, but I want to keep the MVC pattern clean.
-		//Call me a f*cking pedant, if you will.
-		//...
-		//...
-		//I HEARD THAT!!!
-		if (activity != null) {
-			activity.processModelResults(result);
-		}
-	}
 }
