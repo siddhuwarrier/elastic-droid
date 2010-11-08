@@ -19,8 +19,7 @@
 
 package org.elasticdroid;
 
-import java.util.regex.Pattern;
-
+import org.apache.commons.httpclient.HttpStatus;
 import org.elasticdroid.model.LoginModel;
 import org.elasticdroid.utils.DialogConstants;
 
@@ -28,7 +27,8 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
-import android.content.pm.ActivityInfo;
+import android.content.Intent;
+import android.database.SQLException;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -38,8 +38,6 @@ import android.widget.EditText;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 
-import org.apache.commons.httpclient.HttpStatus;
-
 /**
  * An activity class that inherits from GenericActivity which inherits from Activity.
  * This is because Java doesn't allow Multiple Inheritance like nice languages like C do! ;)
@@ -47,7 +45,7 @@ import org.apache.commons.httpclient.HttpStatus;
  *
  * 2 Nov 2010
  */
-public class ElasticDroid extends GenericActivity implements OnClickListener {
+public class LoginView extends GenericActivity implements OnClickListener {
 	/** 
 	 * Private members
 	 */
@@ -60,17 +58,17 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
     private boolean alertDialogDisplayed;
     private String alertDialogMessage;
     
+    private static final int PICK_USERS = 0;
     
 	/** 
 	 * Called when the activity is first created. 
 	 * 
 	 */
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.login);
-        
-        //restore model if the activity was reloaded in the middle of model processing
+    public void onCreate(Bundle savedInstanceState) {        
+    	super.onCreate(savedInstanceState);
+    	 
+    	//restore model if the activity was reloaded in the middle of model processing
         Object retained = getLastNonConfigurationInstance();
         if (retained instanceof LoginModel) {
             Log.i(this.getClass().getName(), "Reclaiming previous background task.");
@@ -78,8 +76,20 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
             loginModel.setActivity(this); //tell loginModel that this is the new recreated activity
         } 
         else {
+        	//there was nothing running previously in the background
         	loginModel = null;
-        }
+        	
+    		//if there is no data anywhere, ask user to select
+        	//remember, username, accesskey and secretaccesskey are set.
+    		if ( (username == null) && (accessKey == null) && 
+    				(secretAccessKey == null)) {
+    			Intent userPickerIntent = new Intent();
+    			userPickerIntent.setClassName("org.elasticdroid", "org.elasticdroid.UserPickerView");
+    			startActivityForResult(userPickerIntent, PICK_USERS);
+    		}
+        }        
+        //set content view
+    	setContentView(R.layout.login);
         
         //create the alert dialog
 		alertDialogBox = new AlertDialog.Builder(this).create(); //create alert box to
@@ -168,36 +178,25 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 		//if any of username, access key, or secret access key is blank, return false
 		//and highlight the appropr. EditText box
 		if (username.trim().equals("")) {
-			editTextUsername.setError("Enter valid email address");
+			editTextUsername.setError("Username cannot be empty");
 			editTextUsername.requestFocus();
 			//return false to the click handler, so it doesn't try to login
 			return false;
 		} else if (accessKey.trim().equals("")) {
-			editTextAccessKey.setError("Non-empty string");
+			editTextAccessKey.setError("Access key cannot be empty");
 			editTextAccessKey.requestFocus();
 			
 			//return false to the click handler, so it doesn't try to login
 			return false;
 		} else if (secretAccessKey.trim().equals("")) {
 			
-			editTextSecretAccessKey.setError("Non-empty string");
+			editTextSecretAccessKey.setError("Secret Access key cannot be empty");
 			editTextSecretAccessKey.requestFocus();			
 			//set the focus
 			editTextSecretAccessKey.requestFocus();
 
 			//return false to the click handler, so it doesn't try to login
 			return false;
-		}
-		
-		//check if the username is a proper email address. Java regexes look +vely awful!
-		Pattern emailPattern = Pattern.compile("^[\\w\\.-]+@([\\w\\-]+\\.)+[A-Z]{2,4}$", 
-				Pattern.CASE_INSENSITIVE);
-		if (!emailPattern.matcher(username).find()) {
-			editTextUsername.setError("Enter valid email address");
-			editTextUsername.requestFocus();
-			
-			//return false to the click handler, so it doesn't try to login
-			return false;		
 		}
 		
 		//if all of the validation checks succeeded, check with the model.
@@ -236,8 +235,8 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 						"Access and/or Secret Access keys.";
 			} 
 			else if (((AmazonServiceException)result).getStatusCode() == HttpStatus.SC_FORBIDDEN) {
-				alertDialogMessage = "Invalid Secret Access key. Please re-enter your Secret Access key.";
-				((EditText)findViewById(R.id.sakEntry)).setError("Invalid Secret Access key.");
+				alertDialogMessage = "Invalid Secret Access key. Please re-enter your Access and/or Secret Access key.";
+				((EditText)findViewById(R.id.sakEntry)).setError("Invalid Access/Secret Access key.");
 			}
 			else {
 				//TODO a wrong SecretAccessKey is handled using a different error if the AccessKey is right.
@@ -253,8 +252,7 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 			Log.e(this.getClass().getName(), alertDialogMessage);
 			
 			alertDialogDisplayed = true;
-			alertDialogBox.setMessage(alertDialogMessage);
-			alertDialogBox.show();//show error
+
 		}
 		else if (result instanceof AmazonClientException) {
 			alertDialogMessage = "Unable to connect to AWS. Are you " +
@@ -262,12 +260,31 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 			Log.e(this.getClass().getName(), alertDialogMessage);
 			
 			alertDialogDisplayed = true;
+		}
+		else if (result instanceof IllegalArgumentException) {
+			((EditText)findViewById(R.id.usernameEntry)).setError("Invalid username");
+			alertDialogMessage = "Invalid username";
+			Log.e(this.getClass().getName(), alertDialogMessage);
+			alertDialogDisplayed = true;
+		}
+		else if (result instanceof SQLException) {
+			alertDialogMessage = "User already exists.";
+			Log.e(this.getClass().getName(), alertDialogMessage);
+			alertDialogDisplayed = true;
+		}
+		else if (result == null) {
+			Log.v(this.getClass().getName(), "Valid credentials");
+		}
+		else {
+			Log.e(this.getClass().getName(), "Unexpected error!!!");
+		}
+		
+		//display the alert dialog if the user set the displayed var to true
+		if (alertDialogDisplayed) {
 			alertDialogBox.setMessage(alertDialogMessage);
 			alertDialogBox.show();//show error
 		}
-		else {
-			Log.v(this.getClass().getName(), "Valid credentials");
-		}
+		
 	}
 	
 	@Override
@@ -319,6 +336,21 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 	public void onSaveInstanceState(Bundle saveState) {
 		Log.v(this.getClass().getName(), "Save instance state...");
 		
+		/*
+		 * define local variables to hold the username, access key info from the UI.
+		 * This is for convenience  mostly, and to avoid having to perform findViewById  
+		 * lookups multiple times 
+		*/
+		EditText editTextUsername = (EditText)findViewById(R.id.usernameEntry);
+		EditText editTextAccessKey = (EditText)findViewById(R.id.akEntry);
+		EditText editTextSecretAccessKey = (EditText)findViewById(R.id.sakEntry);
+		
+		//get the strings from the username.
+		username = editTextUsername.getText().toString(); //get the username
+		accessKey = editTextAccessKey.getText().toString(); //get the access key
+		secretAccessKey = editTextSecretAccessKey.getText().toString(); //get the secret access key
+		
+		
 		//if a dialog is displayed when this happens, dismiss it
 		if (alertDialogDisplayed) {
 			alertDialogBox.dismiss();
@@ -339,4 +371,52 @@ public class ElasticDroid extends GenericActivity implements OnClickListener {
 		alertDialogMessage = stateToRestore.getString("alertDialogMessage");
 	}
 	
+	/**
+	 * Get the results of the userpicker and handle it appropriately. The results can be:
+	 * <li>
+	 *  <ul> RESULT_CANCELLED: User pressed back button. Finish this activity too.
+	 *  <ul> RESULT_OK:
+	 * 	<li>
+	 * 		<ul> SELECTION_SIZE == 0: no pre-defined users. Ask user to enter data.
+	 * 		<ul> SELECTION_SIZE == 1: populate fields appropriately, Log the user in.
+	 *	</li>
+	 * </li>
+	 * 
+	 * http://www.brighthub.com/mobile/google-android/articles/40317.aspx#ixzz14dQdmgrG(non-Javadoc)
+	 * @see android.app.Activity#onActivityResult(int, int, android.content.Intent)
+	 */
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode,Intent data) {
+		Log.v(this.getClass().getName(), "Subactivity returned with result: " + resultCode);
+		
+		switch(resultCode) {
+		case RESULT_CANCELED: //user pressed back button
+			finish();
+			break;
+		case RESULT_OK: 
+			//if selection size is 0, there is no login data.
+			if (data.getIntExtra("SELECTION_SIZE", 1) == 0) {
+				Log.v(this.getClass().getName(), "No pre-existing user data.");
+			}
+			//there is some login data the user has selected. Call model to verify
+			//and start up ElasticDroid proper.
+			else {
+				EditText editTextUsername = (EditText)findViewById(R.id.usernameEntry);
+				EditText editTextAccessKey = (EditText)findViewById(R.id.akEntry);
+				EditText editTextSecretAccessKey = (EditText)findViewById(R.id.sakEntry);
+				
+				//set the new data to the View.
+				editTextUsername.setText(data.getStringExtra("USERNAME"));
+				editTextAccessKey.setText(data.getStringExtra("ACCESS_KEY"));
+				editTextSecretAccessKey.setText(data.getStringExtra("SECRET_ACCESS_KEY"));
+				
+				//if the data passes basic checks, then try accessing AWS
+				if (validateLoginDetails()) {
+					loginModel = new LoginModel(this);
+					loginModel.execute(username, accessKey, secretAccessKey);
+				}
+			}
+		}
+		
+	}	
 }//end of class
