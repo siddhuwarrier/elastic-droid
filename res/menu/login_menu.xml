@@ -1,0 +1,7 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+	<item android:id="@+id/menuitem_another_user" 
+	android:title="Select another user" 
+	android:visible="true" 
+	android:enabled="true" 
+	android:icon="@drawable/ic_menu_login"/>
+</menu>

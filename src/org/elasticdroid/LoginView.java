@@ -19,11 +19,11 @@
 
 package org.elasticdroid;
 
-import org.apache.commons.httpclient.HttpStatus;
+import static org.elasticdroid.utils.ResultConstants.RESULT_NEW_USER;
 
+import org.apache.commons.httpclient.HttpStatus;
 import org.elasticdroid.model.LoginModel;
 import org.elasticdroid.utils.DialogConstants;
-import static org.elasticdroid.utils.ResultConstants.*;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -33,6 +33,9 @@ import android.content.Intent;
 import android.database.SQLException;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
@@ -132,10 +135,17 @@ public class LoginView extends GenericActivity implements OnClickListener {
         }
         else if ( (username == null) && (accessKey == null) && 
 				(secretAccessKey == null)) {
-			Intent userPickerIntent = new Intent();
-			userPickerIntent.setClassName("org.elasticdroid", "org.elasticdroid.UserPickerView");
-			startActivityForResult(userPickerIntent, PICK_USERS);
+        	startUserPicker();
 		}
+    }
+    
+    /**
+     * Convenience method to start the userpicker.
+     */
+    private void startUserPicker() {
+		Intent userPickerIntent = new Intent();
+		userPickerIntent.setClassName("org.elasticdroid", "org.elasticdroid.UserPickerView");
+		startActivityForResult(userPickerIntent, PICK_USERS);
     }
     /**
      * @brief Handles the event of the login button being clicked. 
@@ -225,18 +235,16 @@ public class LoginView extends GenericActivity implements OnClickListener {
 		 * c) null: if the credentials have been validated.
 		 */
 		if (result instanceof AmazonServiceException) {
-			if (((AmazonServiceException)result).getStatusCode() == HttpStatus.SC_UNAUTHORIZED) {
+			if ((((AmazonServiceException)result).getStatusCode() == HttpStatus.SC_UNAUTHORIZED) ||
+					(((AmazonServiceException)result).getStatusCode() == HttpStatus.SC_FORBIDDEN))
+			{
 				//set errors in the access key and secret access key fields.
 				((EditText)findViewById(R.id.akEntry)).setError("Invalid credentials");
 				((EditText)findViewById(R.id.sakEntry)).setError("Invalid credentials");
 				
-				alertDialogMessage = "Invalid Access Key. Please re-enter your " +
+				alertDialogMessage = "Invalid Access and/or Secret Access key. Please re-enter your " +
 						"Access and/or Secret Access keys.";
 			} 
-			else if (((AmazonServiceException)result).getStatusCode() == HttpStatus.SC_FORBIDDEN) {
-				alertDialogMessage = "Invalid Secret Access key. Please re-enter your Access and/or Secret Access key.";
-				((EditText)findViewById(R.id.sakEntry)).setError("Invalid Access/Secret Access key.");
-			}
 			else {
 				//TODO a wrong SecretAccessKey is handled using a different error if the AccessKey is right.
 				//Handle this.
@@ -398,6 +406,10 @@ public class LoginView extends GenericActivity implements OnClickListener {
 	protected void onActivityResult(int requestCode, int resultCode,Intent data) {
 		Log.v(this.getClass().getName(), "Subactivity returned with result: " + resultCode);
 		
+		EditText editTextUsername = (EditText)findViewById(R.id.usernameEntry);
+		EditText editTextAccessKey = (EditText)findViewById(R.id.akEntry);
+		EditText editTextSecretAccessKey = (EditText)findViewById(R.id.sakEntry);
+		
 		switch(resultCode) {
 		case RESULT_CANCELED: //user pressed back button
 			finish();
@@ -409,11 +421,7 @@ public class LoginView extends GenericActivity implements OnClickListener {
 			}
 			//there is some login data the user has selected. Call model to verify
 			//and start up ElasticDroid proper.
-			else {
-				EditText editTextUsername = (EditText)findViewById(R.id.usernameEntry);
-				EditText editTextAccessKey = (EditText)findViewById(R.id.akEntry);
-				EditText editTextSecretAccessKey = (EditText)findViewById(R.id.sakEntry);
-				
+			else {				
 				//set the new data to the View.
 				editTextUsername.setText(data.getStringExtra("USERNAME"));
 				editTextAccessKey.setText(data.getStringExtra("ACCESS_KEY"));
@@ -427,9 +435,42 @@ public class LoginView extends GenericActivity implements OnClickListener {
 			}
 			break;
 		case RESULT_NEW_USER:
-			//do not do anything. Allow user to enter new username.
+			//Allow user to enter new username. Clear text fields and username details.
+			username = "";
+			accessKey = "";
+			secretAccessKey = "";
+			editTextUsername.setText("");
+			editTextAccessKey.setText("");
+			editTextSecretAccessKey.setText("");
 			break;
 		}
 		
-	}	
+	}
+	
+	/**
+	 * Overridden method to display the menu on press of the menu key
+	 * 
+	 * Inflates and displays main menu.	
+	 */
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+	    MenuInflater inflater = getMenuInflater();
+	    inflater.inflate(R.menu.login_menu, menu);
+	    return true;
+	}
+	
+	/**
+	 * Overriden method to handle selection of menu item
+	 */	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem selectedItem) {
+		switch (selectedItem.getItemId()) {
+		case R.id.menuitem_another_user:
+			startUserPicker();
+			return true;
+		default:
+			return super.onOptionsItemSelected(selectedItem);
+		}
+			
+	}
 }//end of class
