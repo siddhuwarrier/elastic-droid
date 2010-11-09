@@ -20,8 +20,10 @@
 package org.elasticdroid;
 
 import org.apache.commons.httpclient.HttpStatus;
+
 import org.elasticdroid.model.LoginModel;
 import org.elasticdroid.utils.DialogConstants;
+import static org.elasticdroid.utils.ResultConstants.*;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -78,15 +80,6 @@ public class LoginView extends GenericActivity implements OnClickListener {
         else {
         	//there was nothing running previously in the background
         	loginModel = null;
-        	
-    		//if there is no data anywhere, ask user to select
-        	//remember, username, accesskey and secretaccesskey are set.
-    		if ( (username == null) && (accessKey == null) && 
-    				(secretAccessKey == null)) {
-    			Intent userPickerIntent = new Intent();
-    			userPickerIntent.setClassName("org.elasticdroid", "org.elasticdroid.UserPickerView");
-    			startActivityForResult(userPickerIntent, PICK_USERS);
-    		}
         }        
         //set content view
     	setContentView(R.layout.login);
@@ -137,6 +130,12 @@ public class LoginView extends GenericActivity implements OnClickListener {
         	alertDialogBox.setMessage(alertDialogMessage);
         	alertDialogBox.show();
         }
+        else if ( (username == null) && (accessKey == null) && 
+				(secretAccessKey == null)) {
+			Intent userPickerIntent = new Intent();
+			userPickerIntent.setClassName("org.elasticdroid", "org.elasticdroid.UserPickerView");
+			startActivityForResult(userPickerIntent, PICK_USERS);
+		}
     }
     /**
      * @brief Handles the event of the login button being clicked. 
@@ -285,6 +284,8 @@ public class LoginView extends GenericActivity implements OnClickListener {
 			alertDialogBox.show();//show error
 		}
 		
+		//set the loginModel to null
+		loginModel = null;
 	}
 	
 	@Override
@@ -357,6 +358,11 @@ public class LoginView extends GenericActivity implements OnClickListener {
 		}
 		saveState.putBoolean("alertDialogDisplayed", alertDialogDisplayed);
 		saveState.putString("alertDialogMessage", alertDialogMessage);
+		
+		saveState.putString("username", username);
+		saveState.putString("accessKey", accessKey);
+		saveState.putString("secretAccessKey", secretAccessKey);
+		
 		//call the superclass (Activity)'s save state method
 		super.onSaveInstanceState(saveState);
 	}
@@ -369,6 +375,9 @@ public class LoginView extends GenericActivity implements OnClickListener {
 		alertDialogDisplayed = stateToRestore.getBoolean("alertDialogDisplayed");
 		Log.v(this.getClass().getName(), "alertDialogDisplayed = " + alertDialogDisplayed);
 		alertDialogMessage = stateToRestore.getString("alertDialogMessage");
+		username = stateToRestore.getString("username");
+		accessKey = stateToRestore.getString("accessKey");
+		secretAccessKey = stateToRestore.getString("secretAccessKey");
 	}
 	
 	/**
@@ -416,6 +425,10 @@ public class LoginView extends GenericActivity implements OnClickListener {
 					loginModel.execute(username, accessKey, secretAccessKey);
 				}
 			}
+			break;
+		case RESULT_NEW_USER:
+			//do not do anything. Allow user to enter new username.
+			break;
 		}
 		
 	}	

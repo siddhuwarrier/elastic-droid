@@ -1,0 +1,8 @@
+#!/bin/bash
+echo "Killing server..."
+adb kill-server
+echo "Starting server back up again..."
+adb start-server
+echo "Devices:"
+adb devices
+echo "Returning to normal user mode..."

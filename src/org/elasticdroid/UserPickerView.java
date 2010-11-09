@@ -22,15 +22,20 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 
 import org.elasticdroid.db.ElasticDroidDB;
+import static org.elasticdroid.utils.ResultConstants.*;
 
 import android.app.ListActivity;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -47,7 +52,7 @@ public class UserPickerView extends ListActivity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
+	
 		setContentView(R.layout.userpicker);
 		//get the list of users from the Database
 		userData = new ElasticDroidDB(this).listUserData();
@@ -60,38 +65,43 @@ public class UserPickerView extends ListActivity {
 			finish(); //kill the activity
 		}
 		
-		//no, there is user data. Go on an
-		String[] usernames = userData.keySet().toArray(new String[0]);
-		//add the usernames to the list adapter to display.
-		setListAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, usernames));
-		
-		ListView userPickerView = getListView();
-		userPickerView.setOnItemClickListener(new OnItemClickListener() {
-		    public void onItemClick(AdapterView<?> parent, View selectedItem,
-		        int position, long id) {
-		    	// When clicked, return result with username data etc to the parent activity
-		    	returnSelectedUserData(selectedItem);
-		    }
-		  });
+		//Add New User to list of usernames.
+		ArrayList<String> usernames = new ArrayList<String>(userData.keySet());
+		usernames.add("New user");
 
-		
-		userPickerView.setTextFilterEnabled(true);
+		//add the usernames to the list adapter to display.
+		setListAdapter(new UserPickerAdapter(this, R.layout.userpickerrow, 
+				(String[])usernames.toArray(new String[ usernames.size()]) ));
 	}
 	
-	private void returnSelectedUserData(View selectedItem) {
-		String selectedUsername = ((TextView)selectedItem).getText().toString();
-		
+	/**
+	 * Overriden listen method to capture clicks on List Item
+	 */
+	@Override
+	protected void onListItemClick(ListView list, View v, int position, long id) {
+		String selectedUsername = list.getItemAtPosition(position).toString();
 		Intent resultIntent = new Intent();
-		//add data to resultIntent
-		resultIntent.putExtra("USERNAME", selectedUsername);
-		resultIntent.putExtra("ACCESS_KEY", userData.get(selectedUsername).get(0));
-		resultIntent.putExtra("SECRET_ACCESS_KEY", userData.get(selectedUsername).get(1));
 		
-		//set result and finish
-		setResult(RESULT_OK, resultIntent);
+		Log.v(this.getClass().getName(), "Item selected: " + selectedUsername);
+		
+		//if the user wants a new user.
+		if (selectedUsername.equalsIgnoreCase("New User")) {
+			//no extras.
+			setResult(RESULT_NEW_USER,resultIntent);
+		}
+		else {
+			//add data to resultIntent
+			resultIntent.putExtra("USERNAME", selectedUsername);
+			resultIntent.putExtra("ACCESS_KEY", userData.get(selectedUsername).get(0));
+			resultIntent.putExtra("SECRET_ACCESS_KEY", userData.get(selectedUsername).get(1));
+			
+			//set result
+			setResult(RESULT_OK, resultIntent);
+		}
+		
+		//finish the activity
 		finish();
 	}
-
 	
 	/**
 	 * Handle back button.
@@ -106,4 +116,54 @@ public class UserPickerView extends ListActivity {
 		
 		return super.onKeyDown(keyCode, event);
 	}
+}
+
+
+class UserPickerAdapter extends ArrayAdapter<String> {
+
+	String[] usernames;
+	Context context;
+	/**
+	 * @param context
+	 * @param textViewResourceId
+	 */
+	public UserPickerAdapter(Context context, int textViewResourceId, String[] usernames) {
+		super(context, textViewResourceId, usernames);
+		
+		this.context = context;
+		this.usernames = usernames;
+	}
+	
+	@Override
+	public View getView(int position, View convertView, ViewGroup parent) {
+		View userPickerRow = convertView;
+		
+		if (userPickerRow == null) {
+			LayoutInflater inflater = (LayoutInflater) context.getSystemService
+				(Context.LAYOUT_INFLATER_SERVICE);
+			
+			userPickerRow = inflater.inflate(R.layout.userpickerrow, parent, false);
+		}
+		
+		//set textview
+		TextView textViewUsername = (TextView)userPickerRow.findViewById(R.id.username);
+		textViewUsername.setText(usernames[position]);
+		//set imageview
+		ImageView imageViewUsernameIcon = (ImageView)userPickerRow.findViewById(R.id.
+				username_icon);
+		
+		//if new user. set icon to new.
+		if (usernames[position].equalsIgnoreCase("New user")) {
+			//set it bold in a different font.
+			textViewUsername.setTypeface(Typeface.SANS_SERIF, Typeface.BOLD);
+			//set a different icon.
+			imageViewUsernameIcon.setImageResource(R.drawable.ic_menu_invite);
+		} else
+		{
+			imageViewUsernameIcon.setImageResource(R.drawable.ic_menu_login);
+		}
+		
+		return userPickerRow;
+	}
+	
 }
