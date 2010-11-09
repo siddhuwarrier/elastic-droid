@@ -4,4 +4,10 @@
 	android:visible="true" 
 	android:enabled="true" 
 	android:icon="@drawable/ic_menu_login"/>
+	
+	<item android:id="@+id/menuitem_about" 
+	android:title="@string/about_titletext" 
+	android:visible="true" 
+	android:enabled="true" 
+	android:icon="@drawable/ic_menu_elasticdroid"/>
 </menu>
