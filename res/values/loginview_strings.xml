@@ -1,0 +1,19 @@
+<resources>
+<string name="loginview_aws_login_textview">Log in to AWS</string>
+<string name = "loginview_aws_username_textview">AWS username:</string>
+<string name="loginview_aws_accesskey_textview">Access Key ID:</string>
+<string name="loginview_aws_secretAccessKey_textview">Secret Access Key ID:</string>
+<string name="loginview_aws_login_button">Login</string>
+<string name="loginview_alertdialogbox_button">OK</string>
+<string name="loginview_username_empty_err">Username cannot be empty</string>
+<string name="loginview_accesskey_empty_err">Access key cannot be empty</string>
+<string name="loginview_secretaccesskey_empty_err">Secret Access key cannot be empty</string>
+<string name="loginview_invalid_credentials_err">Invalid credentials</string>
+<string name="loginview_invalid_keys_dlg">Invalid Access and/or Secret Access key. Please re-enter your Access and/or Secret Access keys.</string>
+<string name="loginview_unexpected_err_dlg">Unexpected error:</string>
+<string name="loginview_bug_report_dlg">Please file a bug report.</string>
+<string name="loginview_no_connxn_dlg">Unable to connect to AWS. Are you connected to the Internet?</string>
+<string name="loginview_invalid_username_err">Invalid username</string>
+<string name="loginview_username_exists_dlg">Username already exists: </string>
+<string name="loginview_wait_dlg">Please wait...</string>
+</resources>

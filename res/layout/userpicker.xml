@@ -11,7 +11,7 @@ android:layout_height="fill_parent"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:textSize="24.5sp"
-        android:text="Login as..."
+        android:text="@string/userpickerview_choose_login"
         android:paddingBottom="20sp"
         />
         

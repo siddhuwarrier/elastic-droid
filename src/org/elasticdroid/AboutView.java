@@ -41,7 +41,7 @@ public class AboutView extends Activity implements OnTouchListener{
 		TextView aboutView = (TextView)findViewById(R.id.about_content);
 		aboutView.setOnTouchListener(this);
 		
-		this.setTitle(this.getString(R.string.about_titletext) + " " + this.getString(R.string.app_version));
+		this.setTitle(this.getString(R.string.about_titletext) + " " + this.getString(R.string.app_version)); 
 	}
 	
 	/**

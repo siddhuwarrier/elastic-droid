@@ -12,7 +12,7 @@ android:layout_height="fill_parent"
         android:layout_height="wrap_content"
         android:textSize="24.5sp"
         android:gravity="center"
-        android:text="Log in to AWS"/>
+        android:text="@string/loginview_aws_login_textview"/>
         
     <!--  horizontal line attempt -->
     <View android:layout_width="fill_parent" android:layout_height="1dip" android:background="#CCCCCC" /> 
@@ -29,7 +29,7 @@ android:layout_height="fill_parent"
 		        android:id="@+id/usernameTextView"
 		        android:layout_width="fill_parent"
 		        android:layout_height="wrap_content"
-		        android:text="AWS username:"/>
+		        android:text="@string/loginview_aws_username_textview"/>
 		    <EditText
 		        android:id="@+id/usernameEntry"
 		        android:layout_width="fill_parent"
@@ -42,7 +42,7 @@ android:layout_height="fill_parent"
 		        android:layout_width="fill_parent"
 		        android:layout_height="wrap_content"
 		        android:layout_below="@id/usernameEntry"
-		        android:text="Access Key ID:"/>
+		        android:text="@string/loginview_aws_accesskey_textview"/>
 		    <EditText
 		        android:id="@+id/akEntry"
 		        android:layout_width="fill_parent"
@@ -55,7 +55,7 @@ android:layout_height="fill_parent"
 		        android:layout_width="fill_parent"
 		        android:layout_height="wrap_content"
 		        android:layout_marginTop="5sp"
-		        android:text="Secret Access Key ID:"
+		        android:text="@string/loginview_aws_secretAccessKey_textview"
 		        android:layout_below="@id/akEntry"/>
 		    <EditText
 		        android:id="@+id/sakEntry"
@@ -71,7 +71,7 @@ android:layout_height="fill_parent"
 		        android:layout_height="wrap_content"
 		        android:layout_below="@id/sakEntry"
 		        android:layout_marginTop="10sp"
-		        android:text="Login" />
+		        android:text="@string/loginview_aws_login_button" />
 		</RelativeLayout>
 	</ScrollView>
 </LinearLayout>

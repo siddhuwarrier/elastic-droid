@@ -93,8 +93,6 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 		
 		//loop through the query and add to hashtable. Indexing starts from 1!
 		queryCursor.moveToFirst();
-		Log.v(this.getClass().getName(), "Num columns: "+ queryCursor.getColumnCount() + 
-				"Num rows: " + queryCursor.getCount() + "Col 3: "+ queryCursor.getString(2));
 		while (!queryCursor.isAfterLast()) {
 			
 			userData.put(queryCursor.getString(0), 

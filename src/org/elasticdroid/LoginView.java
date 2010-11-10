@@ -91,7 +91,7 @@ public class LoginView extends GenericActivity implements OnClickListener {
 		alertDialogBox = new AlertDialog.Builder(this).create(); //create alert box to
 		
 		//add a neutral OK button and set action.
-		alertDialogBox.setButton("Ok", new DialogInterface.OnClickListener() {			 
+		alertDialogBox.setButton(this.getString(R.string.loginview_alertdialogbox_button), new DialogInterface.OnClickListener() {			 
             //click listener on the alert box - unlock orientation when clicked.
 			//this is to prevent orientation changing when alert box locked.
             public void onClick(DialogInterface arg0, int arg1) {
@@ -187,19 +187,19 @@ public class LoginView extends GenericActivity implements OnClickListener {
 		//if any of username, access key, or secret access key is blank, return false
 		//and highlight the appropr. EditText box
 		if (username.trim().equals("")) {
-			editTextUsername.setError("Username cannot be empty");
+			editTextUsername.setError(this.getString(R.string.loginview_username_empty_err));
 			editTextUsername.requestFocus();
 			//return false to the click handler, so it doesn't try to login
 			return false;
 		} else if (accessKey.trim().equals("")) {
-			editTextAccessKey.setError("Access key cannot be empty");
+			editTextAccessKey.setError(this.getString(R.string.loginview_accesskey_empty_err));
 			editTextAccessKey.requestFocus();
 			
 			//return false to the click handler, so it doesn't try to login
 			return false;
 		} else if (secretAccessKey.trim().equals("")) {
 			
-			editTextSecretAccessKey.setError("Secret Access key cannot be empty");
+			editTextSecretAccessKey.setError(this.getString(R.string.loginview_secretaccesskey_empty_err));
 			editTextSecretAccessKey.requestFocus();			
 			//set the focus
 			editTextSecretAccessKey.requestFocus();
@@ -239,18 +239,20 @@ public class LoginView extends GenericActivity implements OnClickListener {
 					(((AmazonServiceException)result).getStatusCode() == HttpStatus.SC_FORBIDDEN))
 			{
 				//set errors in the access key and secret access key fields.
-				((EditText)findViewById(R.id.akEntry)).setError("Invalid credentials");
-				((EditText)findViewById(R.id.sakEntry)).setError("Invalid credentials");
+				((EditText)findViewById(R.id.akEntry)).setError(this.getString(R.string.
+						loginview_invalid_credentials_err));
+				((EditText)findViewById(R.id.sakEntry)).setError(this.getString(R.string.
+						loginview_invalid_credentials_err));
 				
-				alertDialogMessage = "Invalid Access and/or Secret Access key. Please re-enter your " +
-						"Access and/or Secret Access keys.";
+				alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
 			} 
 			else {
 				//TODO a wrong SecretAccessKey is handled using a different error if the AccessKey is right.
 				//Handle this.
-				alertDialogMessage = "Unexpected error: " + ((AmazonServiceException)result).
-						getStatusCode() + "--" + ((AmazonServiceException)result).getMessage()
-						+ ". Please file a bug report.";
+				alertDialogMessage =  this.getString(R.string.loginview_unexpected_err_dlg) + 
+					((AmazonServiceException)result).getStatusCode() + "--" + 
+					((AmazonServiceException)result).getMessage()+ ". " + 
+					this.getString(R.string.loginview_bug_report_dlg);
 			}	
 			
 			//whatever the error, display the error
@@ -262,20 +264,20 @@ public class LoginView extends GenericActivity implements OnClickListener {
 
 		}
 		else if (result instanceof AmazonClientException) {
-			alertDialogMessage = "Unable to connect to AWS. Are you " +
-			"connected to the Internet?";
+			alertDialogMessage = this.getString(R.string.loginview_no_connxn_dlg);
 			Log.e(this.getClass().getName(), alertDialogMessage);
 			
 			alertDialogDisplayed = true;
 		}
 		else if (result instanceof IllegalArgumentException) {
-			((EditText)findViewById(R.id.usernameEntry)).setError("Invalid username");
-			alertDialogMessage = "Invalid username";
+			((EditText)findViewById(R.id.usernameEntry)).setError(this.getString
+					(R.string.loginview_invalid_username_err));
+			alertDialogMessage = this.getString(R.string.loginview_invalid_username_err);
 			Log.e(this.getClass().getName(), alertDialogMessage);
 			alertDialogDisplayed = true;
 		}
 		else if (result instanceof SQLException) {
-			alertDialogMessage = "User already exists.";
+			alertDialogMessage = this.getString(R.string.loginview_username_exists_dlg);
 			Log.e(this.getClass().getName(), alertDialogMessage);
 			alertDialogDisplayed = true;
 		}
@@ -330,7 +332,7 @@ public class LoginView extends GenericActivity implements OnClickListener {
 	protected Dialog onCreateDialog(int id) {
 		if (id == DialogConstants.PROGRESS_DIALOG.ordinal()) {
 	        ProgressDialog dialog = new ProgressDialog(this);
-	        dialog.setMessage("Please wait...");
+	        dialog.setMessage(this.getString(R.string.loginview_wait_dlg));
 	        dialog.setCancelable(false);
 	        return dialog;
 		}

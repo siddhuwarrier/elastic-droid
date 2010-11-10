@@ -67,7 +67,7 @@ public class UserPickerView extends ListActivity {
 		
 		//Add New User to list of usernames.
 		ArrayList<String> usernames = new ArrayList<String>(userData.keySet());
-		usernames.add("New user");
+		usernames.add(this.getString(R.string.userpickerview_new_user));
 
 		//add the usernames to the list adapter to display.
 		setListAdapter(new UserPickerAdapter(this, R.layout.userpickerrow, 
@@ -85,7 +85,7 @@ public class UserPickerView extends ListActivity {
 		Log.v(this.getClass().getName(), "Item selected: " + selectedUsername);
 		
 		//if the user wants a new user.
-		if (selectedUsername.equalsIgnoreCase("New User")) {
+		if (selectedUsername.equals(this.getString(R.string.userpickerview_new_user))) {
 			//no extras.
 			setResult(RESULT_NEW_USER,resultIntent);
 		}
