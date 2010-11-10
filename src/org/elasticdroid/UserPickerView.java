@@ -47,8 +47,13 @@ import android.widget.TextView;
  */
 public class UserPickerView extends ListActivity {
 	
+	/** hashtable to store userdata (username, accesskey, secret accesskey) keyed by username*/
 	private Hashtable<String, ArrayList<String>> userData; 
 	
+	/** 
+	 * Called when the activity is first created or recreated. 
+	 * 
+	 */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -118,14 +123,23 @@ public class UserPickerView extends ListActivity {
 	}
 }
 
-
+/**
+ * Custom ArrayAdapter to display unique icons for items in the ListView.
+ * @author Siddhu Warrier
+ *
+ * 10 Nov 2010
+ */
 class UserPickerAdapter extends ArrayAdapter<String> {
 
+	/**List of usernames */
 	String[] usernames;
+	/** Context; typically the Activity that sets an object of this class as the Adapter */
 	Context context;
 	/**
+	 * Constructor. Set private members
 	 * @param context
 	 * @param textViewResourceId
+	 * @param usernames
 	 */
 	public UserPickerAdapter(Context context, int textViewResourceId, String[] usernames) {
 		super(context, textViewResourceId, usernames);
@@ -134,6 +148,12 @@ class UserPickerAdapter extends ArrayAdapter<String> {
 		this.usernames = usernames;
 	}
 	
+	/**
+	 * Overriden method called when ListView is initialised with data.
+	 * @param position The position in {@link #usernames}.
+	 * @param convertView The view to set.
+	 * @param parent
+	 */
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
 		View userPickerRow = convertView;
@@ -165,5 +185,4 @@ class UserPickerAdapter extends ArrayAdapter<String> {
 		
 		return userPickerRow;
 	}
-	
 }

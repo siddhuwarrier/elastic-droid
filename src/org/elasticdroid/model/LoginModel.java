@@ -64,8 +64,16 @@ public class LoginModel extends GenericModel<String, Void, Object> {
 	protected void onPreExecute() {
 		activity.showDialog(DialogConstants.PROGRESS_DIALOG.ordinal()); //the argument is not used
 	}
-	/* (non-Javadoc)
-	 * @see android.os.AsyncTask#doInBackground(Params[])
+	
+	/** 
+	 * Check AWS credentials, and save to DB if valid.
+	 * 
+	 * When this method finishes, the 
+	 * {@link org.elasticdroid.model.GenericModel#onPostExecute(Object)} is called, which
+	 * notifies the view.
+	 * 
+	 * This method, inherited from Android AsyncTask is automagically run in a separate background
+	 *  thread.
 	 */
 	@Override
 	protected Object doInBackground(String... params) {

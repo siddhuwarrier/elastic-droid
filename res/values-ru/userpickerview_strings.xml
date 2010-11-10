@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="userpickerview_choose_login">Вход в AWS</string>
+<string name="userpickerview_new_user">Новый пользователь</string>
+</resources>

@@ -41,15 +41,23 @@ import android.util.Log;
  */
 public class ElasticDroidDB extends SQLiteOpenHelper {
 
+	/**Name of database */
 	private static final String DATABASE_NAME = "elasticdroid.db";
+	/** Database version */
+	//TODO use properties file for this and above.
 	private static final int DATABASE_VERSION = 1;
 	
+	/**
+	 * Initialises the superclass constructor.
+	 * 
+	 * @param context the view that created this object/
+	 */
 	public ElasticDroidDB(Context context) {
 		super(context,DATABASE_NAME, null, DATABASE_VERSION);
 		
 	}
 	
-	/* 
+	/** 
 	 * create DB tables if not exist
 	 */
 	@Override
@@ -63,18 +71,9 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 				" text not null, UNIQUE("+ LoginTbl.COL_ACCESSKEY + ", " + 
 				LoginTbl.COL_SECRETACCESSKEY +"));");
 	}
-	
-	/* (non-Javadoc)
-	 * @see android.database.sqlite.SQLiteOpenHelper#onUpgrade(android.database.sqlite.SQLiteDatabase, int, int)
-	 */
-	@Override
-	public void onUpgrade(SQLiteDatabase arg0, int arg1, int arg2) {
-		// TODO Auto-generated method stub
-
-	}
-	
+		
 	/**
-	 * Convenience method to get list of users.
+	 * Convenience method to get list of users in DB {@link #DATABASE_NAME}.
 	 * @return Hashtable<String, ArrayList<String>> of user data.
 	 */
 	public Hashtable<String, ArrayList<String>> listUserData() {
@@ -110,4 +109,3 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 	
 
 }
-

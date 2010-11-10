@@ -46,27 +46,40 @@ import com.amazonaws.AmazonServiceException;
 /**
  * An activity class that inherits from GenericActivity which inherits from Activity.
  * This is because Java doesn't allow Multiple Inheritance like nice languages like C do! ;)
+ * 
  * @author Siddhu Warrier
  *
  * 2 Nov 2010
  */
 public class LoginView extends GenericActivity implements OnClickListener {
-	/** 
-	 * Private members
-	 */
+	
+	/** AWS username. Can be IAM username or AWS email address */
 	private String username;
+	/** AWS Access key for the username. Checked if it belongs to IAM username entered. But not 
+	 * checked if not IAM username. **/
 	private String accessKey;
+	/** AWS Secret Access key for the username. Checked if it belongs to IAM username entered. But  
+	 * not checked if not IAM username. **/
 	private String secretAccessKey;
+	/** Reference to loginModel object which does the credential checks and stores user details in 
+	 * DB*/
 	private LoginModel loginModel;
+	/** Dialog box for credential verification errors */
 	private AlertDialog alertDialogBox;
+	/** set to show if progress dialog displayed. Used to decide whether to restore progress dialog
+	 * when screen rotated.*/
     private boolean progressDialogDisplayed;
+    /** set to show if alert dialog displayed. Used to decide whether to restore progress dialog
+	 * when screen rotated. */
     private boolean alertDialogDisplayed;
+    /** message displayed in {@link #alertDialogBox alertDialogBox}.*/
     private String alertDialogMessage;
-    
+    /** constant to indicate reason for intent sent to {@link #UserPickerView UserPickerView}. 
+     * @see #startUserPicker()*/
     private static final int PICK_USERS = 0;
     
 	/** 
-	 * Called when the activity is first created. 
+	 * Called when the activity is first created or recreated. 
 	 * 
 	 */
     @Override
@@ -105,20 +118,21 @@ public class LoginView extends GenericActivity implements OnClickListener {
     }
     
     /**
-     * This method re-launches a dialog box if necessary. 
+     * Re-launches a dialog box if necessary. 
      * 
      * This derives from the Android lifecycle. When an Activity is destroyed and recreated, 
      * this is the order of calls made:
-     * *onSaveInstanceState()
-     * *onDestroy()
-     * *onCreate()
-     * *onStart()
-     * *onRestoreInstanceState()
-     * *onResume()
+     * <ul>
+     * <li> onSaveInstanceState()
+     * <li> onDestroy()
+     * <li> {@link #onCreate() onCreate()}
+     * <li> onStart()
+     * <li> {@link #onRestoreInstanceState(Bundle)}
+     * <li> {@link #onResume()}
      * 
-     *  So it is only in onRestoreInstanceState that we have restored the values of 
-     *  alertDialogDisplayed and alertDialogMessage. So if we need to re-display it,
-     *  we should override onResume() as well. 
+     *  So it is only in {@link #onRestoreInstanceState(Bundle)} that we have restored the values 
+     *  of alertDialogDisplayed and alertDialogMessage. So if we need to re-display it, we should
+     *  override onResume() as well. 
      */
     @Override
     public void onResume(){
@@ -218,6 +232,8 @@ public class LoginView extends GenericActivity implements OnClickListener {
 	 * 
 	 * Displays either an error message (if result is an exeception)
 	 * or the next activity.
+	 * 
+	 * Overrides
 	 * @see org.elasticdroid.GenericActivity#processModelResults(java.lang.Object)
 	 */
 	@Override
@@ -282,7 +298,10 @@ public class LoginView extends GenericActivity implements OnClickListener {
 			alertDialogDisplayed = true;
 		}
 		else if (result == null) {
-			Log.v(this.getClass().getName(), "Valid credentials");
+			alertDialogMessage = "Valid credentials. This msg will be replaced with a proper " +
+					"view.";
+			Log.e(this.getClass().getName(), alertDialogMessage);
+			alertDialogDisplayed = true;
 		}
 		else {
 			Log.e(this.getClass().getName(), "Unexpected error!!!");
@@ -298,6 +317,12 @@ public class LoginView extends GenericActivity implements OnClickListener {
 		loginModel = null;
 	}
 	
+	/**
+	 * Save reference to {@link org.elasticdroid.model.LoginModel Async Task
+	 * when object is destroyed (for instance when screen rotated).
+	 * 
+	 * This has to be done as the Async Task is running in the background.
+	 */
 	@Override
 	public Object onRetainNonConfigurationInstance() {
 		Log.v(this.getClass().getName(), "Object about to destroyed...");
@@ -341,7 +366,10 @@ public class LoginView extends GenericActivity implements OnClickListener {
 	}
 	
 	/**
-	 * Save dialog boxes if any
+	 * Saves data to restore when activity recreated.
+	 * 
+	 * Saves the state of {@link #alertDialogBox}, {@link #username}, {@link #accessKey} and
+	 * {@link #secretAccessKey}
 	 */
 	@Override
 	public void onSaveInstanceState(Bundle saveState) {
@@ -377,6 +405,16 @@ public class LoginView extends GenericActivity implements OnClickListener {
 		super.onSaveInstanceState(saveState);
 	}
 	
+	/**
+	 * Method to:
+	 * <ul>
+	 * <li> Restore {@link #alertDialogMessage} and {@link #alertDialogDisplayed}</li>
+	 * <li> Restore {@link #username}, {@link #accessKey}, and {@link #secretAccessKey}</li>
+	 * </ul> 
+	 * 
+	 * The data restored here is used in {@link #onResume()} to decide whether to redisplay dialog
+	 * and what to set in the recreated text fields, when the screen is rotated (for example).
+	 */
 	@Override
 	public void onRestoreInstanceState(Bundle stateToRestore) {
 		Log.v(this.getClass().getName(), "Restore instance state...");
@@ -392,16 +430,18 @@ public class LoginView extends GenericActivity implements OnClickListener {
 	
 	/**
 	 * Get the results of the userpicker and handle it appropriately. The results can be:
-	 * <li>
-	 *  <ul> RESULT_CANCELLED: User pressed back button. Finish this activity too.
-	 *  <ul> RESULT_OK:
-	 * 	<li>
-	 * 		<ul> SELECTION_SIZE == 0: no pre-defined users. Ask user to enter data.
-	 * 		<ul> SELECTION_SIZE == 1: populate fields appropriately, Log the user in.
-	 *	</li>
-	 * </li>
+	 * <ul>
+	 *  <li> RESULT_CANCELLED: User pressed back button. Finish this activity too.</li>
+	 *  <li> RESULT_OK:</li>
+	 * 	<ul>
+	 * 		<li> SELECTION_SIZE == 0: no pre-defined users. Ask user to enter data.</li>
+	 * 		<li> SELECTION_SIZE == 1: populate fields appropriately, Log the user in.</li>
+	 *  </ul>
+	 *  <li> {@link org.elasticdroid.utils.ResultConstants#RESULT_NEW_USER}
+	 * </ul>
 	 * 
-	 * http://www.brighthub.com/mobile/google-android/articles/40317.aspx#ixzz14dQdmgrG(non-Javadoc)
+	 * @see {@link http://www.brighthub.com/mobile/google-android/articles/40317.aspx#ixzz14dQdmgrG(non-Javadoc)
+	 * this article for more}  
 	 * @see android.app.Activity#onActivityResult(int, int, android.content.Intent)
 	 */
 	@Override

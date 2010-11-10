@@ -27,6 +27,7 @@ package org.elasticdroid.utils;
  * 9 Nov 2010
  */
 public class ResultConstants {
+	/** Returned by {@link org.elasticdroid.UserPickerView} to {@link org.elasticdroid.LoginView}*/ 
 	public static final int RESULT_NEW_USER = 2;
 	//note: RESULT_OK = -1, RESULT_CANCELED = 0, RESULT_FIRST_USER = 1
 	//so custom user results should start from 2.

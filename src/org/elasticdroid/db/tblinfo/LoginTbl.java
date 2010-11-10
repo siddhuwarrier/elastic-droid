@@ -21,14 +21,21 @@ package org.elasticdroid.db.tblinfo;
 import android.provider.BaseColumns;
 
 /**
+ * Class to hold metadata for the table LoginTbl in the database
+ * {@link org.elasticdroid.db.ElasticDroidDB.#DATABASE_NAME}.
  * @author Siddhu Warrier
  *
  * 4 Nov 2010
  */
 public class LoginTbl implements BaseColumns {
+	/** table name */
 	public static final String TBL_NAME = "LoginTbl";
-	public static final int NUM_COLS = 3; 
+	/** Number of cols in the table */
+	public static final int NUM_COLS = 3;
+	/** column to hold AWS username */
 	public static final String COL_USERNAME = "username";
+	/** column to hold associated AWS access key */
 	public static final String COL_ACCESSKEY = "accesskey";
+	/** column to hold associated AWS secret access key */
 	public static final String COL_SECRETACCESSKEY="secretaccesskey";
 }

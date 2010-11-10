@@ -1,0 +1,19 @@
+<resources>
+<string name="loginview_aws_login_textview">Вход в AWS</string>
+<string name = "loginview_aws_username_textview">AWS пользователь:</string>
+<string name="loginview_aws_accesskey_textview">Ключ доступа:</string>
+<string name="loginview_aws_secretAccessKey_textview">Секретный ключ доступа:</string>
+<string name="loginview_aws_login_button">Войти</string>
+<string name="loginview_alertdialogbox_button">ОК</string>
+<string name="loginview_username_empty_err">Имя пользователя не может быть пустым</string>
+<string name="loginview_accesskey_empty_err">Ключ доступа не может быть пустым</string>
+<string name="loginview_secretaccesskey_empty_err">Секретный ключ доступа не может быть пустым</string>
+<string name="loginview_invalid_credentials_err">Неправильные данные доступа</string>
+<string name="loginview_invalid_keys_dlg">Неправильный ключ доступа и/или секретный ключ доступа. Пожалуйста, введите заново ваш секретный ключ доступа и/или ключ доступа.</string>
+<string name="loginview_unexpected_err_dlg">Неожтданная ошибка:</string>
+<string name="loginview_bug_report_dlg">Пожалуйста, пришлите отчет об ошибке.</string>
+<string name="loginview_no_connxn_dlg">Нет возможности подключиться к AWS. Пожалуйста, проверьте подключение к сети интернет.</string>
+<string name="loginview_invalid_username_err">Неправильное имя пользователя</string>
+<string name="loginview_username_exists_dlg">Данный пользователь уже зарегистрирован</string>
+<string name="loginview_wait_dlg">Пожалуйста, подождите...</string>
+</resources>
