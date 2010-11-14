@@ -71,7 +71,18 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 				" text not null, UNIQUE("+ LoginTbl.COL_ACCESSKEY + ", " + 
 				LoginTbl.COL_SECRETACCESSKEY +"));");
 	}
+	
+	/**
+	 * onUpgrade: to be executed when change made to DB.
+	 * 
+	 * Must be overriden on pain of death.
+	 * 
+	 */
+	@Override
+	public void onUpgrade(SQLiteDatabase db, int a, int b) {
 		
+	}
+	
 	/**
 	 * Convenience method to get list of users in DB {@link #DATABASE_NAME}.
 	 * @return Hashtable<String, ArrayList<String>> of user data.

@@ -297,24 +297,31 @@ public class LoginView extends GenericActivity implements OnClickListener {
 			Log.e(this.getClass().getName(), alertDialogMessage);
 			alertDialogDisplayed = true;
 		}
-		else if (result == null) {
-			alertDialogMessage = "Valid credentials. This msg will be replaced with a proper " +
-					"view.";
-			Log.e(this.getClass().getName(), alertDialogMessage);
-			alertDialogDisplayed = true;
-		}
-		else {
+		else if (result != null) {
 			Log.e(this.getClass().getName(), "Unexpected error!!!");
 		}
 		
+		//set the loginModel to null
+		loginModel = null;
 		//display the alert dialog if the user set the displayed var to true
 		if (alertDialogDisplayed) {
 			alertDialogBox.setMessage(alertDialogMessage);
 			alertDialogBox.show();//show error
 		}
-		
-		//set the loginModel to null
-		loginModel = null;
+		//if alertdialogdisplayed is false, that means cred verification was successful.
+		//display dashboard
+		else {
+			//TODO add the ability to change the default dashboard for a user
+			finish(); //finish the activity; we dont want the user to be able to return to this screen using the 
+			//back key.
+			Intent displayDashboardIntent = new Intent();
+			displayDashboardIntent.setClassName("org.elasticdroid", "org.elasticdroid.EC2DashboardView");
+			//pass the username, access key, and secret access key to the dashboard as arguments
+			displayDashboardIntent.putExtra("org.elasticdroid.LoginView.loginData", 
+					new String[]{username, accessKey, secretAccessKey});
+			
+			startActivity(displayDashboardIntent);
+		}
 	}
 	
 	/**
@@ -417,9 +424,9 @@ public class LoginView extends GenericActivity implements OnClickListener {
 	 */
 	@Override
 	public void onRestoreInstanceState(Bundle stateToRestore) {
+		super.onRestoreInstanceState(stateToRestore);
 		Log.v(this.getClass().getName(), "Restore instance state...");
 		
-		super.onRestoreInstanceState(stateToRestore);
 		alertDialogDisplayed = stateToRestore.getBoolean("alertDialogDisplayed");
 		Log.v(this.getClass().getName(), "alertDialogDisplayed = " + alertDialogDisplayed);
 		alertDialogMessage = stateToRestore.getString("alertDialogMessage");

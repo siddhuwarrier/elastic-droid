@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="ec2dashview_region">Region</string>
+<string name="ec2dashview_title">EC2 Dashboard</string>
+<string name="ec2dashview_runninginstances"><b>Running Instances: </b></string>
+<string name="ec2dashview_stoppedinstances"><b>Stopped Instances: </b></string>
+<string name="ec2dashview_elasticip"><b>Elastic IPs: </b></string>
+<string name="ec2dashview_securitygroups"><b>Security Groups: </b></string>
+<string name="ec2dashview_keypairs"><b>Keypairs: </b></string>
+<string name="ec2dashview_illegal_arg_exception"><b>Invalid args passed to model. 
+Please file a bug report.</b></string>
+</resources>
