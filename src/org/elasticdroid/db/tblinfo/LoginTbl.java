@@ -37,5 +37,7 @@ public class LoginTbl implements BaseColumns {
 	/** column to hold associated AWS access key */
 	public static final String COL_ACCESSKEY = "accesskey";
 	/** column to hold associated AWS secret access key */
-	public static final String COL_SECRETACCESSKEY="secretaccesskey";
+	public static final String COL_SECRETACCESSKEY = "secretaccesskey";
+	/** column to hold the default region */
+	public static final String COL_DEFAULTREGION = "defaultregion";
 }

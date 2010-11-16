@@ -21,6 +21,8 @@ package org.elasticdroid;
 
 import static org.elasticdroid.utils.ResultConstants.RESULT_NEW_USER;
 
+import java.util.HashMap;
+
 import org.apache.commons.httpclient.HttpStatus;
 import org.elasticdroid.model.LoginModel;
 import org.elasticdroid.utils.DialogConstants;
@@ -311,15 +313,22 @@ public class LoginView extends GenericActivity implements OnClickListener {
 		//if alertdialogdisplayed is false, that means cred verification was successful.
 		//display dashboard
 		else {
+			HashMap<String, String> connectionData = new HashMap<String, String>();
+			
 			//TODO add the ability to change the default dashboard for a user
 			finish(); //finish the activity; we dont want the user to be able to return to this screen using the 
 			//back key.
 			Intent displayDashboardIntent = new Intent();
 			displayDashboardIntent.setClassName("org.elasticdroid", "org.elasticdroid.EC2DashboardView");
 			//pass the username, access key, and secret access key to the dashboard as arguments
-			displayDashboardIntent.putExtra("org.elasticdroid.LoginView.loginData", 
-					new String[]{username, accessKey, secretAccessKey});
+			//create a HashMap<String,String> to hold the connection data
+			connectionData.put("username",username);
+			connectionData.put("accessKey", accessKey);
+			connectionData.put("secretAccessKey", secretAccessKey);
 			
+			//add connection data to intent, and start new activity
+			displayDashboardIntent.putExtra("org.elasticdroid.LoginView.connectionData", 
+					connectionData);
 			startActivity(displayDashboardIntent);
 		}
 	}

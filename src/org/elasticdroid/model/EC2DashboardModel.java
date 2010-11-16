@@ -18,7 +18,7 @@
  */
 package org.elasticdroid.model;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 
 import org.elasticdroid.GenericListActivity;
 import org.elasticdroid.utils.AWSConstants;
@@ -40,14 +40,13 @@ import com.amazonaws.services.ec2.model.Reservation;
  *
  * 14 Nov 2010
  */
-public class EC2DashboardModel extends GenericListModel<Hashtable<String, String>, Void, Object> {
+public class EC2DashboardModel extends GenericListModel<HashMap<String, String>, Void, Object> {
 	/**
 	 * 
 	 * @param genericActivity
 	 */
 	public EC2DashboardModel(GenericListActivity genericActivity) {
 		super(genericActivity);
-		// TODO Auto-generated constructor stub
 	}
 	
 	/**
@@ -95,9 +94,9 @@ public class EC2DashboardModel extends GenericListModel<Hashtable<String, String
 	 * </ul>
 	 */
 	@Override
-	protected Object doInBackground(Hashtable<String, String>... params) {
-		Hashtable<String, String> connectionData;
-		Hashtable<String, Integer> dashboardData;
+	protected Object doInBackground(HashMap<String, String>... params) {
+		HashMap<String, String> connectionData;
+		HashMap<String, Integer> dashboardData;
 		
 		//we accept only one param, but AsyncTask forces us to potentially accept
 		//a whole bloody lot of them. :P
@@ -120,7 +119,7 @@ public class EC2DashboardModel extends GenericListModel<Hashtable<String, String
 		AmazonEC2Client amazonEC2Client = new AmazonEC2Client(credentials);
 		amazonEC2Client.setEndpoint(connectionData.get("endpoint"));
 		//initialise result holder variable
-		dashboardData = new Hashtable<String, Integer>();
+		dashboardData = new HashMap<String, Integer>();
 		
 		try {
 			//get the number of running and stopped instances

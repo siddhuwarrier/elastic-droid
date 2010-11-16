@@ -18,12 +18,14 @@
  */
 package org.elasticdroid.db;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
 
 import org.elasticdroid.db.tblinfo.LoginTbl;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -68,19 +70,21 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 		db.execSQL("Create TABLE " + LoginTbl.TBL_NAME + "(" + LoginTbl._ID + " integer " +
 				"primary key autoincrement, " + LoginTbl.COL_USERNAME + " text not null UNIQUE, " +
 				LoginTbl.COL_ACCESSKEY + " text not null, " + LoginTbl.COL_SECRETACCESSKEY +
-				" text not null, UNIQUE("+ LoginTbl.COL_ACCESSKEY + ", " + 
+				" text not null," + LoginTbl.COL_DEFAULTREGION + " text, " + "UNIQUE("+ LoginTbl.COL_ACCESSKEY + ", " +  
 				LoginTbl.COL_SECRETACCESSKEY +"));");
 	}
 	
 	/**
 	 * onUpgrade: to be executed when change made to DB.
 	 * 
-	 * Must be overriden on pain of death.
+	 * This is used to upgrade from v1 to v2 atm. will be useful for
+	 * anybody who might have installed tags from iteration 1. Adds a new column to store
+	 * default region.
 	 * 
+	 * Which is to say, nobody. But nevertheless..
 	 */
 	@Override
-	public void onUpgrade(SQLiteDatabase db, int a, int b) {
-		
+	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 	}
 	
 	/**
@@ -118,5 +122,65 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 		return userData;
 	}
 	
-
+	/**
+	 * get the default region for the user passed as argument
+	 * @param username
+	 * @return
+	 * @throws SQLException 
+	 */
+	public String getDefaultRegion(String username) throws SQLException {
+		SQLiteDatabase db = this.getReadableDatabase();
+		String defaultRegion = null;
+		Cursor queryCursor;
+		
+		try {
+			queryCursor = db.query(LoginTbl.TBL_NAME, 
+					new String[]{LoginTbl.COL_DEFAULTREGION}, 
+					LoginTbl.COL_USERNAME + "= ?", 
+					new String[]{username}, 
+					null, 
+					null, 
+					null);
+			if (queryCursor.getCount() != 1) {
+				throw new SQLException("No data");
+			}
+			
+			queryCursor.moveToFirst();
+			defaultRegion = queryCursor.getString(0);
+		}
+		catch(SQLException exception) {
+			throw exception;
+		}
+		finally {
+			db.close();
+		}
+		
+		return defaultRegion;
+	}
+	
+	/**
+	 * Set the default region
+	 * @param username
+	 * @param defaultRegion
+	 * @throws SQLException
+	 */
+	public void setDefaultRegion(String username, String defaultRegion) {
+		SQLiteDatabase db = this.getReadableDatabase();
+		
+		ContentValues updateValues = new ContentValues();
+		updateValues.put(LoginTbl.COL_DEFAULTREGION, defaultRegion);
+		
+		try {
+			db.update(LoginTbl.TBL_NAME, 
+				updateValues, 
+				LoginTbl.COL_USERNAME + "=?", 
+				new String[]{username});
+		}
+		catch(Exception ignore) {
+			Log.e("AWSUtilities.setDefaultRegion:", ignore.getMessage());
+		}
+		finally {
+			db.close();
+		}
+	}
 }
