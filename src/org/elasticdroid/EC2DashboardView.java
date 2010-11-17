@@ -34,6 +34,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
@@ -88,6 +91,10 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
     private String selectedRegion;
     /** boolean to indicate if progress dialog is displayed*/
     private boolean progressDialogDisplayed;
+    /**boolean to indicate if an error that occurred is sufficiently serious to have the activity
+     * killed.
+     */
+    private boolean killActivityOnError;
 	
 	/**
 	 * Called when the Activity is first started, or recreated (for instance when user turns screen around)
@@ -122,13 +129,16 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 					//this is to prevent orientation changing when alert box locked.
 		            public void onClick(DialogInterface arg0, int arg1) {
 		            	alertDialogDisplayed = false;
-		            	//if an error occurs, return the user to the login screen
-		            	finish();
-		            	Intent loginIntent = new Intent();
-		            	loginIntent.setClassName("org.elasticdroid", "org.elasticdroid.LoginView");
-		            	startActivity(loginIntent);
-		            	
-		            	alertDialogBox.dismiss();
+		            	alertDialogBox.dismiss(); //dismiss dialog.
+		            	//if an error occurs that is serious enough return the user to the login 
+		            	//screen. THis happens due to exceptions caused by programming errors and
+		            	//exceptions caused due to invalid credentials.
+		            	if (killActivityOnError) {
+			            	finish();
+			            	Intent loginIntent = new Intent();
+			            	loginIntent.setClassName("org.elasticdroid", "org.elasticdroid.LoginView");
+			            	startActivity(loginIntent);
+		            	}
 		            }
 		});
 		
@@ -139,7 +149,19 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 	
 	/**
 	 * Restore state of the activity on destroy/stop
-	 * This method is called after we restore the login model.
+	 * This method is called when the activity is restarted.
+	 * 
+	 * Restores:
+	 * <ul>
+	 * <li> boolean to indicate if alert dialog box is displayed.</li>
+	 * <li> alert dialog box string.</li>
+	 * <li> boolean to indicate if progress dialog is displayed.</li>
+	 * <li> List of regions available. This doesn't have to be queried
+	 * everytime, as AWS are unlikely to add new regions in the lifetime of this app.
+	 * This improves responsiveness. </li>
+	 * </ul>
+	 * 
+	 * It restores 
 	 */
 	@SuppressWarnings("unchecked")
 	@Override
@@ -151,26 +173,23 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 		Log.v(this.getClass().getName(), "alertDialogDisplayed = " + alertDialogDisplayed);
 		alertDialogMessage = stateToRestore.getString("alertDialogMessage");
 		progressDialogDisplayed = stateToRestore.getBoolean("progressDialogDisplayed");
-		
 		Log.v(this.getClass().getName(), "onRestoreInstanceState:progress dialog displayed=" + progressDialogDisplayed);
 		
-		//if the model is running, don't bother restoring dashboard data. If not, restore
-		if (ec2DashboardModel == null) {
-			Log.v(this.getClass().getName(), "Restoring dashboardData...");
-			
-			try {
-				dashboardData = (HashMap<String, Integer>) stateToRestore.
-					getSerializable("dashboardData");
-			}
-			catch(Exception exception) {
-				//no data in the restore state. So just ignore.
-				Log.e(this.getClass().getName(), "I should never come here:" + exception);
-				finish();
-			}
+		//restore dashboard data if any.
+		Log.v(this.getClass().getName(), "Restoring dashboardData...");
+		
+		try {
+			dashboardData = (HashMap<String, Integer>) stateToRestore.
+				getSerializable("dashboardData");
+		}
+		catch(Exception exception) {
+			//no data in the restore state. So just ignore.
+			Log.e(this.getClass().getName(), "I should never come here:" + exception);
+			finish();
 		}
 		
-		Log.v(this.getClass().getName(), "Restoring regionData...");
 		//restore region data
+		Log.v(this.getClass().getName(), "Restoring regionData...");
 		try {
 			regionData = (HashMap<String, String>) stateToRestore.
 			getSerializable("regionData");
@@ -180,13 +199,24 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 			Log.e(this.getClass().getName(), "I should never come here:" + exception);
 			finish();
 		}
+		
+		
 		//restore default region
 		selectedRegion = stateToRestore.getString("selectedRegion");
 	}
 	
 	/**
-	 * Resume operation, including re-populating the List if necessary,
-	 * or calling the model to get the ListView data.
+	 * Resume operation of Activity. This method performs the following tasks:
+	 * <ul>
+	 * <li>Gets a reference to the model ({@link org.elasticdroid.model.EC2DashboardModel Async 
+	 * Task and points it to the activity again.Only if the Activity was destroyed and 
+	 * recreated.</li>
+	 * <li>Kills progress dialog if the model finished executing before the activity
+	 * came back up. Only if the Activity was destroyed and recreated.</li>
+	 * <li>Restores region data, or queries model to get region data if none.</li>
+	 * <li>Re-displays alert dialog box if there was an alert dialog box when activity destroyed.
+	 * Only if the Activity was destroyed and recreated.</li>
+	 * </ul>
 	 */
 	@Override
 	public void onResume() {
@@ -226,18 +256,18 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 			//if default region does not exist, set one by default. Heehee
 			retrieveRegionData();
 		}
-		//populate the android spinner
+		
+		//populate the android spinner with region data
 		 ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<String>(this, 
-				 R.layout.regionspinnerrow, 
+				 R.layout.regionspinneritem, 
 				 (String[])regionData.keySet().toArray(new String[regionData.keySet().size()]));
-		 spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		 spinnerAdapter.setDropDownViewResource(R.layout.regionspinnerdropdownitem);
 		 
 		 //get the spinner and set the adapter as ITS adapter
 		 Spinner regionSpinner = ((Spinner) findViewById(R.id.ec2DashboardRegionSpinner));
 		 regionSpinner.setAdapter(spinnerAdapter);
 		 //listen to changes.
 		 regionSpinner.setOnItemSelectedListener(this);
-		 
 		 //set the spinner to the selected region (which is the default region if nothing has been
 		 //selected by the user
 		 //for this, we need to iterate through the regions and find the position of the selected region
@@ -258,7 +288,7 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 		 //set the selection.
 		 regionSpinner.setSelection(selectedRegionPosition);
 		 
-		
+		//restore alert dialog box if any.
 		if (alertDialogDisplayed) {
         	alertDialogBox.setMessage(alertDialogMessage);
         	alertDialogBox.show();
@@ -278,17 +308,6 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 	    	}
 		}
 		//the third case is the model is already executing...
-	}
-	
-	/**
-	 * Execute the model
-	 */
-	private void executeModel() {
-		ec2DashboardModel = new EC2DashboardModel(this);
-		//add the endpoint for this region to connectionData
-		//it's not nice to modify a member like this, now, is it?
-		connectionData.put("endpoint", regionData.get(selectedRegion));
-		ec2DashboardModel.execute(connectionData);
 	}
 	
 	/**
@@ -320,14 +339,17 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 		else if (result instanceof AmazonServiceException) {
 			alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
 			alertDialogDisplayed = true;
+			killActivityOnError = true;
 		}
 		else if (result instanceof AmazonClientException) {
 			alertDialogMessage = this.getString(R.string.loginview_no_connxn_dlg);
 			alertDialogDisplayed = true;
+			killActivityOnError = false;
 		}
 		else if (result instanceof IllegalArgumentException) {
 			alertDialogMessage = this.getString(R.string.ec2dashview_illegal_arg_exception);
 			alertDialogDisplayed = true;
+			killActivityOnError = true;
 		}
 		
 		//set the model to null. Important for when user destroys the screen by tilting it.
@@ -338,30 +360,6 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 			alertDialogBox.setMessage(alertDialogMessage);
 			alertDialogBox.show();//show error
 		}
-	}
-	
-	/**
-	 * TODO Add comments
-	 * @param result
-	 */
-	private void populateListView() {
-		ArrayList<String> dashboardItems = new ArrayList<String>();
-		
-		//add entries to dashboard items
-		dashboardItems.add(this.getString(R.string.ec2dashview_runninginstances) + 
-			dashboardData.get("runningInstances"));
-		dashboardItems.add(this.getString(R.string.ec2dashview_stoppedinstances) + 
-			dashboardData.get("stoppedInstances"));
-		dashboardItems.add(this.getString(R.string.ec2dashview_elasticip) + 
-			dashboardData.get("elasticIp"));
-		dashboardItems.add(this.getString(R.string.ec2dashview_securitygroups) + 
-			dashboardData.get("securityGroups"));
-		dashboardItems.add(this.getString(R.string.ec2dashview_keypairs) + 
-			dashboardData.get("keyPairs"));
-			
-		//add the dashboard items to the list adapter to display.
-		setListAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, 
-				(String[])dashboardItems.toArray(new String[ dashboardItems.size()]) ));
 	}
 	
 	/**
@@ -417,34 +415,17 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 		}
 		return null;
 	}
-
-	/**
-	 * Function that handles the display of a progress dialog. 
-	 * Overriden from Activity and not GenericActivity
-	 * @param id DIalog ID - Special treatment for Constants.PROGRESS_DIALOG
-	 */
-	@Override
-	protected Dialog onCreateDialog(int id) {
-		if (id == DialogConstants.PROGRESS_DIALOG.ordinal()) {
-	        ProgressDialog dialog = new ProgressDialog(this);
-	        dialog.setMessage(this.getString(R.string.loginview_wait_dlg));
-	        dialog.setCancelable(false);
-	        
-	        return dialog;
-		}
-		//if some other sort of dialog...
-        return super.onCreateDialog(id);
-	}
 	
-	@Override
-	protected void onPrepareDialog (int id, Dialog dialog, Bundle args) {
-		super.onPrepareDialog(id, dialog);
-		
-		if (id == DialogConstants.PROGRESS_DIALOG.ordinal()) {
-			progressDialogDisplayed = true;
-			Log.v(this.getClass().getName(), "progress dialog displayed=" + 
-					progressDialogDisplayed);
-		}
+	/**
+	 * Execute the model to retrieve EC2 data for the selected region.
+	 * The model runs in a different thread and calls processModelResults when done. 
+	 */
+	private void executeModel() {
+		ec2DashboardModel = new EC2DashboardModel(this);
+		//add the endpoint for this region to connectionData
+		//it's not nice to modify a member like this, now, is it?
+		connectionData.put("endpoint", regionData.get(selectedRegion));
+		ec2DashboardModel.execute(new HashMap<?, ?>[]{connectionData});
 	}
 	
 	private void retrieveRegionData() {
@@ -489,10 +470,58 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 		//set the selectedRegion as default region.
 		selectedRegion = defaultRegion;
 	}
+	
+	/**
+	 * Populates the list view with EC2 dashboard data for the selected region.
+	 * This method is called by {@link EC2DashboardView.processModelResults}.
+	 */
+	private void populateListView() {
+		ArrayList<String> dashboardItems = new ArrayList<String>();
+		
+		//add entries to dashboard items
+		dashboardItems.add(this.getString(R.string.ec2dashview_runninginstances) + 
+			dashboardData.get("runningInstances"));
+		dashboardItems.add(this.getString(R.string.ec2dashview_stoppedinstances) + 
+			dashboardData.get("stoppedInstances"));
+		dashboardItems.add(this.getString(R.string.ec2dashview_elasticip) + 
+			dashboardData.get("elasticIp"));
+		dashboardItems.add(this.getString(R.string.ec2dashview_securitygroups) + 
+			dashboardData.get("securityGroups"));
+		dashboardItems.add(this.getString(R.string.ec2dashview_keypairs) + 
+			dashboardData.get("keyPairs"));
+			
+		//add the dashboard items to the list adapter to display.
+		setListAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, 
+				(String[])dashboardItems.toArray(new String[ dashboardItems.size()]) ));
+	}
+	
+	/**
+	 * Function that handles the display of a progress dialog. 
+	 * Overriden from Activity and not GenericActivity
+	 * @param id Dialog ID - Special treatment for Constants.PROGRESS_DIALOG
+	 */
+	@Override
+	protected Dialog onCreateDialog(int id) {
+		if (id == DialogConstants.PROGRESS_DIALOG.ordinal()) {
+	        ProgressDialog dialog = new ProgressDialog(this);
+	        dialog.setMessage(this.getString(R.string.loginview_wait_dlg));
+	        dialog.setCancelable(false);
+	        
+			progressDialogDisplayed = true;
+			Log.v(this.getClass().getName(), "progress dialog displayed=" + 
+					progressDialogDisplayed);
+			
+	        return dialog;
+		}
+		//if some other sort of dialog...
+        return super.onCreateDialog(id);
+	}
 
-	/* (non-Javadoc)
-	 * @see android.widget.AdapterView.OnItemSelectedListener#onItemSelected(android.widget.AdapterView, android.view.View, int, long)
-	 * This function is executed every time we rotate the screen! so check and execute oinly if there is a change.
+	/** 
+	 * Method to handle the selection of an item in the region spinner box.
+	 * If a different region is selected, it calls the model to get data
+	 * for the selected region.
+	 * Implementation for interface @link {@link OnItemSelectedListener}.
 	 */
 	@Override
 	public void onItemSelected(AdapterView<?> selectedItem, View view, int pos,
@@ -512,13 +541,57 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see android.widget.AdapterView.OnItemSelectedListener#onNothingSelected(android.widget.AdapterView)
+	/** 
+	 * Empty method called if the region spinner box is invoked and nothing is selected. Nothing 
+	 * to do here.
 	 */
 	@Override
-	public void onNothingSelected(AdapterView<?> arg0) {
-		// TODO Auto-generated method stub
-		
+	public void onNothingSelected(AdapterView<?> arg0) {		
+	}
+	
+	/**
+	 * Overridden method to display the menu on press of the menu key
+	 * 
+	 * Inflates and displays dashboard menu.	
+	 */
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+	    MenuInflater inflater = getMenuInflater();
+	    inflater.inflate(R.menu.dashboard_menu, menu);
+	    return true;
+	}
+	
+	/**
+	 * Overriden method to handle selection of menu item
+	 */	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem selectedItem) {
+		switch (selectedItem.getItemId()) {
+		case R.id.dashboard_menuitem_another_user:
+			finish(); //kill this activity and start login activity
+        	Intent loginIntent = new Intent();
+        	loginIntent.setClassName("org.elasticdroid", "org.elasticdroid.LoginView");
+        	startActivity(loginIntent);
+			return true;
+		case R.id.dashboard_menuitem_about:
+			Intent aboutIntent = new Intent(this, AboutView.class);
+			startActivity(aboutIntent);
+			return true;
+		case R.id.dashboard_menuitem_refresh:
+			//reload data for current region by restarting model execution
+			executeModel();
+			return true;
+		case R.id.dashboard_menuitem_default_region:
+			Intent setDefaultRegionIntent = new Intent();
+			setDefaultRegionIntent.setClassName("org.elasticdroid", 
+					"org.elasticdroid.RegionsView");
+			setDefaultRegionIntent.putExtra("regionData", new ArrayList<String>(
+					regionData.keySet()));
+			startActivity(setDefaultRegionIntent);
+			return true;
+		default:
+			return super.onOptionsItemSelected(selectedItem);
+		}
 	}
 }
 

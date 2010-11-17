@@ -27,7 +27,6 @@ android:layout_height="fill_parent"
 		android:text="@string/ec2dashview_region"
 		android:textSize="22sp"
 		android:textColor="#ffffff"
-		android:textStyle="bold"
 		android:layout_gravity="center_vertical"
 		android:paddingRight="10sp"
 		/>

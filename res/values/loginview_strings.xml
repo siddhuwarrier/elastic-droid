@@ -16,4 +16,5 @@
 <string name="loginview_invalid_username_err">Invalid username</string>
 <string name="loginview_username_exists_dlg">Username already exists: </string>
 <string name="loginview_wait_dlg">Please wait...</string>
+<string name="loginview_switch_user">Switch user</string>
 </resources>

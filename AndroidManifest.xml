@@ -25,6 +25,12 @@
     <activity 
     	android:label="" android:name=".EC2DashboardView">
 	</activity>
+	
+	<activity 
+    	android:label="@string/regionsview_title" android:name=".RegionsView"
+    	android:theme="@android:style/Theme.Dialog">
+    	>
+	</activity>
 </application>
 
 

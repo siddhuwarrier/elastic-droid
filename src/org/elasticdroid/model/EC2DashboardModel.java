@@ -40,7 +40,8 @@ import com.amazonaws.services.ec2.model.Reservation;
  *
  * 14 Nov 2010
  */
-public class EC2DashboardModel extends GenericListModel<HashMap<String, String>, Void, Object> {
+public class EC2DashboardModel extends GenericListModel<HashMap<?,?>, 
+	Void, Object> {
 	/**
 	 * 
 	 * @param genericActivity
@@ -93,8 +94,9 @@ public class EC2DashboardModel extends GenericListModel<HashMap<String, String>,
 	 * </li>
 	 * </ul>
 	 */
+	@SuppressWarnings("unchecked")
 	@Override
-	protected Object doInBackground(HashMap<String, String>... params) {
+	protected Object doInBackground(HashMap<?,?>... params) {
 		HashMap<String, String> connectionData;
 		HashMap<String, Integer> dashboardData;
 		
@@ -104,7 +106,7 @@ public class EC2DashboardModel extends GenericListModel<HashMap<String, String>,
 			return new IllegalArgumentException("Only one Hashtable<String,String> parameter " +
 					"should be passed.");
 		}
-		connectionData = params[0]; //convenience variable, so that
+		connectionData = (HashMap<String, String>)params[0]; //convenience variable, so that
 		//i dont have to keep typing params[0] everywhere in this method.;)
 		
 		// TODO Auto-generated method stub

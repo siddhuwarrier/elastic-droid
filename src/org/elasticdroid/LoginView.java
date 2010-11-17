@@ -523,16 +523,15 @@ public class LoginView extends GenericActivity implements OnClickListener {
 	@Override
 	public boolean onOptionsItemSelected(MenuItem selectedItem) {
 		switch (selectedItem.getItemId()) {
-		case R.id.menuitem_another_user:
+		case R.id.login_menuitem_another_user:
 			startUserPicker();
 			return true;
-		case R.id.menuitem_about:
+		case R.id.login_menuitem_about:
 			Intent aboutIntent = new Intent(this, AboutView.class);
 			startActivity(aboutIntent);
 			return true;
 		default:
 			return super.onOptionsItemSelected(selectedItem);
 		}
-			
 	}
 }//end of class
