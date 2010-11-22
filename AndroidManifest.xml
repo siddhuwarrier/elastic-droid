@@ -27,7 +27,7 @@
 	</activity>
 	
 	<activity 
-    	android:label="@string/regionsview_title" android:name=".RegionsView"
+    	android:label="@string/regionsview_title" android:name=".DefaultRegionView"
     	android:theme="@android:style/Theme.Dialog">
     	>
 	</activity>

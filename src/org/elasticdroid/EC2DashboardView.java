@@ -95,7 +95,10 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
      * killed.
      */
     private boolean killActivityOnError;
-	
+    /**
+     * hack
+     */
+	private boolean defaultRegionChanged;
 	/**
 	 * Called when the Activity is first started, or recreated (for instance when user turns screen around)
 	 * Suppressing warnings when deserialising object and casting to Hashmap<String, String>
@@ -221,6 +224,16 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 	@Override
 	public void onResume() {
 		super.onResume(); //call base class method
+		
+		//do not execute any of this if the default region has been changed.
+		//this is a bit of a hack but has been figured out to be the best way
+		//to ensure that data is loaded properly when the default region is changed.
+		//that is, we switch the user automatically to the new default region. Too tired to explain
+		//but trust me, leave this in here!
+		if (defaultRegionChanged) {
+			defaultRegionChanged = false;
+			return;
+		}
         
     	//restore model object if one was saved. This happens when the activity is destroyed
     	//when the model is executing in a background thread.
@@ -236,11 +249,10 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
             //the model will then call the new activity's 
             ec2DashboardModel.setActivity(this); //tell loginModel that this is the new recreated activity
     	}
-    	else {
+    	else if (ec2DashboardModel == null) {
     		//no model reference, or model finished execution before the activity restarted.
     		Log.v(this.getClass().getName(), "No model object, or model finished before activity " +
     				"was recreated.");
-    		ec2DashboardModel = null;
     		//if the progress dialog is being displayed, kill it.
     		if (progressDialogDisplayed) {
     			progressDialogDisplayed = false;
@@ -273,6 +285,8 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 		 //for this, we need to iterate through the regions and find the position of the selected region
 		 //i am sure that AWS won't have more than 2^15 regions in the near future. So i'll be an a**h**e
 		 //and set the position to be a byte. Ha!
+		 
+		 Log.i(this.getClass().getName(), "OnResume(): Selected region: " + selectedRegion);
 		 short selectedRegionPosition = 0;
 		 for (String regionName : regionData.keySet()) {
 			 if (regionName.equals(selectedRegion)) {
@@ -286,6 +300,8 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 			 finish();
 		 }
 		 //set the selection.
+		 Log.i(this.getClass().getName(), "onResume: found selected region in list at pos: " + 
+				 selectedRegionPosition);
 		 regionSpinner.setSelection(selectedRegionPosition);
 		 
 		//restore alert dialog box if any.
@@ -337,7 +353,13 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 			populateListView();
 		}
 		else if (result instanceof AmazonServiceException) {
-			alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
+			//if a server error
+			if (((AmazonServiceException)result).getErrorCode().startsWith("5")) {
+				alertDialogMessage = "AWS server error.";
+			}
+			else {
+				alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
+			}
 			alertDialogDisplayed = true;
 			killActivityOnError = true;
 		}
@@ -584,14 +606,61 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 		case R.id.dashboard_menuitem_default_region:
 			Intent setDefaultRegionIntent = new Intent();
 			setDefaultRegionIntent.setClassName("org.elasticdroid", 
-					"org.elasticdroid.RegionsView");
+					"org.elasticdroid.DefaultRegionView");
 			setDefaultRegionIntent.putExtra("regionData", new ArrayList<String>(
 					regionData.keySet()));
-			startActivity(setDefaultRegionIntent);
+			setDefaultRegionIntent.putExtra("username", connectionData.get("username"));
+			startActivityForResult(setDefaultRegionIntent, 0); //the second arg is ignored.
 			return true;
 		default:
 			return super.onOptionsItemSelected(selectedItem);
 		}
+	}
+	
+	/**
+	 * Called when the default region setter returns.
+	 */
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode,Intent data) {
+		Log.v(this.getClass().getName(), "Subactivity returned with result: " + resultCode);
+		
+		switch(resultCode) {
+		case RESULT_OK:
+			selectedRegion = data.getStringExtra("defaultRegion");
+			defaultRegionChanged = true;
+			Log.v(this.getClass().getName(), "Region selected: " + selectedRegion);
+			Spinner regionSpinner = ((Spinner)findViewById(R.id.ec2DashboardRegionSpinner));
+			
+			String selectedItemText = regionSpinner.getSelectedItem().toString();
+			Log.v(this.getClass().getName(), "New default region: " + selectedRegion + 
+					", currently selected item text: " + selectedItemText);
+			
+			//if new region selected, populate it.
+			if (!selectedRegion.equals(selectedItemText)) {
+				short selectedRegionPosition = 0;
+				for (String regionName : regionData.keySet()) {
+					if (regionName.equals(selectedRegion)) {
+						break;
+					}
+					selectedRegionPosition ++;
+				}
+				//just-in-case error check
+				if (selectedRegionPosition == regionData.keySet().size()) {
+					Log.e(this.getClass().getName(), "Could not find selected region in regions list. WTF!");
+					finish();
+				}
+				//set the selection to be the new region...
+				regionSpinner.setSelection(selectedRegionPosition);
+				
+				//repopulate ListView with data for this region
+				executeModel();
+			}
+			break;
+		case RESULT_CANCELED:
+			defaultRegionChanged = true; //yes, default region didn't change
+			//but you're just saying, "dont bother reloading the dashboard, mate"
+			//to EC2Dashboard View. See onResume to see what this bool does.
+		}	
 	}
 }
 
