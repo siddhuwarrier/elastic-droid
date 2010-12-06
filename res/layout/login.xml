@@ -11,11 +11,8 @@ android:layout_height="fill_parent"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:textSize="24.5sp"
-        android:gravity="center"
         android:text="@string/loginview_aws_login_textview"/>
-        
-    <!--  horizontal line attempt -->
-    <View android:layout_width="fill_parent" android:layout_height="1dip" android:background="#CCCCCC" /> 
+         
     <ScrollView android:id="@+id/RelativeScrollView"
 		android:layout_width="fill_parent"
 		android:layout_height="fill_parent">

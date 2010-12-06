@@ -180,7 +180,7 @@ public class EC2DashboardView extends GenericListActivity implements
 
 		setContentView(R.layout.ec2dashboard);
 		// set the title to the username of the person currently logged in.
-		this.setTitle(connectionData.get("username"));
+		this.setTitle("Logged in as " +  connectionData.get("username"));
 	}
 
 	/**
@@ -475,8 +475,7 @@ public class EC2DashboardView extends GenericListActivity implements
 		Log.v(this.getClass().getName(),
 				"OnSaveInstanceState: progressDialogDisplayed="
 						+ progressDialogDisplayed);
-		saveState
-				.putBoolean("progressDialogDisplayed", progressDialogDisplayed);
+		saveState.putBoolean("progressDialogDisplayed", progressDialogDisplayed);
 
 		// save the data only if the model is not presently executing
 		if ((dashboardData != null) && (ec2DashboardModel == null)) {
@@ -667,23 +666,32 @@ public class EC2DashboardView extends GenericListActivity implements
 															// to remove the
 															// number
 		// and get the text
-		if (selectedItem.equals(this
-				.getString(R.string.ec2dashview_runninginstances))) {
-			Log.v(this.getClass().getName() + "onListItemClick:",
-					"Will now show list of running" + "instances.");
+		Intent displayListIntent = new Intent();
+		displayListIntent.setClassName("org.elasticdroid",
+		"org.elasticdroid.EC2DisplayInstancesView");
+		displayListIntent.putExtra(
+				"org.elasticdroid.EC2DashboardView.connectionData",
+				connectionData); // aws connection info
+		
+		if (selectedItem.equals(this.getString(
+				R.string.ec2dashview_runninginstances))) {
+			Log.v(this.getClass().getName() + ".onListItemClick:",
+					"Will now show list of running " + "instances.");
 
-			Intent displayListIntent = new Intent();
-			displayListIntent.setClassName("org.elasticdroid",
-					"org.elasticdroid.EC2DisplayInstancesView");
 			displayListIntent.putExtra("listType",
 					InstanceStateConstants.RUNNING);
-			displayListIntent.putExtra("selectedRegion", selectedRegion); // selected
-																			// region
-			displayListIntent.putExtra(
-					"org.elasticdroid.EC2DashboardView.connectionData",
-					connectionData); // aws connection info
-			startActivityForResult(displayListIntent, 0); //second arg ignored.
+			displayListIntent.putExtra("selectedRegion", selectedRegion); // selected region
 		}
+		else if (selectedItem.equals(this.getString(
+				R.string.ec2dashview_stoppedinstances))) {
+			Log.v(this.getClass().getName() + ".onListItemClick:",
+					"Will now show list of stopped " + "instances.");
+			
+			displayListIntent.putExtra("listType", InstanceStateConstants.STOPPED);
+			displayListIntent.putExtra("selectedRegion", selectedRegion); // selected region
+		}
+		
+		startActivityForResult(displayListIntent, 0); //second arg ignored.
 	}
 
 	/**

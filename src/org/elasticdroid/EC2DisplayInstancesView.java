@@ -20,7 +20,9 @@ package org.elasticdroid;
 
 import static org.elasticdroid.utils.ResultConstants.RESULT_ERROR;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 
 import org.elasticdroid.model.EC2DisplayInstancesModel;
@@ -29,15 +31,22 @@ import org.elasticdroid.utils.DialogConstants;
 
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Html;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.Tag;
 
 /**
  * This class will display a list of instances that are
@@ -103,20 +112,18 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		
 		//set the content view
 		setContentView(R.layout.ec2displayinstances);
+		//set the title
+		this.setTitle(connectionData.get("username") + " (" + selectedRegion +")");
 		
+		//set the heading appropriately
 		if (listType == InstanceStateConstants.RUNNING) {
-			this.setTitle(this.getString(R.string.ec2displayinstances_running_title));
-		} else if (listType == InstanceStateConstants.STOPPED) {
-			this.setTitle(this.getString(R.string.ec2displayinstances_stopped_title));
+			((TextView)findViewById(R.id.ec2DisplayInstancesTextView)).setText(this.getString(
+					R.string.ec2displayinstances_running_title));
+		} 
+		else if (listType == InstanceStateConstants.STOPPED) {
+			((TextView)findViewById(R.id.ec2DisplayInstancesTextView)).setText(this.getString(
+					R.string.ec2displayinstances_stopped_title));
 		}
-		
-		//set the heading
-		((TextView)findViewById(R.id.ec2DisplayInstancesTextView)).setText(this.getString(
-				R.string.ec2displayinstances_running_title));
-		
-		((TextView)findViewById(R.id.ec2DisplayInstancesRegionTextView)).setText(
-				this.getString(R.string.ec2dashview_region) + " " +
-				selectedRegion);
 	}
 	
 	/**
@@ -124,14 +131,42 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 	 * 
 	 * This method restores:
 	 * <ul>
-	 * <li>regionData: The list of regions</li>
+	 * <li>instanceData: The list of instances</li>
+	 * <li>progressDialogDisplayed: Was a progress dialog displayed?</li>
+	 * <li>ec2DisplayInstancesModel: The retained config object containing the model object.</li>
 	 * </ul>
 	 */
 	@SuppressWarnings("unchecked")
 	@Override
 	public void onRestoreInstanceState(Bundle stateToRestore) {
-		// restore region data
-		Log.v(this.getClass().getName(), "Restoring regionData...");
+		//restore instance data if any
+		instanceData = (ArrayList<Instance>)stateToRestore.getSerializable("instanceData");
+		
+		//was a progress dialog being displayed.
+		progressDialogDisplayed = stateToRestore.getBoolean("progressDialogDisplayed");
+		
+		/*first off, get the model data back, so that you can inform the model that the activity
+		 * has come back up. */
+		Object retained = getLastNonConfigurationInstance();
+		//if there was a model executing when the object was destroyed.
+		if (retained instanceof EC2DisplayInstancesModel) {
+			Log.i(this.getClass().getName() + ".onCreate()","Reclaiming previous background task");
+			
+			ec2DisplayInstancesModel = (EC2DisplayInstancesModel) retained;//force typecast
+			ec2DisplayInstancesModel.setActivity(this);//pass the model reference to activity
+		} 
+		else {
+			ec2DisplayInstancesModel = null;
+			
+			Log.v(this.getClass().getName(),"No model object, or model finished before activity " +
+					"was recreated.");
+			
+			//now if there is no model anymore, and progressDialogDisplayed is set to true,
+			//reset it to false, because the model finished executing before the restart
+			if (progressDialogDisplayed) {
+				progressDialogDisplayed = false;
+			}
+		}
 	}
 	
 	/**
@@ -141,15 +176,30 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 	public void onResume() {
 		super.onResume(); //call base class method
 		 
-		 //start the model
-		 executeModel();
+		 //if there is no model running, start the model
+		if (ec2DisplayInstancesModel == null) {
+			executeModel();
+		}
 	}
 	
 	/**
-	 * Save state of the activity on destroy/stop
+	 * Save state of the activity on destroy/stop.
+	 * Saves:
+	 * <ul>
+	 * <li> instanceData: The instance data collected.</li>
+	 * </ul>
 	 */
 	@Override
 	public void onSaveInstanceState(Bundle saveState) {
+		//if we have instance data, save it.
+		//but don't bother saving it if the model is not null, i.e. a new model
+		//is executing.
+		if ((instanceData != null) && (ec2DisplayInstancesModel == null)) {
+			saveState.putSerializable("instanceData", instanceData);
+		}
+		
+		//save if progress dialog is being displayed.
+		saveState.putBoolean("progressDialogDisplayed", progressDialogDisplayed);
 	}
 	
 	//overriden methods
@@ -163,14 +213,18 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		Log.v(this.getClass().getName()+".processModelResults()", "Model returned...");
 		// dismiss the progress dialog if displayed. Check redundant
 		if (progressDialogDisplayed) {
-			progressDialogDisplayed = false;
 			removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
+			progressDialogDisplayed = false;
 		}
 		
 		//get the model data
 		if (result instanceof ArrayList<?>) {
 			try {
 				instanceData = (ArrayList<Instance>)result;
+				
+				//add the usernames to the list adapter to display.
+				setListAdapter(new EC2DisplayInstancesAdapter(this, R.layout.ec2displayinstancesrow, 
+						instanceData, listType));
 			}
 			catch(Exception exception) {
 	    		Log.e(this.getClass().getName(), exception.getMessage());
@@ -190,17 +244,6 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		}
 		else if (result instanceof IllegalArgumentException) {
 			//TODO display alert dialog msg
-		}
-		
-		for (Instance instance : instanceData) {
-			Log.v(this.getClass().getName(),
-					"Instance ID: " + instance.getInstanceId());
-			Log.v(this.getClass().getName(),
-					"Platform: " + instance.getPlatform());
-			Log.v(this.getClass().getName(),
-					"Public DNS: " + instance.getPublicDnsName());
-			Log.v(this.getClass().getName(),
-					"Launch time: " + instance.getLaunchTime().toString());
 		}
 	}
 	
@@ -246,6 +289,27 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		return super.onCreateDialog(id);
 	}
 	
+	/**
+	 * Save reference to {@link org.elasticdroid.model.EC2DisplayInstancesModel Async
+	 * Task when object is destroyed (for instance when screen rotated).
+	 * 
+	 * This has to be done as the Async Task is running in the background.
+	 */
+	@Override
+	public Object onRetainNonConfigurationInstance() {
+		Log.v(this.getClass().getName(), "Object about to destroyed...");
+
+		// if the model is being executed when the onDestroy method is called.
+		//tell the model that the activity has now disappeared. Hopefully, the
+		//activity will return.
+		if (ec2DisplayInstancesModel != null) {
+			ec2DisplayInstancesModel.setActivity(null);
+			return ec2DisplayInstancesModel;
+		}
+		//if there was no model being executed, just return null
+		return null;
+	}
+	
 	//private methods
 	/**
 	 * Execute the model to retrieve EC2 instance data for the selected region. The model
@@ -259,4 +323,94 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		connectionData.put("listType", String.valueOf(listType));
 		ec2DisplayInstancesModel.execute(new HashMap<?, ?>[] { connectionData });
 	}
+}
+
+/**
+ * Adapter to display the instances in a list view. 
+ * @author Siddhu Warrier
+ *
+ * 6 Dec 2010
+ */
+class EC2DisplayInstancesAdapter extends ArrayAdapter<Instance>{
+
+	/** Instance list */
+	private ArrayList<Instance> instanceData;
+	/** Context; typically the Activity that sets an object of this class as the Adapter */
+	private Context context;
+	/** List type */
+	private byte listType;
+	/**
+	 * @param context
+	 * @param textViewResourceId
+	 */
+	public EC2DisplayInstancesAdapter(Context context, int textViewResourceId, 
+			ArrayList<Instance> instanceData, byte listType) {
+		super(context, textViewResourceId, instanceData);
+		
+		//save the context, data, and list type
+		this.context = context;
+		this.instanceData = instanceData;
+		this.listType = listType;
+	}
+	
+	/**
+	 * Overriden method called when ListView is initialised with data.
+	 * @param position The position in {@link #instanceData}.
+	 * @param convertView The view to set.
+	 * @param parent
+	 */
+	@Override
+	public View getView(int position, View convertView, ViewGroup parent) {
+		View instanceDataRow = convertView;
+		String details = "";
+		if (instanceDataRow == null) {
+			LayoutInflater inflater = (LayoutInflater) context.getSystemService
+			(Context.LAYOUT_INFLATER_SERVICE);
+		
+			instanceDataRow = inflater.inflate(R.layout.ec2displayinstancesrow, parent, false);
+		}
+		//set main text view
+		TextView textViewHeadline = (TextView)instanceDataRow.findViewById(R.id.instanceHeadline);
+		TextView textViewDetails = (TextView)instanceDataRow.findViewById(R.id.instanceDetails);
+		
+		boolean nameTagFound = false;
+		for (Tag tag : instanceData.get(position).getTags()) {
+			if (tag.getKey().equalsIgnoreCase("name")) {
+				nameTagFound = true;
+				textViewHeadline.setText("Tag: " + tag.getValue());
+				details +="<i>ID:</i> " + instanceData.get(position).getInstanceId() + ", ";
+				break;
+			}
+		}
+		
+		
+		details += "<i>Type:</i> " + instanceData.get(position).getInstanceType() + ", "; 
+		//set Instance ID as headline if no tag named "name"(case-insensitive) found.
+		if (!nameTagFound) {
+			textViewHeadline.setText("ID: " + instanceData.get(position).getInstanceId());
+		}
+
+		//get platform
+		details += "<i>OS:</i> " + (instanceData.get(position).getPlatform() == null?"Linux": instanceData.
+				get(position).getPlatform());
+		
+		//don't bother getting day launched if the instance is stopped
+		if (listType == InstanceStateConstants.RUNNING) {
+			//get period running in hours.
+			float timeRunning = ((new Date().getTime() - instanceData.get(position).getLaunchTime().getTime()) / 
+					(1000 * 60 * 60));
+			
+			//if been running greater than 24 hours, convert to days
+			if (timeRunning > 24) {
+				timeRunning /= 24;
+				details += ", Started " +new DecimalFormat("#.#").format(timeRunning) + " days ago";
+			}
+			else {
+				details += ", Started<i> " + new DecimalFormat("#.#").format(timeRunning) + "</i> hrs ago)";
+			}
+		}
+		textViewDetails.setText(Html.fromHtml(details));
+		return instanceDataRow;
+	}
+	
 }

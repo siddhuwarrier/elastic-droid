@@ -115,10 +115,13 @@ Void, Object> {
 			listType = Byte.valueOf(modelMap.get("listType")); //get the list type
 			
 			//if it is a running instance, set the filter accordingly
-			if (listType == InstanceStateConstants.RUNNING) {
-				
+			if (listType == InstanceStateConstants.RUNNING) {				
 				instanceFilter.setName("instance-state-name");
 				instanceFilter.setValues(new ArrayList<String>(Arrays.asList(new String[]{"running"})));
+			}
+			else if (listType == InstanceStateConstants.STOPPED) {
+				instanceFilter.setName("instance-state-name");
+				instanceFilter.setValues(new ArrayList<String>(Arrays.asList(new String[]{"stopped"})));
 			}
 			
 			//get the list of instances using this filter
@@ -140,6 +143,7 @@ Void, Object> {
 		catch(AmazonClientException amazonClientException) {
 			return amazonClientException;
 		}
+		
 		return instanceData;
 	}
 }
