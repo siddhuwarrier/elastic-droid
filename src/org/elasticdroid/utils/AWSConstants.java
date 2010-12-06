@@ -18,7 +18,6 @@
  */
 package org.elasticdroid.utils;
 
-import com.amazonaws.services.ec2.model.InstanceState;
 
 /**
  * AWS constants. Stored in a separate file. 

@@ -36,7 +36,6 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.CheckedTextView;
 import android.widget.ListView;
-import android.widget.TextView;
 
 /**
  * Simple class to display list of regions, and allow user to pick
@@ -108,6 +107,8 @@ public class DefaultRegionView extends ListActivity {
 	@Override
 	protected void onListItemClick(ListView list, View v, int position, long id) {
 		Intent resultIntent = new Intent();
+		resultIntent.setType(this.getClass().getName());
+		
 		((CheckedTextView)v).setChecked(true); //sort of pointless as the whole activity will
 		//disappear anyway! ;)
 		//set the default region to the new default region chosen
@@ -127,8 +128,11 @@ public class DefaultRegionView extends ListActivity {
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		//do not allow user to return to previous screen on pressing back button
 		if (keyCode == KeyEvent.KEYCODE_BACK) {
-			setResult(RESULT_CANCELED); //let the calling activity know that the user chose to 
-			//cancel
+			Intent resultIntent = new Intent();
+			resultIntent.setType(this.getClass().getName());
+			
+			setResult(RESULT_CANCELED, resultIntent); //let the calling activity know that the user
+			//chose to cancel
 		}
 		
 		return super.onKeyDown(keyCode, event);

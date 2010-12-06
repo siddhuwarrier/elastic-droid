@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <LinearLayout
 xmlns:android="http://schemas.android.com/apk/res/android"
 android:orientation="vertical"
@@ -7,22 +6,17 @@ android:layout_width="fill_parent"
 android:layout_height="fill_parent"
 >
  	<TextView
-        android:id="@+id/ec2DashboardTextView"
+        android:id="@+id/ec2DisplayInstancesTextView"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:textSize="24.5sp"
-        android:text="@string/ec2dashview_title"
         android:paddingBottom="20sp"
         />
-	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-	android:layout_width="fill_parent"
-	android:layout_height="wrap_content"
-	android:orientation="horizontal"
-	android:padding="10sp">
+
 	    <TextView
-		android:id="@+id/regionTextView"
+		android:id="@+id/ec2DisplayInstancesRegionTextView"
 		android:layout_marginTop="5sp"
-		android:layout_width="wrap_content"
+		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
 		android:text="@string/ec2dashview_region"
 		android:textSize="22sp"
@@ -30,14 +24,6 @@ android:layout_height="fill_parent"
 		android:layout_gravity="center_vertical"
 		android:paddingRight="10sp"
 		/>
-		<Spinner android:id="@+id/ec2DashboardRegionSpinner"
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:layout_weight="2"
-		android:prompt="@string/ec2dashview_region"
-		android:textSize="20sp" 
-		/>
-	</LinearLayout>
 	<ListView android:id="@id/android:list"
 		android:layout_width="match_parent"
 		android:layout_height="match_parent"

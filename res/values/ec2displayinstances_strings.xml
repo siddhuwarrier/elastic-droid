@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="ec2displayinstances_running_title">Running Instances</string>
+<string name="ec2displayinstances_stopped_title">Stopped Instances</string>
+</resources>

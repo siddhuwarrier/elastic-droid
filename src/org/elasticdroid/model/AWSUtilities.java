@@ -22,9 +22,6 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 
-import org.elasticdroid.db.ElasticDroidDB;
-
-import android.app.Activity;
 import android.util.Log;
 
 import com.amazonaws.auth.BasicAWSCredentials;
