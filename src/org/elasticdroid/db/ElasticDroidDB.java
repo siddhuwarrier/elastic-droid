@@ -72,8 +72,6 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 				LoginTbl.COL_ACCESSKEY + " text not null, " + LoginTbl.COL_SECRETACCESSKEY +
 				" text not null," + LoginTbl.COL_DEFAULTREGION + " text, " + "UNIQUE("+ LoginTbl.COL_ACCESSKEY + ", " +  
 				LoginTbl.COL_SECRETACCESSKEY +"));");
-		
-		db.close();
 	}
 	
 	/**

@@ -409,6 +409,9 @@ public class EC2DashboardView extends GenericListActivity implements
 	@Override
 	public void processModelResults(Object result) {
 		Log.v(this.getClass().getName(), "Processing model results...");
+		
+		//set model reference to null
+		ec2DashboardModel = null;
 		// dismiss the progress dialog if displayed. Check redundant
 		if (progressDialogDisplayed) {
 			progressDialogDisplayed = false;
@@ -448,10 +451,6 @@ public class EC2DashboardView extends GenericListActivity implements
 			alertDialogDisplayed = true;
 			killActivityOnError = true;
 		}
-
-		// set the model to null. Important for when user destroys the screen by
-		// tilting it.
-		ec2DashboardModel = null;
 
 		// display the alert dialog if the user set the displayed var to true
 		if (alertDialogDisplayed) {

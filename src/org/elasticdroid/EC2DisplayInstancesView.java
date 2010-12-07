@@ -144,6 +144,8 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		
 		//was a progress dialog being displayed.
 		progressDialogDisplayed = stateToRestore.getBoolean("progressDialogDisplayed");
+		Log.v(this.getClass().getName() + ".onRestoreInstanceState", "progbar:" + 
+				progressDialogDisplayed);
 		
 		/*first off, get the model data back, so that you can inform the model that the activity
 		 * has come back up. */
@@ -166,6 +168,12 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 			if (progressDialogDisplayed) {
 				progressDialogDisplayed = false;
 			}
+		
+			//if we have instance data, reload the list
+			if (instanceData != null) {
+				setListAdapter(new EC2DisplayInstancesAdapter(this, R.layout.ec2displayinstancesrow, 
+						instanceData, listType));
+			}
 		}
 	}
 	
@@ -176,8 +184,8 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 	public void onResume() {
 		super.onResume(); //call base class method
 		 
-		 //if there is no model running, start the model
-		if (ec2DisplayInstancesModel == null) {
+		 //if there is no model running and we have no instance data, start the model
+		if ((ec2DisplayInstancesModel == null) && (instanceData == null)) {
 			executeModel();
 		}
 	}
@@ -211,6 +219,8 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 	@Override
 	public void processModelResults(Object result) {
 		Log.v(this.getClass().getName()+".processModelResults()", "Model returned...");
+		//set reference to model object to null
+		ec2DisplayInstancesModel = null;
 		// dismiss the progress dialog if displayed. Check redundant
 		if (progressDialogDisplayed) {
 			removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
@@ -222,7 +232,7 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 			try {
 				instanceData = (ArrayList<Instance>)result;
 				
-				//add the usernames to the list adapter to display.
+				//add the instances to the list adapter to display.
 				setListAdapter(new EC2DisplayInstancesAdapter(this, R.layout.ec2displayinstancesrow, 
 						instanceData, listType));
 			}
