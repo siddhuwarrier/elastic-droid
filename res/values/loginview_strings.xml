@@ -10,6 +10,7 @@
 <string name="loginview_secretaccesskey_empty_err">Secret Access key cannot be empty</string>
 <string name="loginview_invalid_credentials_err">Invalid credentials</string>
 <string name="loginview_invalid_keys_dlg">Invalid Access and/or Secret Access key. Please re-enter your Access and/or Secret Access keys.</string>
+<string name="loginview_server_err_dlg">AWS Server Error 5xx</string>
 <string name="loginview_unexpected_err_dlg">Unexpected error:</string>
 <string name="loginview_bug_report_dlg">Please file a bug report.</string>
 <string name="loginview_no_connxn_dlg">Unable to connect to AWS. Are you connected to the Internet?</string>

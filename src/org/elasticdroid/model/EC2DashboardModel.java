@@ -109,7 +109,6 @@ public class EC2DashboardModel extends GenericListModel<HashMap<?,?>,
 		connectionData = (HashMap<String, String>)params[0]; //convenience variable, so that
 		//i dont have to keep typing params[0] everywhere in this method.;)
 		
-		// TODO Auto-generated method stub
 		Log.v(this.getClass().getName(), "Getting EC2 dashboard data...");
 		
 		//prepare to get the dashboard data!
@@ -134,12 +133,10 @@ public class EC2DashboardModel extends GenericListModel<HashMap<?,?>,
 				//for each reservation, get the list of instances associated
 				for (Instance instance: reservation.getInstances()) {
 					if (instance.getState().getCode().byteValue() == InstanceStateConstants.RUNNING) {
-						Log.v(this.getClass().getName(), "Running instance found!");
 						numOfRunningInstances ++;
 					}
 					else if (instance.getState().getCode().byteValue() == InstanceStateConstants.
 							STOPPED) {
-						Log.v(this.getClass().getName(), "Stopped instance found!");
 						numOfStoppedInstances ++;
 					}
 				}

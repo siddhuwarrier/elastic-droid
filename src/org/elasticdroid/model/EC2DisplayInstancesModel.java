@@ -39,7 +39,6 @@ import com.amazonaws.services.ec2.model.Filter;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Region;
 import com.amazonaws.services.ec2.model.Reservation;
-import com.amazonaws.services.ec2.model.Tag;
 
 /**
  * @author Siddhu Warrier
@@ -72,9 +71,8 @@ Void, Object> {
 	@Override
 	protected Object doInBackground(HashMap<?, ?>... params) {
 		HashMap<String, String> modelMap;
-		ArrayList<Instance> instanceData = new ArrayList<Instance>();//data to return
+		ArrayList<SerializableInstance> instanceData = new ArrayList<SerializableInstance>();//data to return
 		
-		String endpoint; //the end point for the region
 		byte listType; //the list type- currently supported: RUNNING, STOPPED
 		Filter regionFilter;
 		Filter instanceFilter = new Filter(); //Amazon EC2 instance filter
@@ -133,7 +131,7 @@ Void, Object> {
 			for (Reservation reservation: reservations) {
 				//for each reservation, get the list of instances associated
 				for (Instance instance: reservation.getInstances()) {
-					instanceData.add(instance);
+					instanceData.add(new SerializableInstance(instance));
 				}
 			}
 		}

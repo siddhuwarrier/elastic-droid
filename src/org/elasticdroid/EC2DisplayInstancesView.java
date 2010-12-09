@@ -26,12 +26,15 @@ import java.util.Date;
 import java.util.HashMap;
 
 import org.elasticdroid.model.EC2DisplayInstancesModel;
+import org.elasticdroid.model.SerializableInstance;
 import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 import org.elasticdroid.utils.DialogConstants;
 
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Html;
@@ -45,8 +48,6 @@ import android.widget.TextView;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.ec2.model.Instance;
-import com.amazonaws.services.ec2.model.Tag;
 
 /**
  * This class will display a list of instances that are
@@ -74,13 +75,34 @@ public class EC2DisplayInstancesView extends GenericListActivity {
     private boolean progressDialogDisplayed;
     /**The model object */
     private EC2DisplayInstancesModel ec2DisplayInstancesModel;
-    /**The model result: an ArrayList of corresponding instances */
-    private ArrayList<Instance> instanceData;
+    
+	/** Dialog box for credential verification errors */
+	private AlertDialog alertDialogBox;
+	/**
+	 * set to show if alert dialog displayed. Used to decide whether to restore
+	 * progress dialog when screen rotated.
+	 */
+	private boolean alertDialogDisplayed;
+	/** message displayed in {@link #alertDialogBox alertDialogBox}. */
+	private String alertDialogMessage;
+	/**
+	 * boolean to indicate if an error that occurred is sufficiently serious to
+	 * have the activity killed.
+	 */
+	private boolean killActivityOnError;
+    
+    /**The model result: an ArrayList of corresponding instances
+     * Uses Serializable Instance and not AWS Instance. {@link SerializableInstance} 
+     * */
+    private ArrayList<SerializableInstance> instanceData;
 	
 	/**
 	 * This method is called when the activity is (re)started, and receives
 	 * an {@link org.elasticdroid.utils.AWSConstants.InstanceConstants} enumerator
 	 * as an intent, which tells it what sort of list to display. 
+	 * 
+	 * @param savedInstanceState Instance state saved (if any) on screen destroy. See 
+	 * @see EC2DisplayInstancesView#onSaveInstanceState(Bundle)
 	 */
 	@SuppressWarnings("unchecked")
 	@Override
@@ -109,6 +131,34 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 					exception.getMessage());
 			setResult(RESULT_ERROR, resultIntent);
     	}
+    	
+		// create and initialise the alert dialog
+		alertDialogBox = new AlertDialog.Builder(this).create(); // create alert
+																	// box to
+		alertDialogBox.setButton(
+				this.getString(R.string.loginview_alertdialogbox_button),
+				new DialogInterface.OnClickListener() {
+					// click listener on the alert box - unlock orientation when
+					// clicked.
+					// this is to prevent orientation changing when alert box
+					// locked.
+					public void onClick(DialogInterface arg0, int arg1) {
+						alertDialogDisplayed = false;
+						alertDialogBox.dismiss(); // dismiss dialog.
+						// if an error occurs that is serious enough return the
+						// user to the login
+						// screen. THis happens due to exceptions caused by
+						// programming errors and
+						// exceptions caused due to invalid credentials.
+						if (killActivityOnError) {
+							finish();
+							Intent loginIntent = new Intent();
+							loginIntent.setClassName("org.elasticdroid",
+									"org.elasticdroid.LoginView");
+							startActivity(loginIntent);
+						}
+					}
+				});
 		
 		//set the content view
 		setContentView(R.layout.ec2displayinstances);
@@ -139,8 +189,14 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void onRestoreInstanceState(Bundle stateToRestore) {
+		// restore dialog data
+		alertDialogDisplayed = stateToRestore.getBoolean("alertDialogDisplayed");
+		Log.v(this.getClass().getName(), "alertDialogDisplayed = "
+				+ alertDialogDisplayed);
+		alertDialogMessage = stateToRestore.getString("alertDialogMessage");
+		
 		//restore instance data if any
-		instanceData = (ArrayList<Instance>)stateToRestore.getSerializable("instanceData");
+		instanceData = (ArrayList<SerializableInstance>)stateToRestore.getSerializable("instanceData");
 		
 		//was a progress dialog being displayed.
 		progressDialogDisplayed = stateToRestore.getBoolean("progressDialogDisplayed");
@@ -178,14 +234,24 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 	}
 	
 	/**
-	 * TODO fill in
+	 * Executed last in the (re)start lifecycle, this method starts the model if both these 
+	 * conditions are met:
+	 * 
+	 * <ul>
+	 * <li>There is no currently running model.</li>
+	 * <li>There is no instance data already computed.</li>
+	 * </ul>
 	 */
 	@Override
 	public void onResume() {
 		super.onResume(); //call base class method
-		 
-		 //if there is no model running and we have no instance data, start the model
-		if ((ec2DisplayInstancesModel == null) && (instanceData == null)) {
+		
+		//if there was a dialog box, display it
+		//if failed, then display dialog box.
+		if (alertDialogDisplayed) {
+			alertDialogBox.setMessage(alertDialogMessage);
+			alertDialogBox.show();
+		} else if ((ec2DisplayInstancesModel == null) && (instanceData == null)) {
 			executeModel();
 		}
 	}
@@ -199,6 +265,16 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 	 */
 	@Override
 	public void onSaveInstanceState(Bundle saveState) {
+		
+		// if a dialog is displayed when this happens, dismiss it
+		if (alertDialogDisplayed) {
+			alertDialogBox.dismiss();
+		}
+		//save the info as to whether dialog is displayed
+		saveState.putBoolean("alertDialogDisplayed", alertDialogDisplayed);
+		//save the dialog msg
+		saveState.putString("alertDialogMessage", alertDialogMessage);
+		
 		//if we have instance data, save it.
 		//but don't bother saving it if the model is not null, i.e. a new model
 		//is executing.
@@ -230,11 +306,7 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		//get the model data
 		if (result instanceof ArrayList<?>) {
 			try {
-				instanceData = (ArrayList<Instance>)result;
-				
-				//add the instances to the list adapter to display.
-				setListAdapter(new EC2DisplayInstancesAdapter(this, R.layout.ec2displayinstancesrow, 
-						instanceData, listType));
+				instanceData = (ArrayList<SerializableInstance>)result;
 			}
 			catch(Exception exception) {
 	    		Log.e(this.getClass().getName(), exception.getMessage());
@@ -245,15 +317,46 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 						exception.getMessage());
 				setResult(RESULT_ERROR, resultIntent);
 			}	
+			
+			if (instanceData.size() != 0) {
+				//add the instances to the list adapter to display.
+				setListAdapter(new EC2DisplayInstancesAdapter(this, R.layout.ec2displayinstancesrow, 
+						instanceData, listType));
+			}
+			//if no data found, just show a String adapter
+			else {
+				setListAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, 
+						new String[]{"No instances found."}));
+			}
 		}
 		else if (result instanceof AmazonServiceException) {
-			//TODO display alert dialog msg
+			// if a server error
+			if (((AmazonServiceException) result).getErrorCode()
+					.startsWith("5")) {
+				alertDialogMessage = "AWS server error.";
+			} else {
+				alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
+			}
+			alertDialogDisplayed = true;
+			killActivityOnError = false;//do not kill activity on server error
+			//allow user to retry.
 		}
 		else if (result instanceof AmazonClientException) {
-			//TODO display alert dialog msg
+			alertDialogMessage = this.getString(R.string.loginview_no_connxn_dlg);
+			alertDialogDisplayed = true;
+			killActivityOnError = false;//do not kill activity on connectivity error. allow client 
 		}
 		else if (result instanceof IllegalArgumentException) {
-			//TODO display alert dialog msg
+			alertDialogMessage = this
+			.getString(R.string.ec2dashview_illegal_arg_exception);
+			alertDialogDisplayed = true;
+			killActivityOnError = true;
+		}
+		
+		//if failed, then display dialog box.
+		if (alertDialogDisplayed) {
+			alertDialogBox.setMessage(alertDialogMessage);
+			alertDialogBox.show();
 		}
 	}
 	
@@ -341,10 +444,10 @@ public class EC2DisplayInstancesView extends GenericListActivity {
  *
  * 6 Dec 2010
  */
-class EC2DisplayInstancesAdapter extends ArrayAdapter<Instance>{
+class EC2DisplayInstancesAdapter extends ArrayAdapter<SerializableInstance>{
 
 	/** Instance list */
-	private ArrayList<Instance> instanceData;
+	private ArrayList<SerializableInstance> instanceData;
 	/** Context; typically the Activity that sets an object of this class as the Adapter */
 	private Context context;
 	/** List type */
@@ -354,7 +457,7 @@ class EC2DisplayInstancesAdapter extends ArrayAdapter<Instance>{
 	 * @param textViewResourceId
 	 */
 	public EC2DisplayInstancesAdapter(Context context, int textViewResourceId, 
-			ArrayList<Instance> instanceData, byte listType) {
+			ArrayList<SerializableInstance> instanceData, byte listType) {
 		super(context, textViewResourceId, instanceData);
 		
 		//save the context, data, and list type
@@ -383,22 +486,15 @@ class EC2DisplayInstancesAdapter extends ArrayAdapter<Instance>{
 		TextView textViewHeadline = (TextView)instanceDataRow.findViewById(R.id.instanceHeadline);
 		TextView textViewDetails = (TextView)instanceDataRow.findViewById(R.id.instanceDetails);
 		
-		boolean nameTagFound = false;
-		for (Tag tag : instanceData.get(position).getTags()) {
-			if (tag.getKey().equalsIgnoreCase("name")) {
-				nameTagFound = true;
-				textViewHeadline.setText("Tag: " + tag.getValue());
-				details +="<i>ID:</i> " + instanceData.get(position).getInstanceId() + ", ";
-				break;
-			}
-		}
-		
-		
-		details += "<i>Type:</i> " + instanceData.get(position).getInstanceType() + ", "; 
 		//set Instance ID as headline if no tag named "name"(case-insensitive) found.
-		if (!nameTagFound) {
+		if (instanceData.get(position).getTag() == null) {
 			textViewHeadline.setText("ID: " + instanceData.get(position).getInstanceId());
 		}
+		else {
+			textViewHeadline.setText("Tag: " + instanceData.get(position).getTag());
+		}
+		
+		details += "<i>Type:</i> " + instanceData.get(position).getInstanceType() + ", "; 
 
 		//get platform
 		details += "<i>OS:</i> " + (instanceData.get(position).getPlatform() == null?"Linux": instanceData.
@@ -407,8 +503,8 @@ class EC2DisplayInstancesAdapter extends ArrayAdapter<Instance>{
 		//don't bother getting day launched if the instance is stopped
 		if (listType == InstanceStateConstants.RUNNING) {
 			//get period running in hours.
-			float timeRunning = ((new Date().getTime() - instanceData.get(position).getLaunchTime().getTime()) / 
-					(1000 * 60 * 60));
+			float timeRunning = ((new Date().getTime() - instanceData.get(position).getLaunchTime()) / 
+					(1000 * 60 * 60)); //convert from milliseconds to hours
 			
 			//if been running greater than 24 hours, convert to days
 			if (timeRunning > 24) {

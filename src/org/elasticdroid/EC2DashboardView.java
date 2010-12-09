@@ -18,16 +18,17 @@
  */
 package org.elasticdroid;
 
+import static org.elasticdroid.utils.ResultConstants.RESULT_ERROR;
+
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.elasticdroid.db.ElasticDroidDB;
-import org.elasticdroid.model.AWSUtilities;
 import org.elasticdroid.model.EC2DashboardModel;
+import org.elasticdroid.model.RetrieveRegionModel;
 import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 import org.elasticdroid.utils.DialogConstants;
-import static org.elasticdroid.utils.ResultConstants.RESULT_ERROR;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -81,6 +82,10 @@ public class EC2DashboardView extends GenericListActivity implements
 	 * */
 	private HashMap<String, String> connectionData;
 	/**
+	 * Flag set to true in onCreate
+	 */
+	boolean onCreateExecuted;
+	/**
 	 * The data received from the model
 	 */
 	HashMap<String, Integer> dashboardData;
@@ -89,6 +94,11 @@ public class EC2DashboardView extends GenericListActivity implements
 	 * and stores user details in DB
 	 */
 	EC2DashboardModel ec2DashboardModel;
+	/**
+	 * Reference to RetrieveRegionModel object
+	 */
+	RetrieveRegionModel retrieveRegionModel;
+	
 	/** Dialog box for credential verification errors */
 	private AlertDialog alertDialogBox;
 	/**
@@ -149,6 +159,50 @@ public class EC2DashboardView extends GenericListActivity implements
 			Log.e(this.getClass().getName(), exception.getMessage());
 			finish(); // kill the application, and off to bed.
 		}
+		
+		// restore model object if one was saved. This happens when the activity
+		// is destroyed
+		// when the model is executing in a background thread.
+		Object retained = getLastNonConfigurationInstance();
+		// redundant if condition. Nothing else is retained. Can be removed if
+		// performance is
+		// an issue.
+		if (retained instanceof EC2DashboardModel) {
+			Log.i(this.getClass().getName(),
+					"Reclaiming previous background task.");
+			// restore the reference to the Object.
+			ec2DashboardModel = (EC2DashboardModel) retained;
+			// when saving instance state, we told the model that the activity
+			// it was referring to
+			// no longer existed. Let the model know htat a new activity has
+			// taken its place.
+			// the model will then call the new activity's
+			ec2DashboardModel.setActivity(this); // tell loginModel that this is
+													// the new recreated
+													// activity
+		} 
+		else if (retained instanceof RetrieveRegionModel) {
+			Log.i(this.getClass().getName(),
+			"Reclaiming previous background RetrieveRegionModel task.");
+			retrieveRegionModel = (RetrieveRegionModel) retained;
+			retrieveRegionModel.setActivity(this);
+		}
+		else {
+			//onResume can also be executed on the press of the home button
+			//in whic case we have not lost our object references. Therefore,
+			//disable your progress bar Only IF there are no model objects.
+			if ((retrieveRegionModel == null) && (ec2DashboardModel == null)) {
+				Log.v(this.getClass().getName(),
+						"No model object, or model finished before activity "
+								+ "was recreated.");
+				
+				// if the progress dialog is being displayed, kill it.
+				if (progressDialogDisplayed) {
+					progressDialogDisplayed = false;
+					removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
+				}
+			}
+		}
 
 		// create and initialise the alert dialog
 		alertDialogBox = new AlertDialog.Builder(this).create(); // create alert
@@ -181,6 +235,8 @@ public class EC2DashboardView extends GenericListActivity implements
 		setContentView(R.layout.ec2dashboard);
 		// set the title to the username of the person currently logged in.
 		this.setTitle("Logged in as " +  connectionData.get("username"));
+		
+		onCreateExecuted = true;
 	}
 
 	/**
@@ -205,13 +261,13 @@ public class EC2DashboardView extends GenericListActivity implements
 		super.onRestoreInstanceState(stateToRestore);
 
 		// restore dialog data
-		alertDialogDisplayed = stateToRestore
-				.getBoolean("alertDialogDisplayed");
+		alertDialogDisplayed = stateToRestore.getBoolean("alertDialogDisplayed");
 		Log.v(this.getClass().getName(), "alertDialogDisplayed = "
 				+ alertDialogDisplayed);
 		alertDialogMessage = stateToRestore.getString("alertDialogMessage");
-		progressDialogDisplayed = stateToRestore
-				.getBoolean("progressDialogDisplayed");
+		
+		//restore progress dialog
+		progressDialogDisplayed = stateToRestore.getBoolean("progressDialogDisplayed");
 		Log.v(this.getClass().getName(),
 				"onRestoreInstanceState:progress dialog displayed="
 						+ progressDialogDisplayed);
@@ -273,56 +329,79 @@ public class EC2DashboardView extends GenericListActivity implements
 			defaultRegionChanged = false;
 			return;
 		}
-
-		// restore model object if one was saved. This happens when the activity
-		// is destroyed
-		// when the model is executing in a background thread.
-		Object retained = getLastNonConfigurationInstance();
-		// redundant if condition. Nothing else is retained. Can be removed if
-		// performance is
-		// an issue.
-		if (retained instanceof EC2DashboardModel) {
-			Log.i(this.getClass().getName(),
-					"Reclaiming previous background task.");
-			// restore the reference to the Object.
-			ec2DashboardModel = (EC2DashboardModel) retained;
-			// when saving instance state, we told the model that the activity
-			// it was referring to
-			// no longer existed. Let the model know htat a new activity has
-			// taken its place.
-			// the model will then call the new activity's
-			ec2DashboardModel.setActivity(this); // tell loginModel that this is
-													// the new recreated
-													// activity
-		} else if (ec2DashboardModel == null) {
-			// no model reference, or model finished execution before the
-			// activity restarted.
-			Log.v(this.getClass().getName(),
-					"No model object, or model finished before activity "
-							+ "was recreated.");
-			// if the progress dialog is being displayed, kill it.
-			if (progressDialogDisplayed) {
-				progressDialogDisplayed = false;
-				removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
+		
+		// restore alert dialog box if any.
+		if (alertDialogDisplayed) {
+			alertDialogBox.setMessage(alertDialogMessage);
+			alertDialogBox.show();
+		} else {
+			//check if we need to get region data.
+			//if we have neither region data, nor a running retrieveregionmodel
+			//execute retrieve region model
+			if (regionData == null) {
+				//execute retrieveregionmodel unless not executing already
+				if (retrieveRegionModel == null) {
+					executeRetrieveRegionModel();
+				}
+			}
+			else {//we have region data
+				//populate the region spinner
+				//firstExecute is set only when onCreate is executed,
+				if (onCreateExecuted) {
+					onCreateExecuted = false;
+					populateRegionSpinner();
+				}
+				//execute 
+			}
+			if ((regionData == null) && (retrieveRegionModel == null)) {
+				if (onCreateExecuted) {
+					onCreateExecuted = false;
+					executeRetrieveRegionModel();
+				}
+			}
+			else if ( (regionData != null) && (retrieveRegionModel == null) ) {
+				if (onCreateExecuted) {
+					onCreateExecuted = false;
+					populateRegionSpinner();
+				}
 			}
 		}
-
-		// (re)populate the spinner with data on the regions.
-		// if we haven't got the region info yet, get it. Have the model query.
-		// this is not done in background as we need this info before displaying
-		// the data.
-		if (regionData == null) {
-			// get the available regions and default region.
-			// if default region does not exist, set one by default. Heehee
-			retrieveRegionData();
+	}
+	
+	/**
+	 * Private method to repopulate spinners. gets region data if absent
+	 */
+	@SuppressWarnings("unchecked")
+	private void populateRegionSpinner() {
+		
+		String defaultRegion = null;
+		ElasticDroidDB elasticDroidDb = new ElasticDroidDB(this);
+		//get the default region
+		try {
+			defaultRegion = elasticDroidDb.getDefaultRegion(connectionData.
+					get("username"));
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			Log.e(this.getClass().getName() + ".populateRegionSpinner", "SQL Exception.Exiting: "+ 
+					e.getMessage());
 		}
-
+		
+		//if there is no default region, set the first item in regionData as the default region
+		if (defaultRegion == null) {
+			defaultRegion = ((String[])regionData.keySet().toArray())[0];
+			elasticDroidDb.setDefaultRegion(connectionData.get("username"), defaultRegion);
+		}
+		
+		//if we dont have an already selected region, set it to default region
+		if (selectedRegion == null) {
+			selectedRegion = defaultRegion;
+		}
+		
 		// populate the android spinner with region data
 		ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<String>(this,
 				R.layout.regionspinneritem, (String[]) regionData.keySet()
 						.toArray(new String[regionData.keySet().size()]));
-		spinnerAdapter
-				.setDropDownViewResource(R.layout.regionspinnerdropdownitem);
+		spinnerAdapter.setDropDownViewResource(R.layout.regionspinnerdropdownitem);
 
 		// get the spinner and set the adapter as ITS adapter
 		Spinner regionSpinner = ((Spinner) findViewById(R.id.ec2DashboardRegionSpinner));
@@ -358,48 +437,18 @@ public class EC2DashboardView extends GenericListActivity implements
 				"onResume: found selected region in list at pos: "
 						+ selectedRegionPosition);
 		regionSpinner.setSelection(selectedRegionPosition);
-
-		// restore alert dialog box if any.
-		if (alertDialogDisplayed) {
-			alertDialogBox.setMessage(alertDialogMessage);
-			alertDialogBox.show();
-
-			// TODO retry. Or just have the user try to re-login.
-		} else {
-			// if we already have a Hashtable full of data and no model, just
-			// repopulate the list, don't
-			// ask AWS
-			if ((dashboardData != null) && (ec2DashboardModel == null)) {
-				// if there is no model, just repopulate
-				populateListView();
-			} else if (ec2DashboardModel == null) {
-				Log.v(this.getClass().getName(), "Starting model...");
-				executeModel();
-			}
+		
+		//if we have data, don't re-execute
+		if ((dashboardData != null) && (ec2DashboardModel == null)) {
+			// if there is no model, just repopulate
+			populateListView();
+		} else if (ec2DashboardModel == null) {
+			Log.v(this.getClass().getName(), "Starting model...");
+			executeEC2DashboardModel();
 		}
-		// the third case is the model is already executing...
+		//third condition: dashboard model already executing
 	}
 	
-	/**
-	 * Called when task returns to foreground.
-	 * This override is required in order to ensure the region spinner displays the correct value
-	 * and is because of this bug, which I suspect is an Android spinner bug:
-	 * http://code.google.com/p/elastic-droid/issues/detail?id=4
-	 * TODO find better fix. 
-	 */
-	@Override
-	public void onRestart() {
-		super.onRestart();//call superclass onRestart()
-		
-		Log.v(this.getClass().getName()+"onRestart()", "Task restarted...");
-		//restart the whole process because of the following bug
-		//which I suspect is an Android bug.
-		//See @link{http://code.google.com/p/elastic-droid/issues/detail?id=4}
-		Intent restartIntent = this.getIntent();
-		startActivity(restartIntent); //strt new activity with same data
-		finish(); //finish existing activity
-	}
-
 	/**
 	 * Process the results returned by the model,
 	 * 
@@ -410,48 +459,108 @@ public class EC2DashboardView extends GenericListActivity implements
 	public void processModelResults(Object result) {
 		Log.v(this.getClass().getName(), "Processing model results...");
 		
-		//set model reference to null
-		ec2DashboardModel = null;
-		// dismiss the progress dialog if displayed. Check redundant
-		if (progressDialogDisplayed) {
-			progressDialogDisplayed = false;
-			removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
-		}
-
-		// if the result is an instance of Hashtable<?,?> populate listview
-		if (result instanceof HashMap<?, ?>) {
-			try {
-				dashboardData = (HashMap<String, Integer>) result;
-			} catch (ClassCastException exception) {
-				Log.e(this.getClass().getName(),
-						"Result returned from model should be HashMap:"
-								+ exception.getMessage());
+		//check which model returned. Only one model can be executing at a time.
+		//model to retrieve regions was executed.
+		if (retrieveRegionModel != null) {
+			//set reference to model to null
+			retrieveRegionModel = null;
+			// dismiss the progress dialog if displayed. Check redundant
+			if (progressDialogDisplayed) {
+				progressDialogDisplayed = false;
+				removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
 			}
-			// populate ListView
-			populateListView();
-		} else if (result instanceof AmazonServiceException) {
-			// if a server error
-			if (((AmazonServiceException) result).getErrorCode()
-					.startsWith("5")) {
-				alertDialogMessage = "AWS server error.";
-			} else {
+
+			if (result instanceof HashMap<?, ?>) {
+				try {
+					regionData = (HashMap<String, String>) result;
+				} catch (ClassCastException exception) {
+					Log.e(this.getClass().getName(),
+							"Result returned from model should be HashMap:"
+									+ exception.getMessage());
+					
+					finish();//kill activity
+				}
+				
+				populateRegionSpinner();
+				
+			}
+			else if (result instanceof AmazonServiceException) {
+				// if a server error
+				if (((AmazonServiceException) result).getErrorCode()
+						.startsWith("5")) {
+					alertDialogMessage = this.getString(R.string.loginview_server_err_dlg);
+				} else {
+					alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
+				}
+				alertDialogDisplayed = true;
+				killActivityOnError = false;//do not kill activity on server error
+				//allow user to retry.
+			} 
+			else if (result instanceof AmazonClientException) {
 				alertDialogMessage = this
-						.getString(R.string.loginview_invalid_keys_dlg);
+						.getString(R.string.loginview_no_connxn_dlg);
+				alertDialogDisplayed = true;
+				killActivityOnError = false;//do not kill activity on connectivity error. allow client 
+				//to retry.
+			} 
+			else if (result instanceof IllegalArgumentException) {
+				alertDialogMessage = this
+						.getString(R.string.ec2dashview_illegal_arg_exception);
+				alertDialogDisplayed = true;
+				killActivityOnError = true;
 			}
-			alertDialogDisplayed = true;
-			killActivityOnError = true;
-		} else if (result instanceof AmazonClientException) {
-			alertDialogMessage = this
-					.getString(R.string.loginview_no_connxn_dlg);
-			alertDialogDisplayed = true;
-			killActivityOnError = false;
-		} else if (result instanceof IllegalArgumentException) {
-			alertDialogMessage = this
-					.getString(R.string.ec2dashview_illegal_arg_exception);
-			alertDialogDisplayed = true;
-			killActivityOnError = true;
 		}
-
+		//it was the dashboard model
+		else {
+			//set model reference to null
+			ec2DashboardModel = null;
+			// dismiss the progress dialog if displayed. Check redundant
+			if (progressDialogDisplayed) {
+				progressDialogDisplayed = false;
+				removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
+			}
+	
+			// if the result is an instance of Hashtable<?,?> populate listview
+			if (result instanceof HashMap<?, ?>) {
+				try {
+					dashboardData = (HashMap<String, Integer>) result;
+				} catch (ClassCastException exception) {
+					Log.e(this.getClass().getName(),
+							"Result returned from model should be HashMap:"
+									+ exception.getMessage());
+					
+					finish();//kill activity
+				}
+				// populate ListView
+				populateListView();
+			} 
+			else if (result instanceof AmazonServiceException) {
+				// if a server error
+				if (((AmazonServiceException) result).getErrorCode()
+						.startsWith("5")) {
+					alertDialogMessage = this.getString(R.string.loginview_server_err_dlg);
+				} else {
+					alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
+				}
+				alertDialogDisplayed = true;
+				killActivityOnError = false;//do not kill activity on server error
+				//allow user to retry.
+			} 
+			else if (result instanceof AmazonClientException) {
+				alertDialogMessage = this
+						.getString(R.string.loginview_no_connxn_dlg);
+				alertDialogDisplayed = true;
+				killActivityOnError = false;//do not kill activity on connectivity error. allow client 
+				//to retry.
+			} 
+			else if (result instanceof IllegalArgumentException) {
+				alertDialogMessage = this
+						.getString(R.string.ec2dashview_illegal_arg_exception);
+				alertDialogDisplayed = true;
+				killActivityOnError = true;
+			}
+		}
+		
 		// display the alert dialog if the user set the displayed var to true
 		if (alertDialogDisplayed) {
 			alertDialogBox.setMessage(alertDialogMessage);
@@ -508,11 +617,22 @@ public class EC2DashboardView extends GenericListActivity implements
 	public Object onRetainNonConfigurationInstance() {
 		Log.v(this.getClass().getName(), "Object about to destroyed...");
 
+		//we know only one model can execute at a given time.
 		// if the model is being executed when the onDestroy method is called.
 		if (ec2DashboardModel != null) {
+			Log.v(this.getClass().getName() + ".onRetainNonConfigInstance()", "Saving " +
+			"ec2DashboardModel");
+			
 			ec2DashboardModel.setActivity(null);
 			return ec2DashboardModel;
 		}
+		else if (retrieveRegionModel != null) {
+			Log.v(this.getClass().getName() + ".onRetainNonConfigInstance()", "Saving " +
+					"retrieveRegionModel");
+			retrieveRegionModel.setActivity(null);
+			return retrieveRegionModel;
+		}
+		//both are null, return null
 		return null;
 	}
 
@@ -520,74 +640,21 @@ public class EC2DashboardView extends GenericListActivity implements
 	 * Execute the model to retrieve EC2 data for the selected region. The model
 	 * runs in a different thread and calls processModelResults when done.
 	 */
-	private void executeModel() {
-		ec2DashboardModel = new EC2DashboardModel(this);
-		// add the endpoint for this region to connectionData
-		// it's not nice to modify a member like this, now, is it?
+	private void executeEC2DashboardModel() {
+		ec2DashboardModel = new EC2DashboardModel(this);		
+		
 		connectionData.put("endpoint", regionData.get(selectedRegion));
 		ec2DashboardModel.execute(new HashMap<?, ?>[] { connectionData });
+		
 	}
-
+	
 	/**
-	 * Retrieve the number of regions available from AWS, and get the default
-	 * region for the current username.
+	 * Execute the model to retrieve the list of regions. The model
+	 * runs in a different thread and calls processModelResults when done.
 	 */
-	private void retrieveRegionData() {
-		String defaultRegion = null;
-		ElasticDroidDB elasticDroidDB = new ElasticDroidDB(this);
-		// get the list of regions
-		try {
-			regionData = AWSUtilities.getRegions(connectionData);
-		} catch (RuntimeException exception) {
-			// error out and fuck off
-			Log.e(this.getClass().getName(), "This should not have happened:"
-					+ exception.getMessage());
-			finish();
-		}
-
-		// try and get the default region from the DB for the user.
-		try {
-			defaultRegion = elasticDroidDB.getDefaultRegion(connectionData
-					.get("username"));
-		} catch (SQLException e) { // error out and fuck off
-			Log.e(this.getClass().getName(), "This should not have happened:"
-					+ e.getMessage());
-			finish();
-		}
-
-		// if no default region, set the default region to be the first of the
-		// returned regions
-		// and write it to the DB.
-		if (defaultRegion == null) {
-			// set the default region to the first region in the RegionsList
-			defaultRegion = regionData.keySet().iterator().next();
-			Log.v(this.getClass().getName(), "Setting " + defaultRegion
-					+ " as default region.");
-
-			// write the newly defined random default region in as default
-			// region.
-			elasticDroidDB.setDefaultRegion(connectionData.get("username"),
-					defaultRegion);
-		} else {
-			// check if the default region exists among the regions.
-			if (!regionData.containsKey(defaultRegion)) {
-				Log.e(this.getClass().getName(),
-						"Invalid default region. Set a random default "
-								+ "region");
-				// set the default region to the first region in the RegionsList
-				defaultRegion = regionData.keySet().iterator().next();
-				Log.v(this.getClass().getName(), "Resetting " + defaultRegion
-						+ " as default region.");
-
-				// write the newly defined random default region in as default
-				// region.
-				elasticDroidDB.setDefaultRegion(connectionData.get("username"),
-						defaultRegion);
-			}
-		}
-
-		// set the selectedRegion as default region.
-		selectedRegion = defaultRegion;
+	private void executeRetrieveRegionModel() {
+		retrieveRegionModel = new RetrieveRegionModel(this);
+		retrieveRegionModel.execute(new HashMap<?,?>[]{connectionData});
 	}
 
 	/**
@@ -714,7 +781,7 @@ public class EC2DashboardView extends GenericListActivity implements
 			selectedRegion = ((Spinner) findViewById(R.id.ec2DashboardRegionSpinner))
 					.getItemAtPosition(pos).toString();
 			// repopulate ListView with data for this region
-			executeModel();
+			executeEC2DashboardModel();
 		}
 	}
 
@@ -756,8 +823,13 @@ public class EC2DashboardView extends GenericListActivity implements
 			startActivity(aboutIntent);
 			return true;
 		case R.id.dashboard_menuitem_refresh:
-			// reload data for current region by restarting model execution
-			executeModel();
+			//get region data if necessary
+			if (regionData == null) {
+				executeRetrieveRegionModel();
+				//this will execute EC2DashboardModel automagically.
+			} else {
+				executeEC2DashboardModel();
+			}
 			return true;
 		case R.id.dashboard_menuitem_default_region:
 			Intent setDefaultRegionIntent = new Intent();
@@ -795,13 +867,6 @@ public class EC2DashboardView extends GenericListActivity implements
 					finish(); //kill the app off.
 					break;
 			}
-			
-			//restart the whole process because of the following bug
-			//which I suspect is an Android bug.
-			//See @link{http://code.google.com/p/elastic-droid/issues/detail?id=4}
-			Intent restartIntent = this.getIntent();
-			startActivity(restartIntent); //strt new activity with same data
-			finish(); //finish existing activity
 		}
 		else {
 			switch (resultCode) {
@@ -837,7 +902,7 @@ public class EC2DashboardView extends GenericListActivity implements
 					regionSpinner.setSelection(selectedRegionPosition);
 	
 					// repopulate ListView with data for this region
-					executeModel();
+					executeEC2DashboardModel();
 				}
 				break;
 			case RESULT_CANCELED:
