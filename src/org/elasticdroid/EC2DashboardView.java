@@ -591,10 +591,14 @@ public class EC2DashboardView extends GenericListActivity implements
 			Log.e(this.getClass().getName() + ".populateRegionSpinner", "SQL Exception.Exiting: "+ 
 					e.getMessage());
 		}
-		
+
 		//if there is no default region, set the first item in regionData as the default region
 		if (defaultRegion == null) {
-			defaultRegion = ((String[])regionData.keySet().toArray())[0];
+			//this is still O(1). Gingerbread didn't like my unsafe class casts.
+			for (String region : regionData.keySet()) {
+				defaultRegion = region;
+				break;
+			}
 			elasticDroidDb.setDefaultRegion(connectionData.get("username"), defaultRegion);
 		}
 		
