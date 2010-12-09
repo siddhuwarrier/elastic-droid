@@ -48,7 +48,7 @@ import com.amazonaws.services.ec2.model.Tag;
  * 8 Dec 2010
  */
 public class SerializableInstance implements Serializable {
-	/** Serializable ID */
+
 	private static final long serialVersionUID = 1L;
 	
 	//all of the private members required by the Activities. Add as required
