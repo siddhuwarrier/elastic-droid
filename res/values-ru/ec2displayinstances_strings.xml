@@ -1,10 +1,10 @@
 <resources>
 <string name="ec2displayinstances_running_title">Запущенные экземляры</string>
 <string name="ec2displayinstances_stopped_title">Остановленные экземляры</string>
-<string name="ec2displayinstances_tag"><i>Tag:</i> %1$s</string>
-<string name="ec2displayinstances_instanceID"><i>Instance ID:</i>: %1$s</string>
-<string name="ec2displayinstances_type"><i>Type:</i> %1$s</string>
-<string name="ec2displayinstances_os"><i>OS:</i> %1$s</string>
-<string name="ec2displayinstances_rundays">Started %1$.1f days ago</string>
-<string name="ec2displayinstances_runhrs">Started %1$.1f hrs ago</string>
+<string name="ec2displayinstances_tag"><i>Тег:</i> %1$s</string>
+<string name="ec2displayinstances_instanceID"><i>ID экземляра:</i>: %1$s</string>
+<string name="ec2displayinstances_type"><i>Тип:</i> %1$s</string>
+<string name="ec2displayinstances_os"><i>ОС:</i> %1$s</string>
+<string name="ec2displayinstances_rundays">Запущен %1$.1f дн назад</string>
+<string name="ec2displayinstances_runhrs">Запущен %1$.1f ч назад</string>
 </resources>
