@@ -1,0 +1,4 @@
+<resources>
+<string name="ec2displayinstances_running_title">Запущенные экземляры</string>
+<string name="ec2displayinstances_stopped_title">Остановленные экземляры</string>
+</resources>

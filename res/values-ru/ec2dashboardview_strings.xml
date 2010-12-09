@@ -1,0 +1,11 @@
+<resources>
+<string name="ec2dashview_title">Панель EC2</string>
+<string name="ec2dashview_runninginstances"><b>Запущенные экземляры: </b></string>
+<string name="ec2dashview_stoppedinstances"><b>Остановленные экземляры: </b></string>
+<string name="ec2dashview_elasticip"><b>Elastic IPs: </b></string>
+<string name="ec2dashview_securitygroups"><b>Группы безопасности: </b></string>
+<string name="ec2dashview_keypairs"><b>Пары ключей: </b></string>
+<string name="ec2dashview_illegal_arg_exception"><b>Модели были переданы некорректные аргументы. 
+Пожалуйста, пришлите отчет об ошибке.</b></string>
+<string name="ec2dashview_region">Регион:</string>
+</resources>
