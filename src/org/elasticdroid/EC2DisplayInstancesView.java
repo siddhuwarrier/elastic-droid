@@ -488,17 +488,25 @@ class EC2DisplayInstancesAdapter extends ArrayAdapter<SerializableInstance>{
 		
 		//set Instance ID as headline if no tag named "name"(case-insensitive) found.
 		if (instanceData.get(position).getTag() == null) {
-			textViewHeadline.setText("ID: " + instanceData.get(position).getInstanceId());
+			textViewHeadline.setText(String.format(
+					context.getString(R.string.ec2displayinstances_instanceID),
+					instanceData.get(position).getInstanceId()));
 		}
 		else {
-			textViewHeadline.setText("Tag: " + instanceData.get(position).getTag());
+			textViewHeadline.setText(String.format(
+					context.getString(R.string.ec2displayinstances_tag),
+					instanceData.get(position).getTag()));
 		}
 		
-		details += "<i>Type:</i> " + instanceData.get(position).getInstanceType() + ", "; 
-
+		details += String.format(
+				context.getString(R.string.ec2displayinstances_type),
+				instanceData.get(position).getInstanceType()) + ", ";
+		 
 		//get platform
-		details += "<i>OS:</i> " + (instanceData.get(position).getPlatform() == null?"Linux": instanceData.
-				get(position).getPlatform());
+		details += String.format(
+				context.getString(R.string.ec2displayinstances_os),
+				(instanceData.get(position).getPlatform() == null?"Linux": instanceData.
+				get(position).getPlatform())) + ", ";
 		
 		//don't bother getting day launched if the instance is stopped
 		if (listType == InstanceStateConstants.RUNNING) {
@@ -509,10 +517,17 @@ class EC2DisplayInstancesAdapter extends ArrayAdapter<SerializableInstance>{
 			//if been running greater than 24 hours, convert to days
 			if (timeRunning > 24) {
 				timeRunning /= 24;
-				details += ", Started " +new DecimalFormat("#.#").format(timeRunning) + " days ago";
+				
+				details += String.format(
+						context.getString(R.string.ec2displayinstances_rundays),
+						timeRunning
+						) ;
 			}
 			else {
-				details += ", Started<i> " + new DecimalFormat("#.#").format(timeRunning) + "</i> hrs ago)";
+				details += String.format(
+						context.getString(R.string.ec2displayinstances_runhrs),
+						timeRunning
+						);
 			}
 		}
 		textViewDetails.setText(Html.fromHtml(details));
