@@ -1,0 +1,13 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+	<item android:id="@+id/displayinstances_menuitem_refresh" 
+	android:title="@string/ec2displayinstances_menu_refresh" 
+	android:visible="true" 
+	android:enabled="true" 
+	android:icon="@drawable/ic_menu_refresh"/>
+	
+	<item android:id="@+id/displayinstances_menuitem_about" 
+	android:title="@string/about_titletext" 
+	android:visible="true" 
+	android:enabled="true" 
+	android:icon="@drawable/ic_menu_elasticdroid"/>	
+</menu>

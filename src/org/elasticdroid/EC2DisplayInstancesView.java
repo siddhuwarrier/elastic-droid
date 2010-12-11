@@ -41,6 +41,9 @@ import android.text.Html;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -436,6 +439,41 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		
 		return super.onKeyDown(keyCode, event);
 	}
+	
+ 
+	/**
+	 * Overridden method to display the menu on press of the menu key
+	 * 
+	 * Inflates and shows menu for displayed instances view.
+	 */
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.displayinstances_menu, menu);
+		return true;
+	}
+
+	/**
+	 * Overriden method to handle selection of menu item
+	 */
+	@Override
+	public boolean onOptionsItemSelected(MenuItem selectedItem) {
+		switch (selectedItem.getItemId()) {
+		
+		case R.id.displayinstances_menuitem_about:
+			Intent aboutIntent = new Intent(this, AboutView.class);
+			startActivity(aboutIntent);
+			return true;
+		case R.id.displayinstances_menuitem_refresh:
+			executeModel();
+			
+			return true;
+		
+		default:
+			return super.onOptionsItemSelected(selectedItem);
+		}
+	}
+	
 }
 
 /**
