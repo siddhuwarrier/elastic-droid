@@ -20,7 +20,6 @@ package org.elasticdroid;
 
 import static org.elasticdroid.utils.ResultConstants.RESULT_ERROR;
 
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -47,6 +46,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import com.amazonaws.AmazonClientException;
@@ -206,12 +206,13 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		Log.v(this.getClass().getName() + ".onRestoreInstanceState", "progbar:" + 
 				progressDialogDisplayed);
 		
-		/*first off, get the model data back, so that you can inform the model that the activity
+		/*get the model data back, so that you can inform the model that the activity
 		 * has come back up. */
 		Object retained = getLastNonConfigurationInstance();
 		//if there was a model executing when the object was destroyed.
 		if (retained instanceof EC2DisplayInstancesModel) {
-			Log.i(this.getClass().getName() + ".onCreate()","Reclaiming previous background task");
+			Log.i(this.getClass().getName() + ".onRestoreInstanceState()","Reclaiming previous " +
+					"background task");
 			
 			ec2DisplayInstancesModel = (EC2DisplayInstancesModel) retained;//force typecast
 			ec2DisplayInstancesModel.setActivity(this);//pass the model reference to activity
@@ -420,6 +421,29 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		}
 		// if some other sort of dialog...
 		return super.onCreateDialog(id);
+	}
+	
+	/**
+	 * Handle the selection of a given instance, and pass the relevant SerializableInstance object
+	 * on.
+	 */
+	@Override
+	protected void onListItemClick(ListView list, View v, int position, long id) {
+		Intent displaySingleInstanceIntent = new Intent();
+		displaySingleInstanceIntent.setClassName("org.elasticdroid",
+			"org.elasticdroid.EC2SingleInstanceView");
+		//send it the AWS connection data.
+		displaySingleInstanceIntent.putExtra(
+				"org.elasticdroid.EC2DashboardView.connectionData",
+				connectionData); // aws connection info
+		//send it a single SerializableInstance
+		displaySingleInstanceIntent.putExtra("org.elasticdroid.model.SerializableInstance",
+				instanceData.get(position));
+		//send it the selected region
+		displaySingleInstanceIntent.putExtra("selectedRegion", selectedRegion);
+		
+		//start the activity
+		startActivity(displaySingleInstanceIntent);
 	}
 
 	/**

@@ -23,7 +23,6 @@ import java.util.HashMap;
 import org.elasticdroid.GenericListActivity;
 import org.elasticdroid.utils.AWSConstants;
 import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
-import org.elasticdroid.utils.DialogConstants;
 
 import android.util.Log;
 
@@ -31,6 +30,7 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Reservation;
@@ -49,16 +49,6 @@ public class EC2DashboardModel extends GenericListModel<HashMap<?,?>,
 	public EC2DashboardModel(GenericListActivity genericActivity) {
 		super(genericActivity);
 	}
-	
-	/**
-	 * Called in *UI Thread* before doInBackground executes in a separate thread.
-	 */
-	@Override
-	protected void onPreExecute() {
-		Log.v(this.getClass().getName(), "Display progress bar before starting up...");
-		activity.showDialog(DialogConstants.PROGRESS_DIALOG.ordinal()); //the argument is not used
-	}
-
 
 	/**
 	 * Gets the data to populate the EC2 Dashboard with in the background thread, and loads it into

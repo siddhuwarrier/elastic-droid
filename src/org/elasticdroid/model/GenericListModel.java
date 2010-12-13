@@ -19,6 +19,7 @@
 package org.elasticdroid.model;
 
 import org.elasticdroid.GenericListActivity;
+import org.elasticdroid.utils.DialogConstants;
 
 import android.os.AsyncTask;
 
@@ -41,6 +42,15 @@ public abstract class GenericListModel<T,U,V> extends AsyncTask<T, U, V> {
 	public GenericListModel(GenericListActivity genericActivity) {
 		this.activity = genericActivity;
 	}
+	
+	/**
+	 * Called in *UI Thread* before doInBackground executes in a separate thread.
+	 */
+	@Override
+	protected void onPreExecute() {
+		activity.showDialog(DialogConstants.PROGRESS_DIALOG.ordinal()); //the argument is not used
+	}
+	
 	
 	/**
 	 * Set the activity object referred to by the model. This is used

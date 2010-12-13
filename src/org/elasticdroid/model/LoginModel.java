@@ -23,7 +23,6 @@ import java.util.regex.Pattern;
 import org.elasticdroid.GenericActivity;
 import org.elasticdroid.db.ElasticDroidDB;
 import org.elasticdroid.db.tblinfo.LoginTbl;
-import org.elasticdroid.utils.DialogConstants;
 
 import android.content.ContentValues;
 import android.database.SQLException;
@@ -55,14 +54,6 @@ public class LoginModel extends GenericModel<String, Void, Object> {
 	 */
 	public LoginModel(GenericActivity genericActivity) {
 		super(genericActivity);
-	}
-	
-	/**
-	 * Called in *UI Thread* before doInBackground executes in a separate thread.
-	 */
-	@Override
-	protected void onPreExecute() {
-		activity.showDialog(DialogConstants.PROGRESS_DIALOG.ordinal()); //the argument is not used
 	}
 	
 	/** 

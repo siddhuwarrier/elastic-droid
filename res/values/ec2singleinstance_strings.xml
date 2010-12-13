@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="ec2singleinstance_tag">Tag: %1$s</string>
+<string name="ec2singleinstance_state">State: </string>
+<string name="ec2singleinstance_type">Type: </string>
+<string name="ec2singleinstance_os">OS: </string>
+<string name="ec2singleinstance_launchtime">Launch Time: </string>
+<string name="ec2singleinstance_launchdetails_days">%1$.1f days ago</string>
+<string name="ec2singleinstance_launchdetails_hrs">%1$.1f hrs ago</string>
+<string name="ec2singleinstance_keypair">Keypair: </string>
+<string name="ec2singleinstance_secgroup">Security Group: </string>
+<string name="ec2singleinstance_elastic_ip">Elastic IP: </string>
+<string name="ec2singleinstance_public_ip">Public IP: </string>
+<string name="ec2singleinstance_ami">AMI ID: </string>
+</resources>

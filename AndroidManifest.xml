@@ -29,11 +29,13 @@
     <activity 
     	android:label="" android:name=".EC2DisplayInstancesView">
 	</activity>
+    <activity 
+    	android:label="" android:name=".EC2SingleInstanceView">
+	</activity>
 	
 	<activity 
     	android:label="@string/regionsview_title" android:name=".DefaultRegionView"
     	android:theme="@android:style/Theme.Dialog">
-    	>
 	</activity>
 </application>
 

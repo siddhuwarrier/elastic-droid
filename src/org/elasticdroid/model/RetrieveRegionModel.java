@@ -22,15 +22,14 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.elasticdroid.GenericListActivity;
-import org.elasticdroid.utils.DialogConstants;
+
+import android.util.Log;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.Region;
-
-import android.util.Log;
 
 /**
  * @author Siddhu Warrier
@@ -45,15 +44,6 @@ public class RetrieveRegionModel extends GenericListModel<HashMap<?,?>, Void, Ob
 	public RetrieveRegionModel(GenericListActivity genericActivity) {
 		super(genericActivity);
 		// TODO Auto-generated constructor stub
-	}
-	
-	/**
-	 * Called in *UI Thread* before doInBackground executes in a separate thread.
-	 */
-	@Override
-	protected void onPreExecute() {
-		Log.v(this.getClass().getName(), "Display progress bar before starting up...");
-		activity.showDialog(DialogConstants.PROGRESS_DIALOG.ordinal()); //the argument is not used
 	}
 	
 	@SuppressWarnings("unchecked")

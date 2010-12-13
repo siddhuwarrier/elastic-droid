@@ -25,7 +25,6 @@ import java.util.List;
 
 import org.elasticdroid.GenericListActivity;
 import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
-import org.elasticdroid.utils.DialogConstants;
 
 import android.util.Log;
 
@@ -55,15 +54,6 @@ Void, Object> {
 		super(genericActivity);
 	}
 	
-	/**
-	 * Called in *UI Thread* before doInBackground executes in a separate thread.
-	 */
-	@Override
-	protected void onPreExecute() {
-		Log.v(this.getClass().getName(), "Display progress bar before starting up...");
-		activity.showDialog(DialogConstants.PROGRESS_DIALOG.ordinal()); //the argument is not used
-	}
-
 	/** Execute the model activity in the background thread. Inherited from
 	 * @see android.os.AsyncTask#doInBackground(Params[])
 	 */
@@ -129,9 +119,11 @@ Void, Object> {
 			
 			//add each instance found into the list of instances to return to the view
 			for (Reservation reservation: reservations) {
+				List<String> securityGroups = reservation.getGroupNames();
+				//note to self: List is an interface ArrayList implements.
 				//for each reservation, get the list of instances associated
 				for (Instance instance: reservation.getInstances()) {
-					instanceData.add(new SerializableInstance(instance));
+					instanceData.add(new SerializableInstance(instance, securityGroups));
 				}
 			}
 		}

@@ -19,6 +19,7 @@
 package org.elasticdroid.model;
 
 import java.io.Serializable;
+import java.util.List;
 
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Tag;
@@ -54,6 +55,13 @@ public class SerializableInstance implements Serializable {
 	//all of the private members required by the Activities. Add as required
 	/**Tag with key=name (if any). We are not interested in any other sort of tag.*/
 	private String tagName;
+	/**State of the instance: pending,running, shutting down, stopping, stopped (EBS root device 
+	 * type only), or terminated. */
+	private String stateName;
+	/**Keypair used to authenticate with this instance. */
+	private String keyName;
+	/**Security groups used by this instance (and other within its reservation).*/
+	private List<String> securityGroupNames;
 	/** Instance ID */
 	private String instanceId;
 	/** Instance Type: micro, small etc. See {@link http://aws.amazon.com/ec2/instance-types/}
@@ -67,19 +75,38 @@ public class SerializableInstance implements Serializable {
 	private String publicIpAddress;
 	/** The public DNS name of the instance */
 	private String publicDnsName;
+	/**The AMI ID */
+	private String imageId;
+	/** 
+	 * The root device type
+	 * Accepted values: ebs | instance-store
+	 */
+	private String rootDeviceType;
 	
 	/**
 	 * Constructor. Initialises all of the members with data from the instance passed in as param.
 	 * @param instance The Instance object to use to initialise this data.
+	 * @param securityGroups The security groups associated with the Reservation that created this 
+	 * instance.
 	 */
-	public SerializableInstance(Instance instance) {
-		//get the instance ID, platform, launchtime, public IP address, public DNS name
+	public SerializableInstance(Instance instance, List<String> securityGroupNames) {
+		//get all of the data required
 		instanceId = instance.getInstanceId();
+		stateName = instance.getState().getName();
 		instanceType = instance.getInstanceType();
+		keyName = instance.getKeyName();
 		platform = instance.getPlatform();
 		launchTime = instance.getLaunchTime().getTime();//save in milliseconds since epoch
 		publicIpAddress = instance.getPublicIpAddress();
 		publicDnsName = instance.getPublicDnsName();
+		imageId = instance.getImageId();
+		rootDeviceType = instance.getRootDeviceType();
+		
+		//security groups are not per-instance, but per-reservation
+		//AWS allows you to launch multiple instances with the same characteristics. These 
+		//instances constitute a reservation! :) However, key pairs are still stored individually;
+		//this jars with me. Probably a misunderstanding on my part.
+		this.securityGroupNames = securityGroupNames;
 		
 		//setting tagName is a little harder. If there is a tag in the AWS cloud with key="name"
 		//save the value of the tag to tagName. If not, set to null
@@ -146,5 +173,45 @@ public class SerializableInstance implements Serializable {
 	 */
 	public String getTag() {
 		return tagName;
+	}
+	
+	/**
+	 * Get the state name for this {@link SerializableInstance}
+	 * @return {@link SerializableInstance#stateName}
+	 */
+	public String getStateName() {
+		return stateName;
+	}
+	
+	/**
+	 * Get the list of security groups for this {@link SerializableInstance}
+	 * @return {@link SerializableInstance#securityGroupNames}
+	 */
+	public List<String> getSecurityGroupNames() {
+		return securityGroupNames;
+	}
+	
+	/**
+	 * Get the image ID for this {@link SerializableInstance}
+	 * @return {@link SerializableInstance#imageId}
+	 */
+	public String getImageId() {
+		return imageId;
+	}
+
+	/**
+	 * Get the keypair name for this {@link SerializableInstance}
+	 * @return {@link SerializableInstance#keyName}
+	 */
+	public String getKeyName() {
+		return keyName;
+	}
+	
+	/**
+	 * Get the root device type for this {@link SerializableInstance}
+	 * @return {@link SerializableInstance#rootDeviceType}
+	 */
+	public String getRootDeviceType() {
+		return rootDeviceType;
 	}
 }

@@ -758,6 +758,10 @@ public class EC2DashboardView extends GenericListActivity implements
 			displayListIntent.putExtra("listType", InstanceStateConstants.STOPPED);
 			displayListIntent.putExtra("selectedRegion", selectedRegion); // selected region
 		}
+		else {
+			//not implemented; so ignore!! :)
+			return;
+		}
 		
 		startActivityForResult(displayListIntent, 0); //second arg ignored.
 	}
