@@ -68,6 +68,11 @@ public class LoginModel extends GenericModel<String, Void, Object> {
 	 */
 	@Override
 	protected Object doInBackground(String... params) {
+		
+		return performLogin(params);
+	}
+	
+	public Object performLogin(String... params) {
 		//we need username, accessKey, secretAccessKey
 		if (params.length != 3) {
 			Log.e(this.getClass().getName(), "Need 3 params."); //TODO do something better.
@@ -80,6 +85,8 @@ public class LoginModel extends GenericModel<String, Void, Object> {
 		AmazonIdentityManagementClient idManagementClient = new AmazonIdentityManagementClient
 			(credentials);
 		User userData = null;
+		
+		Log.v(this.getClass().getName(), "Executing performLogin AsyncTask...");
 		
 		try {
 			userData = idManagementClient.getUser().getUser();//ensure the user ID is 

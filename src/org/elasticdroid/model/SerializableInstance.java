@@ -58,6 +58,8 @@ public class SerializableInstance implements Serializable {
 	/**State of the instance: pending,running, shutting down, stopping, stopped (EBS root device 
 	 * type only), or terminated. */
 	private String stateName;
+	/**Code for state of the instance */
+	private Integer stateCode;
 	/**Keypair used to authenticate with this instance. */
 	private String keyName;
 	/**Security groups used by this instance (and other within its reservation).*/
@@ -93,6 +95,7 @@ public class SerializableInstance implements Serializable {
 		//get all of the data required
 		instanceId = instance.getInstanceId();
 		stateName = instance.getState().getName();
+		stateCode = instance.getState().getCode();
 		instanceType = instance.getInstanceType();
 		keyName = instance.getKeyName();
 		platform = instance.getPlatform();
@@ -181,6 +184,14 @@ public class SerializableInstance implements Serializable {
 	 */
 	public String getStateName() {
 		return stateName;
+	}
+	
+	/**
+	 * Get the state code for this {@link SerializableInstance}
+	 * @return {@link SerializableInstance#stateCode}
+	 */
+	public int getStateCode() {
+		return stateCode;
 	}
 	
 	/**

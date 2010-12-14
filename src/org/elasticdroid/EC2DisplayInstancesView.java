@@ -69,7 +69,7 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 	/**
 	 * The type of list to display. Accepted values atm are RUNNING and STOPPED
 	 */
-	private byte listType;
+	private int listType;
 	/** The selected region */
 	private String selectedRegion;
     /** The connection data */
@@ -115,7 +115,7 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		/* get intent data */
 		//get the type of list to display from the intent.
 		Intent intent = this.getIntent();
-		listType = intent.getByteExtra("listType", InstanceStateConstants.RUNNING);
+		listType = intent.getIntExtra("listType", InstanceStateConstants.RUNNING);
 		selectedRegion = intent.getStringExtra("selectedRegion");
 		
     	try {
@@ -513,13 +513,13 @@ class EC2DisplayInstancesAdapter extends ArrayAdapter<SerializableInstance>{
 	/** Context; typically the Activity that sets an object of this class as the Adapter */
 	private Context context;
 	/** List type */
-	private byte listType;
+	private int listType;
 	/**
 	 * @param context
 	 * @param textViewResourceId
 	 */
 	public EC2DisplayInstancesAdapter(Context context, int textViewResourceId, 
-			ArrayList<SerializableInstance> instanceData, byte listType) {
+			ArrayList<SerializableInstance> instanceData, int listType) {
 		super(context, textViewResourceId, instanceData);
 		
 		//save the context, data, and list type

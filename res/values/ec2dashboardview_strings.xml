@@ -9,4 +9,6 @@
 <string name="ec2dashview_illegal_arg_exception"><b>Invalid args passed to model. 
 Please file a bug report.</b></string>
 <string name="ec2dashview_region">Region:</string>
+<string name="dashboard_menu_refresh">Refresh</string>
+<string name="dashboard_menu_default_region">Set default region</string>
 </resources>

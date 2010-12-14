@@ -26,6 +26,7 @@ import java.util.List;
 
 import org.elasticdroid.model.ElasticIPsModel;
 import org.elasticdroid.model.SerializableInstance;
+import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 import org.elasticdroid.utils.DialogConstants;
 
 import android.app.AlertDialog;
@@ -37,7 +38,11 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -241,10 +246,10 @@ public class EC2SingleInstanceView extends GenericListActivity {
 	public void onResume() {
 		super.onResume(); //call superclass onResume()
 		
-		Log.v(this.getClass().getName() + ".executeModel()", "onResume");
+		Log.v(this.getClass().getName() + ".onResume()", "onResume");
 		
-		//don't execute ElasticIpModel if instance is stopped
-		if (!instance.getStateName().equalsIgnoreCase("running")) {
+		//don't execute ElasticIpModel if instance is stopped or summat
+		if (instance.getStateCode() != InstanceStateConstants.RUNNING) {
 			isElasticIpAssigned = false;
 		}
 		
@@ -254,9 +259,7 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			alertDialogBox.setMessage(alertDialogMessage);
 			alertDialogBox.show();
 		} else if (isElasticIpAssigned == null) {
-			if (instance.getStateName().equalsIgnoreCase("running")) {
 				executeModel();
-			}
 		} else {
 			//populate the list
 			setListAdapter(new EC2SingleInstanceAdapter(this, R.layout.ec2singleinstance, 
@@ -408,6 +411,78 @@ public class EC2SingleInstanceView extends GenericListActivity {
 		} 
 	}
 
+	/**
+	 * Overridden method to display the menu on press of the menu key
+	 * 
+	 * Inflates and shows menu for displayed instances view.
+	 */
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.singleinstance_menu, menu);
+	
+		return true;
+	}
+	
+	/**
+	 * Overriden. Prepares menu
+	 */
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu) {
+		if (instance.getStateCode() == InstanceStateConstants.STOPPED) {
+			//if the instance is stopped, then change the control instance menu item's text and img
+			//to show "start instance" and a "play" button respectively.
+			menu.findItem(R.id.singleinstance_menuitem_controlinstance).setTitle
+				(R.string.ec2singleinstance_menu_startinstance);
+			menu.findItem(R.id.singleinstance_menuitem_controlinstance).setIcon(R.drawable.
+					ic_menu_play_clip);
+		}
+		
+		if (instance.getStateCode() != InstanceStateConstants.RUNNING) {
+			//if the instance is not running, disable monitoring and SSH
+			Log.v(this.getClass().getName() + ".onPrepareOptionsMenu()", "Removing monitoring and" +
+					"SSH connect options.");
+			menu.removeItem(R.id.singleinstance_menuitem_monitor);
+			menu.removeItem(R.id.singleinstance_menuitem_ssh);
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Overriden method to handle selection of menu item
+	 */
+	@Override
+	public boolean onOptionsItemSelected(MenuItem selectedItem) {
+		switch (selectedItem.getItemId()) {
+		
+		case R.id.singleinstance_menuitem_about:
+			Intent aboutIntent = new Intent(this, AboutView.class);
+			startActivity(aboutIntent);
+			return true;
+		case R.id.singleinstance_menuitem_ssh:
+			Log.v(this.getClass().getName() + ".onOptionsItemSelected()", "User wishes to SSH!");
+			
+			return true;
+		
+		default:
+			return super.onOptionsItemSelected(selectedItem);
+		}
+	}
+	
+	/**
+	 * Handle back button.
+	 * If back button is pressed, UI should die.
+	 */
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		//do not allow user to return to previous screen on pressing back button
+		if (keyCode == KeyEvent.KEYCODE_BACK) {
+			finish();  
+		}
+		
+		return super.onKeyDown(keyCode, event);
+	}
 }
 
 /**
@@ -464,6 +539,8 @@ class EC2SingleInstanceAdapter extends ArrayAdapter<RowData> {
 					false);
 		}
 		
+		Log.v(context.getClass().getName(), "Instance state code:" + instance.getStateCode());
+		
 		TextView instanceMetricTextView = (TextView)instanceMetricRow.findViewById(R.id.
 				instanceMetric);
 		TextView instanceDataTextView = (TextView)instanceMetricRow.findViewById(R.id.
@@ -478,11 +555,11 @@ class EC2SingleInstanceAdapter extends ArrayAdapter<RowData> {
 			instanceMetricTextView.setText(context.getString(R.string.ec2singleinstance_state));
 			instanceDataTextView.setText(Html.fromHtml(instance.getStateName()));
 			
-			if (instance.getStateName().equalsIgnoreCase("running")) {
+			if (instance.getStateCode() == InstanceStateConstants.RUNNING) {
 				((ImageView) instanceMetricRow.findViewById(R.id.instanceStatusIcon)).
 					setImageResource(R.drawable.green_light);
 			}
-			else if (instance.getStateName().equalsIgnoreCase("stopped")) {
+			else if (instance.getStateCode() == InstanceStateConstants.STOPPED) {
 				instanceStatusIcon.setImageResource(R.drawable.red_light);				
 			}
 			break;
@@ -510,7 +587,7 @@ class EC2SingleInstanceAdapter extends ArrayAdapter<RowData> {
 					ec2singleinstance_launchtime));
 			instanceStatusIcon.setImageResource(R.drawable.ic_dialog_time);
 			
-			if (instance.getStateName().equalsIgnoreCase("running")) {
+			if (instance.getStateCode() == InstanceStateConstants.RUNNING) {
 				//get period running in hours.
 				float timeRunning = ((new Date().getTime() - instance.getLaunchTime()) / 
 						(1000 * 60 * 60)); //convert from milliseconds to hours
@@ -569,7 +646,7 @@ class EC2SingleInstanceAdapter extends ArrayAdapter<RowData> {
 			
 		case IP_ADDRESS:
 			//set IP address only if instance is running
-			if (instance.getStateName().equalsIgnoreCase("running")) {
+			if (instance.getStateCode() == InstanceStateConstants.RUNNING) {
 				if (isElasticIpAssigned) {
 					instanceMetricTextView.setText(context.getString(R.string.
 							ec2singleinstance_elastic_ip));

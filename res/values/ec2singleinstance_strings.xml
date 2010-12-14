@@ -12,4 +12,9 @@
 <string name="ec2singleinstance_elastic_ip">Elastic IP: </string>
 <string name="ec2singleinstance_public_ip">Public IP: </string>
 <string name="ec2singleinstance_ami">AMI ID: </string>
+<string name="ec2singleinstance_menu_monitor">Monitor instance</string>
+<string name="ec2singleinstance_menu_stopinstance">Stop instance</string>
+<string name="ec2singleinstance_menu_startinstance">Start instance</string>
+<string name="ec2singleinstance_menu_modifysecgroup">Modify Security Group</string>
+<string name="ec2singleinstance_menu_ssh">Connect (SSH)</string>
 </resources>

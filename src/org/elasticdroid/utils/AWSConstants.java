@@ -58,19 +58,39 @@ public class AWSConstants {
 	 * bit integer, the higher byte of which is used internally.
 	 * 
 	 *  We are concerned only of the lower byte value. Annoyingly, Amazon doesn't seem to have the same thing.
-	 *  Or even all of the values required. Grrr!
+	 *  
+	 *  These values are from the EC2 API reference dated 2010-08-31
+	 *  {@link http://docs.amazonwebservices.com/AWSEC2/latest/APIReference/}
 	 * @author Siddhu Warrier
 	 *
 	 * 14 Nov 2010
 	 */
 	public class InstanceStateConstants {
 		/**
+		 * Instance is pending (starting up)
+		 */
+		public static final int PENDING = 0;
+		/**
 		 * Instance is running.
 		 */
-		public static final byte RUNNING = 16;
+		public static final int RUNNING = 16;
+		/**
+		 * Instance is shutting down.
+		 */
+		public static final int SHUTTING_DOWN = 32;
+		/**
+		 * Instance is terminated. This means all data stored in the instance is lost.
+		 * Note: There is no STOPPED option available to S3-backed AMIs.
+		 * Therefore, for these AMIs, TERMINATED and RUNNING are the only steady states.
+		 */
+		public static final int TERMINATED = 48;
+		/**
+		 * Instance is stopping
+		 */
+		public static final int STOPPING = 64;
 		/**
 		 * Instance is stopped.
 		 */
-		public static final byte STOPPED = 80;
+		public static final int STOPPED = 80;
 	}
 }

@@ -88,16 +88,16 @@ public class EC2DashboardView extends GenericListActivity implements
 	/**
 	 * The data received from the model
 	 */
-	HashMap<String, Integer> dashboardData;
+	private HashMap<String, Integer> dashboardData;
 	/**
 	 * Reference to EC2DashboardModel object which does the credential checks
 	 * and stores user details in DB
 	 */
-	EC2DashboardModel ec2DashboardModel;
+	private EC2DashboardModel ec2DashboardModel;
 	/**
 	 * Reference to RetrieveRegionModel object
 	 */
-	RetrieveRegionModel retrieveRegionModel;
+	private RetrieveRegionModel retrieveRegionModel;
 	
 	/** Dialog box for credential verification errors */
 	private AlertDialog alertDialogBox;
