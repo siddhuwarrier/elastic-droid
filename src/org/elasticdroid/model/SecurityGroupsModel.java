@@ -14,15 +14,86 @@
  * You should have received a copy of the GNU General Public License
  * along with ElasticDroid.  If not, see <http://www.gnu.org/licenses/>.
  * 
- * Authored by siddhu on 13 Dec 2010
+ * Authored by siddhu on 15 Dec 2010
  */
 package org.elasticdroid.model;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+
+import org.elasticdroid.GenericListActivity;
+
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.model.DescribeSecurityGroupsRequest;
+import com.amazonaws.services.ec2.model.Filter;
+import com.amazonaws.services.ec2.model.SecurityGroup;
 
 /**
  * @author siddhu
  *
- * 13 Dec 2010
+ * 15 Dec 2010
  */
-public class SecurityGroupsModel {
-
+public class SecurityGroupsModel extends GenericListModel<Filter, Void, Object> {
+	
+	/**
+	 * 
+	 */
+	private HashMap<String,String> connectionData;
+	/**
+	 * Constructor
+	 * @param connectionData
+	 */
+	public SecurityGroupsModel(GenericListActivity genericActivity, HashMap<String, String> 
+		connectionData) {
+		super(genericActivity);
+		this.connectionData = connectionData;
+	}
+	
+	/**
+	 * Method that executes in background thread and does the actual work.
+	 * @param []filters: A list of filters
+	 */
+	@Override
+	protected Object doInBackground(Filter... filters) {
+		
+		//don't do any work here. Do it all in a testable public function
+		//that can also be invoked in-thread.
+		return getSecurityGroupData(filters);
+	}
+	
+	/**
+	 * The method that does the actual work 
+	 */
+	public Object getSecurityGroupData(Filter... filters) {
+		//create credentials using the BasicAWSCredentials class
+		BasicAWSCredentials credentials = new BasicAWSCredentials(connectionData.get("accessKey"),
+				connectionData.get("secretAccessKey"));
+		//create Amazon EC2 Client object, and set tye end point to the region. params[3]
+		//contains endpoint
+		AmazonEC2Client amazonEC2Client = new AmazonEC2Client(credentials);
+		amazonEC2Client.setEndpoint(connectionData.get("endpoint"));
+		
+		DescribeSecurityGroupsRequest securityGroupsRequest = new DescribeSecurityGroupsRequest();
+		//add filters to the request
+		securityGroupsRequest.withFilters(new ArrayList<Filter>(Arrays.asList(filters)));
+		
+		List<SecurityGroup> securityGroups;
+		try {
+			securityGroups = amazonEC2Client.describeSecurityGroups(securityGroupsRequest).
+				getSecurityGroups();
+		}
+		catch(AmazonServiceException amazonServiceException) {
+			return amazonServiceException;
+		}
+		catch(AmazonClientException amazonClientException) {
+			return amazonClientException;
+		}
+		
+		return securityGroups;
+	}
 }

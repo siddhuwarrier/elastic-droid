@@ -37,6 +37,10 @@
     	android:label="@string/regionsview_title" android:name=".DefaultRegionView"
     	android:theme="@android:style/Theme.Dialog">
 	</activity>
+	
+    <activity 
+    	android:label="" android:name=".testharness.TestListActivity">
+	</activity>
 </application>
 
 
