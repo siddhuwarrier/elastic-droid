@@ -18,12 +18,20 @@
  */
 package org.elasticdroid.model;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import org.elasticdroid.GenericListActivity;
+import org.elasticdroid.GenericActivity;
+import org.elasticdroid.utils.MiscUtils;
+
+import android.R;
+import android.util.Log;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -31,6 +39,7 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.DescribeSecurityGroupsRequest;
 import com.amazonaws.services.ec2.model.Filter;
+import com.amazonaws.services.ec2.model.IpPermission;
 import com.amazonaws.services.ec2.model.SecurityGroup;
 
 /**
@@ -38,20 +47,28 @@ import com.amazonaws.services.ec2.model.SecurityGroup;
  *
  * 15 Dec 2010
  */
-public class SecurityGroupsModel extends GenericListModel<Filter, Void, Object> {
+public class SecurityGroupsModel extends GenericModel<Filter, Void, Object> {
+	
+	/** The AWS connection data */
+	private HashMap<String,String> connectionData;
+	/** Tag for printing log messages */
+	private static final String TAG = "org.elasticdroid.model.SecurityGroupsModel";
 	
 	/**
+	 * Alternate Constructor
 	 * 
-	 */
-	private HashMap<String,String> connectionData;
-	/**
-	 * Constructor
+	 * This constructor gets the list of security groups that allow connections from the IP address
+	 * in question.
 	 * @param connectionData
+	 * @param hostIpAddress The IP address in question.
 	 */
-	public SecurityGroupsModel(GenericListActivity genericActivity, HashMap<String, String> 
+	public SecurityGroupsModel(GenericActivity genericActivity, HashMap<String, String> 
 		connectionData) {
 		super(genericActivity);
 		this.connectionData = connectionData;
+		//if the boolean useHostIp is set, get the host IP address from whatismyip.org
+		//this is because Android gives me my LAN address and not my public IP address
+		//and returns 0.0.0.0 when using the network
 	}
 	
 	/**
@@ -93,6 +110,8 @@ public class SecurityGroupsModel extends GenericListModel<Filter, Void, Object> 
 		catch(AmazonClientException amazonClientException) {
 			return amazonClientException;
 		}
+		
+		boolean publicIpAddressValid;
 		
 		return securityGroups;
 	}

@@ -73,8 +73,7 @@ import com.amazonaws.AmazonServiceException;
  * 
  *         14 Nov 2010
  */
-public class EC2DashboardView extends GenericListActivity implements
-		OnItemSelectedListener {
+public class EC2DashboardView extends GenericListActivity implements OnItemSelectedListener {
 	/**
 	 * AWS login details: username, access key, secret access key. Can be IAM
 	 * username or AWS email address Not using ArrayList<String> cuz AsyncTask
@@ -223,7 +222,7 @@ public class EC2DashboardView extends GenericListActivity implements
 						// programming errors and
 						// exceptions caused due to invalid credentials.
 						if (killActivityOnError) {
-							finish();
+							EC2DashboardView.this.finish();
 							Intent loginIntent = new Intent();
 							loginIntent.setClassName("org.elasticdroid",
 									"org.elasticdroid.LoginView");

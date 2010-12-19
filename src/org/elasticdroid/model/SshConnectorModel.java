@@ -18,12 +18,18 @@
  */
 package org.elasticdroid.model;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 import org.apache.http.ConnectionClosedException;
-import org.elasticdroid.GenericListActivity;
+import org.elasticdroid.GenericActivity;
+import org.elasticdroid.R;
+import org.elasticdroid.utils.MiscUtils;
 
 import android.util.Log;
 
@@ -48,33 +54,42 @@ import com.amazonaws.services.ec2.model.SecurityGroup;
  *
  * 15 Dec 2010
  */
-public class SshConnectorModel extends GenericListModel<String, Void, Object> {
+public class SshConnectorModel extends GenericModel<String, Void, Object> {
 
 	/**
 	 * the port to connect to: toPort in AWS parlance
 	 * {@see http://docs.amazonwebservices.com/AWSJavaSDK/latest/javadoc/index.html}.
 	 */
-	int toPort;
+	private int toPort;
+	/** username to connect using */
+	private String username;
+	/** hostname to connect to */
+	private String hostname;
+	/** key file if any */
+	private String keyFile;
 	/**
 	 * The connection data
 	 */
-	HashMap <String, String> connectionData;
+	private HashMap <String, String> connectionData;
 	/**
-	 * The source IP address
+	 * The tag for printing out log messages
 	 */
-	String sourceIpAddress;
+	private static final String TAG = "org.elasticdroid.model.SshConnectorModel";
 	
 	/**
 	 * Constructor, sets toPort to 22  
 	 * @param genericActivity
 	 */
-	public SshConnectorModel(GenericListActivity genericActivity, HashMap<String, String> 
-		connectionData, int ipAddressInt) {
+	public SshConnectorModel(GenericActivity genericActivity, HashMap<String, String> 
+		connectionData, String username, String hostname, String keyFile) {
+		
 		super(genericActivity);
 		
 		this.connectionData = connectionData;
+		this.username = username;
+		this.hostname = hostname;
+		this.keyFile = keyFile;
 		toPort = 22;
-		this.sourceIpAddress = getIpAddressString(ipAddressInt);
 	}
 	
 	/**
@@ -82,13 +97,17 @@ public class SshConnectorModel extends GenericListModel<String, Void, Object> {
 	 * @param genericActivity The activity that called the model
 	 * @param toPort The port to try to connect to.
 	 */
-	public SshConnectorModel(GenericListActivity genericActivity, HashMap<String, String> 
-		connectionData, int ipAddressInt, int toPort) {
+	public SshConnectorModel(GenericActivity genericActivity, HashMap<String, String> 
+		connectionData, String username, String hostname, String keyFile, int toPort) {
+		
 		super(genericActivity); //call parent class constructor
 		
 		this.connectionData = connectionData;
-		this.sourceIpAddress = getIpAddressString(ipAddressInt);
 		this.toPort = toPort;
+		
+		this.username = username;
+		this.hostname = hostname;
+		this.keyFile = keyFile;
 	}
 
 	/* (non-Javadoc)
@@ -102,6 +121,32 @@ public class SshConnectorModel extends GenericListModel<String, Void, Object> {
 	
 	@SuppressWarnings("unchecked")
 	public Object prepareSshUri(String... secGroups) {
+		
+		String sourceIpAddress = null;
+		//first, get the source IP address
+		try {
+			URL ipAddressUri = new URL("http://www.whatismyip.org");
+			HttpURLConnection connection = (HttpURLConnection) ipAddressUri.openConnection();
+			connection.setConnectTimeout(5000); //time out in 5 seconds
+			sourceIpAddress = new BufferedReader(new InputStreamReader(connection.getInputStream())).
+				readLine();
+		}
+		catch(Exception exception) {
+			//if you can't retrieve it, just return a ConnectionClosedexception
+			
+			
+			return new ConnectionClosedException(
+					activity.getString(R.string.sshconnector_cannotretrievehostip));
+		}
+		//just a check in case they change the way whatismyip.org works
+		if (sourceIpAddress == null) {
+			return new ConnectionClosedException(
+					activity.getString(R.string.sshconnector_cannotretrievehostip));
+		}
+		Log.v(TAG, "Your Device's IP address is: " + sourceIpAddress);
+		
+		
+		
 		//get the information on the security groups in list
 		ArrayList<Filter> secGroupFilters = new ArrayList<Filter>();
 		List<SecurityGroup> securityGroups = null;//initialise it
@@ -150,10 +195,19 @@ public class SshConnectorModel extends GenericListModel<String, Void, Object> {
 						//split the source IP address along the dots
 						//split the source CIDR along the / to remove CIDR ignore bits, followed by
 						//along the dots.					
-						if (checkIpPermissions(sourceIpAddress.split("\\."), 
+						if (MiscUtils.checkIpPermissions(sourceIpAddress.split("\\."), 
 								sourceCidr.split("/")[0].split("\\."), 
-								Integer.valueOf(sourceCidr.split("/")[1])) == 0) {
-							return new String("SSH URI goes here!"); 
+								Integer.valueOf(sourceCidr.split("/")[1]))) {
+							//success, everything is fine. IP permissions, the works.
+							String sshUri = "ssh://" + username + "@" + hostname + ":" + toPort;
+							
+							//add key file as query param if keyfile provided
+							if (keyFile != null) {
+								sshUri += "?pubKey=" + keyFile;
+							}
+							//add nickname to show on ConnectBot screen
+							sshUri += "#" + username + "@" + hostname;
+							return sshUri; 
 						}
 					}
 				}
@@ -163,88 +217,13 @@ public class SshConnectorModel extends GenericListModel<String, Void, Object> {
 		//if we get here, we failed
 		if (portFound) {
 			//if we did find a port, return the error that the IP address provided is blocked.
-			return new ConnectionClosedException("IP address blocked.");
+			return new ConnectionClosedException(activity.getString(
+					R.string.sshconnector_ipaddressblocked));
 		} 
 		else {
-			return new ConnectionClosedException("Port closed.");
+			return new ConnectionClosedException(activity.getString(
+					R.string.sshconnector_portblocked));
 		}
 			
 	}
-	
-	/**
-	 * Checks if the IP address provided falls within the acceptable range for the source CIDR
-	 * 
-	 * This checks using some irritating bitwise arithmetic made more irritating by the absence of
-	 * unsigned types in Java.
-	 * 
-	 * @param ipAddressValues String[4] containing each byte of the IP address
-	 * @param rangeValues String[4] containing each byte of the source CIDR.
-	 * @param cidr The number of bits to ignore (starting from LSB).
-	 * @return
-	 */
-	private int checkIpPermissions(String[] ipAddressValues, String[] rangeValues, int cidr) {
-		int byteCount;
-		int rangeInt, ipAddressInt;
-		int mask;
-		
-		for (byteCount = 0; byteCount < cidr/8; byteCount++) {
-			Log.d(this.getClass().getName() + "checkIpPermissions()", "Full Comparison of byte " + 
-					byteCount);
-			//string comparisons work just as well here
-			if (!rangeValues[byteCount].equals(ipAddressValues[byteCount])) {
-				return -1;
-			}
-		}
-		
-		//if the CIDR bits specify a partial byte to be checked as well
-		if (cidr % 8 != 0) {
-			rangeInt = Integer.valueOf(rangeValues[byteCount]);
-			ipAddressInt = Integer.valueOf(ipAddressValues[byteCount]);
-			
-			//& by 255 because we want to set all bit above bit 8 to 0
-			//this is cuz unsigned types don't exist.
-			mask = (rangeInt << (cidr % 8)) & 255;
-			//now shift to the right two bits so as to have restored everything
-			//except the bits in this byte that we want to compare
-			mask = mask >> (cidr % 8);
-			rangeInt = rangeInt - mask;
-			
-			//do the same with IpAddress
-			mask = (ipAddressInt << (cidr % 8)) & 255;
-			mask = mask >> (cidr % 8);
-			ipAddressInt = ipAddressInt - mask;
-			
-			if (rangeInt != ipAddressInt) {
-				return -1;
-			}
-		}
-		
-		Log.v(this.getClass().getName() + "getIpPermissions()", "Returning 0 now...");
-		
-		return 0;
-	}
-	
-	/**
-	 * Get the WAN IP address of the Android phone.
-	 * 
-	 * It is returned as an integer, with each byte of the integer holding the corresponding byte.
-	 * @return
-	 */
-	private String getIpAddressString(int ipAddress) {		
-		String ipAddressString = "";
-		
-		int shiftBytes = 24;
-		while (shiftBytes >= 0) {
-			ipAddressString += String.valueOf((ipAddress >> shiftBytes) & 255) + ".";
-			shiftBytes -=8;
-		}
-		
-		//remove trailing "."
-		ipAddressString = ipAddressString.substring(0, ipAddressString.length() - 1);
-		
-		Log.v(this.getClass().getName() + ".getIpAddressString()", ipAddressString);
-		
-		return ipAddressString;
-	}
-
 }

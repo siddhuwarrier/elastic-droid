@@ -26,8 +26,8 @@ import java.util.List;
 
 import org.elasticdroid.model.ElasticIPsModel;
 import org.elasticdroid.model.SerializableInstance;
-import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 import org.elasticdroid.utils.DialogConstants;
+import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -117,6 +117,7 @@ public class EC2SingleInstanceView extends GenericListActivity {
 		super.onCreate(savedInstanceState); //call superclass onCreate
 		
 		Intent intent = this.getIntent();
+		
 		//get data from intent
 		selectedRegion = intent.getStringExtra("selectedRegion");
 		
@@ -160,11 +161,7 @@ public class EC2SingleInstanceView extends GenericListActivity {
 						// programming errors and
 						// exceptions caused due to invalid credentials.
 						if (killActivityOnError) {
-							finish();
-							Intent loginIntent = new Intent();
-							loginIntent.setClassName("org.elasticdroid",
-									"org.elasticdroid.LoginView");
-							startActivity(loginIntent);
+							EC2SingleInstanceView.this.finish();
 						}
 					}
 				});
@@ -190,9 +187,7 @@ public class EC2SingleInstanceView extends GenericListActivity {
 	 * 
 	 * This method restores:
 	 * <ul>
-	 * <li>instanceData: The list of instances</li>
-	 * <li>progressDialogDisplayed: Was a progress dialog displayed?</li>
-	 * <li>ec2DisplayInstancesModel: The retained config object containing the model object.</li>
+	 * <li>isElasticIpAssigned: Has the instance been assigned an Elastic IP?</li>
 	 * </ul>
 	 */
 	@Override
@@ -240,7 +235,8 @@ public class EC2SingleInstanceView extends GenericListActivity {
 	}
 	
 	/**
-	 * TODO Javadoc this.
+	 * Executed when activity is resumed. Calls ElasticIpModel to determine if public IP
+	 * is elastic.
 	 */
 	@Override
 	public void onResume() {
@@ -292,7 +288,6 @@ public class EC2SingleInstanceView extends GenericListActivity {
 		if (isElasticIpAssigned != null) {
 			saveState.putBoolean("isElasticIpAssigned", isElasticIpAssigned);
 		}
-		//TODO Save ElasticIP boolean
 	}
 	
 	/**
@@ -462,6 +457,28 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			return true;
 		case R.id.singleinstance_menuitem_ssh:
 			Log.v(this.getClass().getName() + ".onOptionsItemSelected()", "User wishes to SSH!");
+			
+			//call the SSH connector view using the intent
+			Intent sshConnectorIntent = new Intent();
+			sshConnectorIntent.setClassName("org.elasticdroid","org.elasticdroid.SshConnectorView");
+			
+			//not using IP address as theoretically DHCP lease can expire when connecting
+			//if Elastic IP is not used.
+			sshConnectorIntent.putExtra("hostname", instance.getPublicDnsName());
+			List<String> secGroupNames = instance.getSecurityGroupNames();
+			//breaking 100 character per line unwritten rule here as the code looks better this way
+			sshConnectorIntent.putExtra("securityGroups", 
+					secGroupNames.toArray(new String[secGroupNames.size()]));
+			sshConnectorIntent.putExtra("selectedRegion", selectedRegion);
+			sshConnectorIntent.putExtra(
+					"org.elasticdroid.EC2DashboardView.connectionData",
+					connectionData); // aws connection info
+			//start the activity
+			startActivity(sshConnectorIntent);
+			
+			/*Intent connectBotIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+			startActivity(connectBotIntent);*/
+			
 			
 			return true;
 		

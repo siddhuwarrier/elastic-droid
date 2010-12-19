@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="sshconnector_title">Connect using SSH</string>
+<string name="sshconnector_username">Username</string>
+<string name="sshconnector_port">Port</string>
+<string name="sshconnector_publickey_loc">Keyfile</string>
+<string name="sshconnector_optional"><i>Optional</i></string>
+<string name="sshconnector_avail_ports">Available Ports</string>
+<string name="sshconnector_cannotretrievehostip">Cannot retrieve URL</string>
+<string name="sshconnector_ipaddressblocked">Your IP address is not allowed to access this port</string>
+<string name="sshconnector_portblocked">This port is not open</string>
+<string name="sshconnector_pickkey">Pick key file</string>
+<string name="sdcard_absent">No SD card found</string>
+<string name="pick_from_sdcard">Pick from /sdcard</string>
+<string name="connectbot_not_installed">The ConnectBot application is not installed. Please install it 
+to login to instances using SSH.</string>
+</resources>

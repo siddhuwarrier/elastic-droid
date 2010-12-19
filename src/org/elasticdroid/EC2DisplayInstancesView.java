@@ -154,7 +154,7 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 						// programming errors and
 						// exceptions caused due to invalid credentials.
 						if (killActivityOnError) {
-							finish();
+							EC2DisplayInstancesView.this.finish();
 							Intent loginIntent = new Intent();
 							loginIntent.setClassName("org.elasticdroid",
 									"org.elasticdroid.LoginView");
