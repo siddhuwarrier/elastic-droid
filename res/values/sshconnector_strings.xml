@@ -3,10 +3,9 @@
 <string name="sshconnector_title">Connect using SSH</string>
 <string name="sshconnector_username">Username</string>
 <string name="sshconnector_port">Port</string>
-<string name="sshconnector_publickey_loc">Keyfile</string>
-<string name="sshconnector_optional"><i>Optional</i></string>
+<string name="sshconnector_publickey">Use public key auth</string>
 <string name="sshconnector_avail_ports">Available Ports</string>
-<string name="sshconnector_cannotretrievehostip">Cannot retrieve URL</string>
+<string name="sshconnector_cannotretrievehostip">Cannot retrieve source IP address</string>
 <string name="sshconnector_ipaddressblocked">Your IP address is not allowed to access this port</string>
 <string name="sshconnector_portblocked">This port is not open</string>
 <string name="sshconnector_pickkey">Pick key file</string>

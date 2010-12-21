@@ -65,8 +65,6 @@ public class SshConnectorModel extends GenericModel<String, Void, Object> {
 	private String username;
 	/** hostname to connect to */
 	private String hostname;
-	/** key file if any */
-	private String keyFile;
 	/**
 	 * The connection data
 	 */
@@ -81,14 +79,13 @@ public class SshConnectorModel extends GenericModel<String, Void, Object> {
 	 * @param genericActivity
 	 */
 	public SshConnectorModel(GenericActivity genericActivity, HashMap<String, String> 
-		connectionData, String username, String hostname, String keyFile) {
+		connectionData, String username, String hostname) {
 		
 		super(genericActivity);
 		
 		this.connectionData = connectionData;
 		this.username = username;
 		this.hostname = hostname;
-		this.keyFile = keyFile;
 		toPort = 22;
 	}
 	
@@ -98,7 +95,7 @@ public class SshConnectorModel extends GenericModel<String, Void, Object> {
 	 * @param toPort The port to try to connect to.
 	 */
 	public SshConnectorModel(GenericActivity genericActivity, HashMap<String, String> 
-		connectionData, String username, String hostname, String keyFile, int toPort) {
+		connectionData, String username, String hostname, int toPort) {
 		
 		super(genericActivity); //call parent class constructor
 		
@@ -107,7 +104,6 @@ public class SshConnectorModel extends GenericModel<String, Void, Object> {
 		
 		this.username = username;
 		this.hostname = hostname;
-		this.keyFile = keyFile;
 	}
 
 	/* (non-Javadoc)
@@ -125,7 +121,7 @@ public class SshConnectorModel extends GenericModel<String, Void, Object> {
 		String sourceIpAddress = null;
 		//first, get the source IP address
 		try {
-			URL ipAddressUri = new URL("http://www.whatismyip.org");
+			URL ipAddressUri = new URL("http://www.whatismyip.com/automation/n09230945.asp");
 			HttpURLConnection connection = (HttpURLConnection) ipAddressUri.openConnection();
 			connection.setConnectTimeout(5000); //time out in 5 seconds
 			sourceIpAddress = new BufferedReader(new InputStreamReader(connection.getInputStream())).
@@ -133,10 +129,7 @@ public class SshConnectorModel extends GenericModel<String, Void, Object> {
 		}
 		catch(Exception exception) {
 			//if you can't retrieve it, just return a ConnectionClosedexception
-			
-			
-			return new ConnectionClosedException(
-					activity.getString(R.string.sshconnector_cannotretrievehostip));
+			sourceIpAddress = null;
 		}
 		//just a check in case they change the way whatismyip.org works
 		if (sourceIpAddress == null) {
@@ -190,24 +183,24 @@ public class SshConnectorModel extends GenericModel<String, Void, Object> {
 					
 					portFound = true;
 					
-					//loop through the acceptable IP address ranges
-					for (String sourceCidr : permission.getIpRanges()) {
-						//split the source IP address along the dots
-						//split the source CIDR along the / to remove CIDR ignore bits, followed by
-						//along the dots.					
-						if (MiscUtils.checkIpPermissions(sourceIpAddress.split("\\."), 
-								sourceCidr.split("/")[0].split("\\."), 
-								Integer.valueOf(sourceCidr.split("/")[1]))) {
-							//success, everything is fine. IP permissions, the works.
-							String sshUri = "ssh://" + username + "@" + hostname + ":" + toPort;
-							
-							//add key file as query param if keyfile provided
-							if (keyFile != null) {
-								sshUri += "?pubKey=" + keyFile;
+					//if source IP address is null, i.e. our WAN IP resolver is down, don't
+					//check if this port is blocked for our IP address
+					if (sourceIpAddress != null) {
+						//loop through the acceptable IP address ranges
+						for (String sourceCidr : permission.getIpRanges()) {
+							//split the source IP address along the dots
+							//split the source CIDR along the / to remove CIDR ignore bits, followed 
+							//by along the dots.					
+							if (MiscUtils.checkIpPermissions(sourceIpAddress.split("\\."), 
+									sourceCidr.split("/")[0].split("\\."), 
+									Integer.valueOf(sourceCidr.split("/")[1]))) {
+								//success, everything is fine. IP permissions, the works.
+								String sshUri = "ssh://" + username + "@" + hostname + ":" + toPort;
+								
+								//add nickname to show on ConnectBot screen
+								sshUri += "#" + username + "@" + hostname;
+								return sshUri; 
 							}
-							//add nickname to show on ConnectBot screen
-							sshUri += "#" + username + "@" + hostname;
-							return sshUri; 
 						}
 					}
 				}

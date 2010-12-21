@@ -18,11 +18,9 @@
  */
 package org.elasticdroid;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.http.ConnectionClosedException;
@@ -38,13 +36,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Spinner;
 
@@ -93,15 +90,9 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 	private SshConnectorModel sshConnectorModel;
 	/** Information on security groups */
 	private ArrayList<String> openPorts;
-	/** The key file */
-	private String keyFile;
-	
-	/** Intent */
-	private static final int OPENINTENTS_FILEMANAGER_PICK_FILE = 1;
-	/** The TAG to use for printing log messages*/
+	/** The tag used in log messages in this class*/
 	private static final String TAG = "org.elasticdroid.SshConnectorView";
-	/** The max num of characters to be shown on the pubkey button */
-	private static final int MAX_CHARS_IN_KEY_BTN = 12;
+	
 	/**
 	 * Called when activity is created.
 	 * @param savedInstanceState if any
@@ -157,10 +148,6 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 		//initialise the display
 		setContentView(R.layout.sshconnector); //tell the activity to set the xml file
 		this.setTitle(connectionData.get("username")+ " (" + selectedRegion +")"); //set title
-		
-		//configure the button listeners
-		View keyButton =(View)this.findViewById(R.id.sshConnectorSelectPubKeyButton);
-		keyButton.setOnClickListener(this);
 		
 		View loginButton =(View)this.findViewById(R.id.sshConnectorLoginButton);
 		loginButton.setOnClickListener(this);
@@ -221,17 +208,6 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 			openPorts = null;
 		}
 		
-		keyFile = stateToRestore.getString("keyFile"); //keyFile
-		
-		if (keyFile != null) {
-			String displayStr = keyFile.split("/")[keyFile.split("/").length - 1];
-			
-			if (displayStr.length() > MAX_CHARS_IN_KEY_BTN) {
-				displayStr =  displayStr.substring(0, MAX_CHARS_IN_KEY_BTN - 3) + "...";
-			}
-			((Button) this.findViewById(R.id.sshConnectorSelectPubKeyButton)).setText(displayStr);
-		}
-		
 		//if we have openPorts data, populate the spinner
 		if (openPorts != null) {
 			populateSpinner();
@@ -241,6 +217,16 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 			((Spinner) findViewById(R.id.sshConnectorPortSpinner)).setSelection(
 					stateToRestore.getInt("selectedPortPos"));
 		}
+		
+		//if the user has entered new username, set that into EditText
+		if (stateToRestore.getString("sshUsername") != null) {
+			((EditText)findViewById(R.id.sshConnectorUsernameEditTextView)).setText(stateToRestore.
+					getString("sshUsername"));
+		}
+		
+		//set the pubkey auth checkbox
+		((CheckBox)findViewById(R.id.sshConnectorUsePublicKeyAuth)).setChecked(
+				stateToRestore.getBoolean("usePubkeyAuth"));
 	}
 	
 	/**
@@ -279,18 +265,27 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 		//save the dialog msg
 		saveState.putString("alertDialogMessage", alertDialogMessage);
 		
+		//save the list of open ports 
 		if (openPorts != null) {
 			saveState.putSerializable("openPorts", openPorts);
 			saveState.putInt("selectedPortPos",
 					((Spinner) findViewById(R.id.sshConnectorPortSpinner)).
 						getSelectedItemPosition());
 		}
-		//save selected key file
-		if (keyFile != null) {
-			saveState.putString("keyFile", keyFile);
-		}
 		//save if progress dialog is being displayed.
 		saveState.putBoolean("progressDialogDisplayed", progressDialogDisplayed);
+		
+		//save the username entered if it is not the default user name
+		String curUsername = ((EditText)findViewById(R.id.sshConnectorUsernameEditTextView)).
+			getText().toString();
+		if (!curUsername.equals(
+				this.getString(R.string.ssh_defaultuser))) {
+			saveState.putString("sshUsername", curUsername);
+		}
+		
+		//save the state of the checkbox that specifies whether pubkey auth should be used or not
+		saveState.putBoolean("usePubkeyAuth", ((CheckBox)findViewById(R.id.
+				sshConnectorUsePublicKeyAuth)).isChecked());
 	}
 	
 	/**
@@ -369,7 +364,6 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 				connectionData,
 				username,
 				hostname,
-				keyFile, 
 				toPort);
 		
 		sshConnectorModel.execute(securityGroupNames);
@@ -437,6 +431,11 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 						Uri.parse((String)result));
 				
 				try {
+					connectBotIntent.putExtra(
+							"usePubKeyAuth", 
+							((CheckBox)findViewById(R.id.sshConnectorUsePublicKeyAuth)).
+							isChecked());
+					//pass nickname: the last name of the file's path seq
 					startActivity(connectBotIntent);
 				}
 				catch(ActivityNotFoundException exception) {
@@ -444,7 +443,7 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 					alertDialogDisplayed = true;
 					//kill the activity when user closes the dialog
 					killActivityOnError = true;
-				}
+				} 
 			}
 			else if (result instanceof AmazonServiceException) {
 				// if a server error
@@ -550,27 +549,6 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 	public void onClick(View button) {
 		// TODO Auto-generated method stub
 		switch(button.getId()) {
-		case R.id.sshConnectorSelectPubKeyButton:
-			Log.v(TAG, "Select pub key...");
-			
-			//provide user with a selection from the SD card
-			Uri pickLocation = Uri.fromFile(Environment.getExternalStorageDirectory());
-			
-			//use Open Intents to collect info
-			Intent intent = new Intent("org.openintents.action.PICK_FILE");
-			intent.setData(pickLocation);
-			intent.putExtra("org.openintents.extra.TITLE", this.getString(
-					R.string.sshconnector_pickkey) + "(" + pickLocation.getPath() + ")");
-			intent.putExtra("org.openintents.extra.BUTTON_TEXT", getString(android.R.string.ok));
-		
-			try {
-				startActivityForResult(intent, OPENINTENTS_FILEMANAGER_PICK_FILE);
-			} catch (ActivityNotFoundException e) {
-				//if open Intents not found, use the Simple FIle picker
-				//which only shows files in /sdcard
-				pickFileSimple();
-			}
-			break;
 		case R.id.sshConnectorLoginButton:
 			EditText usernameEditText = (EditText) findViewById(R.id.
 					sshConnectorUsernameEditTextView);
@@ -584,93 +562,5 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 			}
 			break;
 		}
-	}
-	
-	/**
-	 * When a sub-activity responds with a result.
-	 * At the moment, it's only the OpenIntents File Manager that will return.
-	 * 
-	 * This is, of course, if OpenIntents File Manager is installed.
-	 */
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode,Intent resultIntent) {
-		super.onActivityResult(requestCode, resultCode, resultIntent);
-		//which activity returned
-		switch(requestCode) {
-		case OPENINTENTS_FILEMANAGER_PICK_FILE:
-			if (resultCode == RESULT_OK) {
-				if (resultIntent.getData() != null) {
-					keyFile = resultIntent.getData().toString();
-				}
-				else {
-					keyFile = resultIntent.getDataString();
-				}
-				
-				//shorten the display if necessary
-				String displayStr = keyFile.split("/")[keyFile.split("/").length - 1];
-				
-				if (displayStr.length() > MAX_CHARS_IN_KEY_BTN) {
-					displayStr =  displayStr.substring(0, MAX_CHARS_IN_KEY_BTN - 3) + "...";
-				}
-				((Button) this.findViewById(R.id.sshConnectorSelectPubKeyButton)).setText(
-						displayStr);
-				break;
-			}
-		}
-	}
-	/**
-	 * Simple file picker Copyright 2007 Kenny Root, Jeffrey Sharkey
-	 * From ConnectBot
-	 * 
-	 * Modified slightly by Siddhu to remove ConnectBot dependencies 
-	 * 
-	 * This method is licensed under: Licensed under the Apache License, Version 2.0
-	 */
-	private void pickFileSimple() {
-		// build list of all files in sdcard root
-		final File sdcard = Environment.getExternalStorageDirectory();
-		Log.d(TAG, sdcard.toString());
-
-		// Don't show a dialog if the SD card is completely absent.
-		final String state = Environment.getExternalStorageState();
-		if (!Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)
-				&& !Environment.MEDIA_MOUNTED.equals(state)) {
-			new AlertDialog.Builder(this)
-				.setMessage(R.string.sdcard_absent)
-				.setNegativeButton(android.R.string.cancel, null).create().show();
-			return;
-		}
-
-		List<String> names = new LinkedList<String>();
-		{
-			File[] files = sdcard.listFiles();
-			if (files != null) {
-				for(File file : sdcard.listFiles()) {
-					if(file.isDirectory()) continue;
-					names.add(file.getName());
-				}
-			}
-		}
-		Collections.sort(names);
-
-		final String[] namesList = names.toArray(new String[] {});
-		Log.d(TAG, names.toString());
-
-		// prompt user to select any file from the sdcard root
-		new AlertDialog.Builder(SshConnectorView.this)
-			.setTitle(R.string.pick_from_sdcard)
-			.setItems(namesList, new android.content.DialogInterface.OnClickListener() {
-				public void onClick(DialogInterface intf, int position) {
-					keyFile = sdcard.toString() + "/" + namesList[position];
-					String displayStr = keyFile.split("/")[keyFile.split("/").length - 1];
-					
-					if (displayStr.length() > MAX_CHARS_IN_KEY_BTN) {
-						displayStr =  displayStr.substring(0, MAX_CHARS_IN_KEY_BTN - 3) + "...";
-					}
-					((Button) SshConnectorView.this.findViewById(
-							R.id.sshConnectorSelectPubKeyButton)).setText(displayStr);
-				}
-			})
-			.setNegativeButton(android.R.string.cancel, null).create().show();
 	}
 }
