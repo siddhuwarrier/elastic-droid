@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="ec2singleinstance_tag">Тег: %1$s</string>
+<string name="ec2singleinstance_state">Состояние: </string>
+<string name="ec2singleinstance_type">Тип: </string>
+<string name="ec2singleinstance_os">ОС: </string>
+<string name="ec2singleinstance_launchtime">Время запуска: </string>
+<string name="ec2singleinstance_launchdetails_days">%1$.1f дн назад</string>
+<string name="ec2singleinstance_launchdetails_hrs">%1$.1f ч назад</string>
+<string name="ec2singleinstance_keypair">Пара ключей: </string>
+<string name="ec2singleinstance_secgroup">Группа безопасности: </string>
+<string name="ec2singleinstance_elastic_ip">Elastic IP: </string>
+<string name="ec2singleinstance_public_ip">Внешний IP: </string>
+<string name="ec2singleinstance_ami">AMI ID: </string>
+<string name="ec2singleinstance_menu_monitor">Контроль за экземпляром</string>
+<string name="ec2singleinstance_menu_stopinstance">Остановить экземпляр</string>
+<string name="ec2singleinstance_menu_startinstance">Запустить экземпляр</string>
+<string name="ec2singleinstance_menu_modifysecgroup">Изменить группу безопасности</string>
+<string name="ec2singleinstance_menu_ssh">Подключение (SSH)</string>
+</resources>

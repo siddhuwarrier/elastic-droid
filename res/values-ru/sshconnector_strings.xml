@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="sshconnector_title">Подключение по протоколу SSH</string>
+<string name="sshconnector_username">Имя пользователя</string>
+<string name="sshconnector_port">Порт</string>
+<string name="sshconnector_publickey">Использовать открытый ключ авторизации</string>
+<string name="sshconnector_avail_ports">Доступные порты</string>
+<string name="sshconnector_cannotretrievehostip">Невозможно получить IP адрес источника</string>
+<string name="sshconnector_ipaddressblocked">Вашему IP адресу не разрешен доступ к этому порту</string>
+<string name="sshconnector_portblocked">Этот порт не открыт</string>
+<string name="sshconnector_pickkey">Выберите файл с ключом</string>
+<string name="sdcard_absent">SD карта не найдена</string>
+<string name="pick_from_sdcard">Выбрать из /sdcard</string>
+<string name="connectbot_not_installed">Приложение ConnectBot не найдено. Установите его для подключения к экземляру по протоколу SSH.</string>
+</resources>
