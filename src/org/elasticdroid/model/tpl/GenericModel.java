@@ -102,6 +102,18 @@ public abstract class GenericModel<T,U,V> extends AsyncTask<T, U, V> {
 	}
 	
 	/**
+	 * Method to set the activity to null. Called when activity is destroyed.
+	 */
+	public void setActivityNull() {
+		if (listActivityUsed) {
+			this.listActivity = null;
+		}
+		else {
+			this.activity = null;
+		}
+	}
+	
+	/**
 	 * Called in the *UI thread* after doInBackground completes.
 	 * 
 	 * @param result The results returned by doInBackground

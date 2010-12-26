@@ -298,7 +298,7 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 	@Override
 	public Object onRetainNonConfigurationInstance() {
 		if (securityGroupsModel != null) {
-			securityGroupsModel.setActivity(null);
+			securityGroupsModel.setActivityNull();
 			return securityGroupsModel;
 		}
 		

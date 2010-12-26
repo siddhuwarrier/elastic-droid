@@ -346,7 +346,7 @@ public class LoginView extends GenericActivity implements OnClickListener {
         
 		//if the model is being executed when the onDestroy method is called.
 		if (loginModel != null) {
-			loginModel.setActivity(null);
+			loginModel.setActivityNull();
 			return loginModel;
 		}
 		return null;
