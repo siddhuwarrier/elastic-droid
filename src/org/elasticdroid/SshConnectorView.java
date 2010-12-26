@@ -26,6 +26,7 @@ import java.util.List;
 import org.apache.http.ConnectionClosedException;
 import org.elasticdroid.model.SecurityGroupsModel;
 import org.elasticdroid.model.SshConnectorModel;
+import org.elasticdroid.tpl.GenericActivity;
 import org.elasticdroid.utils.DialogConstants;
 
 import android.app.AlertDialog;

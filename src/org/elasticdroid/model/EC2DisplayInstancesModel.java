@@ -23,7 +23,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import org.elasticdroid.GenericListActivity;
+import org.elasticdroid.model.ds.SerializableInstance;
+import org.elasticdroid.model.tpl.GenericListModel;
+import org.elasticdroid.tpl.GenericListActivity;
 import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 
 import android.util.Log;

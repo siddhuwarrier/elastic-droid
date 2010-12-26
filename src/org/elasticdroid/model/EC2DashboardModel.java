@@ -20,7 +20,8 @@ package org.elasticdroid.model;
 
 import java.util.HashMap;
 
-import org.elasticdroid.GenericListActivity;
+import org.elasticdroid.model.tpl.GenericListModel;
+import org.elasticdroid.tpl.GenericListActivity;
 import org.elasticdroid.utils.AWSConstants;
 import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 

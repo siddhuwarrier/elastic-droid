@@ -16,7 +16,7 @@
  * 
  * Authored by Siddhu Warrier on 8 Dec 2010
  */
-package org.elasticdroid.model;
+package org.elasticdroid.model.ds;
 
 import java.io.Serializable;
 import java.util.List;

@@ -18,7 +18,7 @@
  */
 package org.elasticdroid.testharness;
 
-import org.elasticdroid.GenericListActivity;
+import org.elasticdroid.tpl.GenericListActivity;
 
 /**
  * A test list activity that expects no intent, to test 

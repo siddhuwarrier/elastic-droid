@@ -20,9 +20,10 @@ package org.elasticdroid.model;
 
 import java.util.regex.Pattern;
 
-import org.elasticdroid.GenericActivity;
 import org.elasticdroid.db.ElasticDroidDB;
 import org.elasticdroid.db.tblinfo.LoginTbl;
+import org.elasticdroid.model.tpl.GenericModel;
+import org.elasticdroid.tpl.GenericActivity;
 
 import android.content.ContentValues;
 import android.database.SQLException;
@@ -60,7 +61,7 @@ public class LoginModel extends GenericModel<String, Void, Object> {
 	 * Check AWS credentials, and save to DB if valid.
 	 * 
 	 * When this method finishes, the 
-	 * {@link org.elasticdroid.model.GenericModel#onPostExecute(Object)} is called, which
+	 * {@link org.elasticdroid.model.tpl.GenericModel#onPostExecute(Object)} is called, which
 	 * notifies the view.
 	 * 
 	 * This method, inherited from Android AsyncTask is automagically run in a separate background

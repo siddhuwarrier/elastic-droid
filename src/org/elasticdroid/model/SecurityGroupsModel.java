@@ -27,7 +27,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import org.elasticdroid.GenericActivity;
+import org.elasticdroid.model.tpl.GenericModel;
+import org.elasticdroid.tpl.GenericActivity;
 import org.elasticdroid.utils.MiscUtils;
 
 import android.R;

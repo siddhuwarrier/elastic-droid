@@ -21,7 +21,8 @@ package org.elasticdroid.model;
 import java.util.HashMap;
 import java.util.List;
 
-import org.elasticdroid.GenericListActivity;
+import org.elasticdroid.model.tpl.GenericListModel;
+import org.elasticdroid.tpl.GenericListActivity;
 
 import android.util.Log;
 

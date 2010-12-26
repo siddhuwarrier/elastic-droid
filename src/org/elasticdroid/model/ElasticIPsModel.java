@@ -23,7 +23,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import org.elasticdroid.GenericListActivity;
+import org.elasticdroid.model.tpl.GenericListModel;
+import org.elasticdroid.tpl.GenericListActivity;
 
 import android.util.Log;
 
@@ -74,6 +75,7 @@ public class ElasticIPsModel extends GenericListModel<Filter, Void, Object> {
 		request.setFilters(new ArrayList<Filter>(Arrays.asList(filters)));
 		
 		List<Address> addressList; //result == List<Address>
+	
 		//make the request to Amazon EC2
 		try {
 			addressList = amazonEC2Client.describeAddresses(request).getAddresses();

@@ -16,9 +16,9 @@
  * 
  * Authored by Siddhu Warrier on 2 Nov 2010
  */
-package org.elasticdroid;
+package org.elasticdroid.tpl;
 
-import android.app.ListActivity;
+import android.app.Activity;
 
 /**
  * This is an Abstract class so that the Views can call the appropriate method
@@ -30,7 +30,7 @@ import android.app.ListActivity;
  *
  * 2 Nov 2010
  */
-public abstract class GenericListActivity extends ListActivity {
+public abstract class GenericActivity extends Activity {
 
 	/**
 	 * Process results from model. Called by onPostExecute() method
@@ -38,5 +38,4 @@ public abstract class GenericListActivity extends ListActivity {
 	 * @param result
 	 */
 	public abstract void processModelResults(Object result);
-	
 }

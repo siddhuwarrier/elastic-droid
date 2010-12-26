@@ -25,7 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.elasticdroid.model.ElasticIPsModel;
-import org.elasticdroid.model.SerializableInstance;
+import org.elasticdroid.model.ds.SerializableInstance;
+import org.elasticdroid.tpl.GenericListActivity;
 import org.elasticdroid.utils.DialogConstants;
 import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 

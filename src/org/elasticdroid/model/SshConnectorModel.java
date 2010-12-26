@@ -27,8 +27,9 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.apache.http.ConnectionClosedException;
-import org.elasticdroid.GenericActivity;
 import org.elasticdroid.R;
+import org.elasticdroid.model.tpl.GenericModel;
+import org.elasticdroid.tpl.GenericActivity;
 import org.elasticdroid.utils.MiscUtils;
 
 import android.util.Log;

@@ -27,6 +27,7 @@ import java.util.HashMap;
 import org.elasticdroid.db.ElasticDroidDB;
 import org.elasticdroid.model.EC2DashboardModel;
 import org.elasticdroid.model.RetrieveRegionModel;
+import org.elasticdroid.tpl.GenericListActivity;
 import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 import org.elasticdroid.utils.DialogConstants;
 
@@ -125,6 +126,11 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 	 * hack
 	 */
 	private boolean defaultRegionChanged;
+	/**
+	 * Log tag
+	 */
+	private static final String TAG = "org.elasticdroid.EC2DashboardView";
+	
 
 	/**
 	 * Called when the Activity is first started, or recreated (for instance
@@ -459,7 +465,7 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 	/**
 	 * Process the results returned by the model,
 	 * 
-	 * @see org.elasticdroid.GenericActivity#processModelResults(java.lang.Object)
+	 * @see org.elasticdroid.tpl.GenericActivity#processModelResults(java.lang.Object)
 	 */
 	@SuppressWarnings("unchecked")
 	@Override
@@ -733,16 +739,18 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 															// to remove the
 															// number
 		// and get the text
+		
 		Intent displayListIntent = new Intent();
-		displayListIntent.setClassName("org.elasticdroid",
-		"org.elasticdroid.EC2DisplayInstancesView");
-		displayListIntent.putExtra(
-				"org.elasticdroid.EC2DashboardView.connectionData",
-				connectionData); // aws connection info
 		
 		if (selectedItem.equals(this.getString(
 				R.string.ec2dashview_runninginstances))) {
-			Log.v(this.getClass().getName() + ".onListItemClick:",
+			displayListIntent.setClassName("org.elasticdroid",
+			"org.elasticdroid.EC2DisplayInstancesView");
+			displayListIntent.putExtra(
+					"org.elasticdroid.EC2DashboardView.connectionData",
+					connectionData); // aws connection info
+			
+			Log.v(TAG + ".onListItemClick:",
 					"Will now show list of running " + "instances.");
 
 			displayListIntent.putExtra("listType",
@@ -751,15 +759,22 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 		}
 		else if (selectedItem.equals(this.getString(
 				R.string.ec2dashview_stoppedinstances))) {
+			displayListIntent.setClassName("org.elasticdroid",
+			"org.elasticdroid.EC2DisplayInstancesView");
+			displayListIntent.putExtra(
+					"org.elasticdroid.EC2DashboardView.connectionData",
+					connectionData); // aws connection info
+			
 			Log.v(this.getClass().getName() + ".onListItemClick:",
 					"Will now show list of stopped " + "instances.");
 			
 			displayListIntent.putExtra("listType", InstanceStateConstants.STOPPED);
 			displayListIntent.putExtra("selectedRegion", selectedRegion); // selected region
 		}
-		else {
-			//not implemented; so ignore!! :)
-			return;
+		else if (selectedItem.equals(this.getString(R.string.ec2dashview_elasticip))) {
+			Log.v(TAG, "Selected item: " + selectedItem);
+			displayListIntent.setClassName("org.elasticdroid", "org.elasticdroid.ElasticIPsView");
+			displayListIntent.putExtra("selectedRegion", selectedRegion); // selected region
 		}
 		
 		startActivityForResult(displayListIntent, 0); //second arg ignored.

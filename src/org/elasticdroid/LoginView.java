@@ -25,6 +25,7 @@ import java.util.HashMap;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.elasticdroid.model.LoginModel;
+import org.elasticdroid.tpl.GenericActivity;
 import org.elasticdroid.utils.DialogConstants;
 
 import android.app.AlertDialog;
@@ -236,7 +237,7 @@ public class LoginView extends GenericActivity implements OnClickListener {
 	 * or the next activity.
 	 * 
 	 * Overrides
-	 * @see org.elasticdroid.GenericActivity#processModelResults(java.lang.Object)
+	 * @see org.elasticdroid.tpl.GenericActivity#processModelResults(java.lang.Object)
 	 */
 	@Override
 	public void processModelResults(Object result) {

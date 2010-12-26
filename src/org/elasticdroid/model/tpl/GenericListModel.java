@@ -16,9 +16,9 @@
  * 
  * Authored by Siddhu Warrier on 3 Nov 2010
  */
-package org.elasticdroid.model;
+package org.elasticdroid.model.tpl;
 
-import org.elasticdroid.GenericActivity;
+import org.elasticdroid.tpl.GenericListActivity;
 import org.elasticdroid.utils.DialogConstants;
 
 import android.os.AsyncTask;
@@ -31,16 +31,16 @@ import android.os.AsyncTask;
  *
  * 3 Nov 2010
  */
-public abstract class GenericModel<T,U,V> extends AsyncTask<T, U, V> {
-	protected GenericActivity activity;
+public abstract class GenericListModel<T,U,V> extends AsyncTask<T, U, V> {
+	protected GenericListActivity activity;
 	
 	/**
 	 * Constructor. Saves the activity that called this. This is used to return the data
 	 * back to the (Generic)Activity.
 	 * @param activity The Android UI activity that created LoginModel
 	 */
-	public GenericModel(GenericActivity activity) {
-		this.activity = activity;
+	public GenericListModel(GenericListActivity genericActivity) {
+		this.activity = genericActivity;
 	}
 	
 	/**
@@ -51,6 +51,7 @@ public abstract class GenericModel<T,U,V> extends AsyncTask<T, U, V> {
 		activity.showDialog(DialogConstants.PROGRESS_DIALOG.ordinal()); //the argument is not used
 	}
 	
+	
 	/**
 	 * Set the activity object referred to by the model. This is used
 	 * by the activity to reset itself to null when it is being destroyed temporarily
@@ -58,8 +59,8 @@ public abstract class GenericModel<T,U,V> extends AsyncTask<T, U, V> {
 	 * reset it whenever the object is restored after being destroyed.
 	 * @param activity the GenericActivity referred to in the Model 
 	 */
-	public void setActivity(GenericActivity activity) {
-		this.activity = activity;
+	public void setActivity(GenericListActivity genericActivity) {
+		this.activity = genericActivity;
 	}
 	
 	/**
