@@ -41,6 +41,10 @@
 	<activity 
     	android:label="" android:name=".ElasticIPsView">
 	</activity>
+
+	<activity 
+    	android:label="" android:name=".SecurityGroupsView">
+	</activity>
 	
 	<activity 
     	android:label="@string/regionsview_title" android:name=".DefaultRegionView"

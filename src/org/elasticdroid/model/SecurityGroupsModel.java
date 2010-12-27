@@ -75,11 +75,13 @@ public class SecurityGroupsModel extends GenericModel<Filter, Void, Object> {
 	public SecurityGroupsModel(GenericListActivity genericListActivity, HashMap<String, String> 
 		connectionData) {
 		super(genericListActivity);
+		
 		this.connectionData = connectionData;
 		//if the boolean useHostIp is set, get the host IP address from whatismyip.org
 		//this is because Android gives me my LAN address and not my public IP address
 		//and returns 0.0.0.0 when using the network
 	}
+	
 	/**
 	 * Method that executes in background thread and does the actual work.
 	 * @param []filters: A list of filters
@@ -120,7 +122,7 @@ public class SecurityGroupsModel extends GenericModel<Filter, Void, Object> {
 			return amazonClientException;
 		}
 		
-		boolean publicIpAddressValid;
+		//boolean publicIpAddressValid;
 		
 		return securityGroups;
 	}
