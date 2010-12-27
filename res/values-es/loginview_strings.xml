@@ -5,7 +5,7 @@
 <string name="loginview_aws_secretAccessKey_textview">ID de Llave Secreta de Acceso:</string>
 <string name="loginview_aws_login_button">Ingresar</string>
 <string name="loginview_alertdialogbox_button">Aceptar</string>
-<string name="loginview_username_empty_erro">El Usuario no puede estar vacío</string>
+<string name="loginview_username_empty_err">El Usuario no puede estar vacío</string>
 <string name="loginview_accesskey_empty_err">La Llave de Acceso no puede estar vacía</string>
 <string name="loginview_secretaccesskey_empty_err">La Llave Secreta de Acceso no puede estar vacía</string>
 <string name="loginview_invalid_credentials_err">Credenciales Inválidas</string>

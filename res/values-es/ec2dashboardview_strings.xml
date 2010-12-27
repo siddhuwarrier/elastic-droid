@@ -7,7 +7,7 @@
 <string name="ec2dashview_securitygroups"><b>Grupos de Seguridad: </b></string>
 <string name="ec2dashview_keypairs"><b>Pares de Llave: </b></string>
 <string name="ec2dashview_illegal_arg_exception"><b>Argumentos Inválidos enviados al modelo. 
-Cree un reporte de error.</string>
+Cree un reporte de error.</b></string>
 <string name="ec2dashview_region">Región:</string>
 <string name="dashboard_menu_default_region">Elija una región por defecto</string>
 </resources>
