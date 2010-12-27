@@ -776,6 +776,13 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 			displayListIntent.putExtra("org.elasticdroid.EC2DashboardView.connectionData",
 					connectionData); // aws connection info
 			displayListIntent.putExtra("selectedRegion", selectedRegion); // selected region
+		} else if (selectedItem.equals(this.getString(R.string.ec2dashview_securitygroups))) {
+			Log.v(TAG, "Selected item: " + selectedItem);
+			displayListIntent.setClassName("org.elasticdroid", "org.elasticdroid.SecurityGroupsView");
+			
+			displayListIntent.putExtra("org.elasticdroid.EC2DashboardView.connectionData",
+					connectionData); // aws connection info
+			displayListIntent.putExtra("selectedRegion", selectedRegion); // selected region
 		}
 		
 		startActivityForResult(displayListIntent, 0); //second arg ignored.
