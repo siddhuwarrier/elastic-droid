@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.elasticdroid.model.tpl.GenericModel;
 import org.elasticdroid.tpl.GenericActivity;
+import org.elasticdroid.tpl.GenericListActivity;
 import org.elasticdroid.utils.MiscUtils;
 
 import android.R;
@@ -64,6 +65,23 @@ public class SecurityGroupsModel extends GenericModel<Filter, Void, Object> {
 	 * @param hostIpAddress The IP address in question.
 	 */
 	public SecurityGroupsModel(GenericActivity genericActivity, HashMap<String, String> 
+		connectionData) {
+		super(genericActivity);
+		this.connectionData = connectionData;
+		//if the boolean useHostIp is set, get the host IP address from whatismyip.org
+		//this is because Android gives me my LAN address and not my public IP address
+		//and returns 0.0.0.0 when using the network
+	}
+	
+	/**
+	 * Alternate Constructor
+	 * 
+	 * This constructor gets the list of security groups that allow connections from the IP address
+	 * in question.
+	 * @param connectionData
+	 * @param hostIpAddress The IP address in question.
+	 */
+	public SecurityGroupsModel(GenericListActivity genericActivity, HashMap<String, String> 
 		connectionData) {
 		super(genericActivity);
 		this.connectionData = connectionData;
@@ -112,7 +130,7 @@ public class SecurityGroupsModel extends GenericModel<Filter, Void, Object> {
 			return amazonClientException;
 		}
 		
-		boolean publicIpAddressValid;
+		//boolean publicIpAddressValid;
 		
 		return securityGroups;
 	}
