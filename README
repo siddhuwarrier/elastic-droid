@@ -1,1 +1,5 @@
-For information on this program, please contact Siddhu Warrier at siddhuwarrier AT gmail DOT com.
+To compile Elastic Droid using Ant, you must specify where your Android SDK is via the local.properties file. 
+
+sdk.dir=/path/to/android/sdk
+
+For information on this program, please contact Siddhu Warrier at siddhu AT siddhuw DOT info.

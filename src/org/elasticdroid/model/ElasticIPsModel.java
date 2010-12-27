@@ -23,10 +23,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import org.elasticdroid.model.tpl.GenericListModel;
+import org.elasticdroid.model.ds.SerializableAddress;
+import org.elasticdroid.model.tpl.GenericModel;
+import org.elasticdroid.tpl.GenericActivity;
 import org.elasticdroid.tpl.GenericListActivity;
-
-import android.util.Log;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -43,13 +43,25 @@ import com.amazonaws.services.ec2.model.Filter;
  * @author siddhu
  * 12 Dec 2010
  */
-public class ElasticIPsModel extends GenericListModel<Filter, Void, Object> {
+public class ElasticIPsModel extends GenericModel<Filter, Void, Object> {
 	/** The connection Data for AWS */
 	private HashMap<String, String> connectionData;
+	
 	/**
-	 * @param genericActivity
+	 * Start a new ElasticIPsModel object from a GenericListActivity
+	 * @param genericActivity Of type GenericActivity
 	 */
 	public ElasticIPsModel(GenericListActivity genericActivity, HashMap<String, String>
+		connectionData) {
+		super(genericActivity);//call super class
+		this.connectionData = connectionData;
+	}
+	
+	/**
+	 * Start a new ElasticIPsModel object from a GenericActivity
+	 * @param genericActivity
+	 */
+	public ElasticIPsModel(GenericActivity genericActivity, HashMap<String, String>
 		connectionData) {
 		super(genericActivity);//call super class
 		this.connectionData = connectionData;
@@ -68,13 +80,18 @@ public class ElasticIPsModel extends GenericListModel<Filter, Void, Object> {
 		//create Amazon EC2 Client object, and set tye end point to the region. params[3]
 		//contains endpoint
 		AmazonEC2Client amazonEC2Client = new AmazonEC2Client(credentials);
-		amazonEC2Client.setEndpoint(connectionData.get("endpoint"));
+		//override the default connection endpoint if provided.
+		if (connectionData.get("endpoint") != null) {
+			amazonEC2Client.setEndpoint(connectionData.get("endpoint"));
+		}
+	
 		
 		//create a new DescribeAddressesRequest
 		DescribeAddressesRequest request = new DescribeAddressesRequest();
 		request.setFilters(new ArrayList<Filter>(Arrays.asList(filters)));
 		
 		List<Address> addressList; //result == List<Address>
+		List<SerializableAddress> serializableAddressList = new ArrayList<SerializableAddress>();
 	
 		//make the request to Amazon EC2
 		try {
@@ -87,7 +104,11 @@ public class ElasticIPsModel extends GenericListModel<Filter, Void, Object> {
 			return amazonClientException;
 		}
 		
-		return addressList;
-	}
-
+		for (Address address : addressList) {
+			serializableAddressList.add(new SerializableAddress(address.getPublicIp(), 
+					address.getInstanceId()));
+		}
+		
+		return serializableAddressList;
+	}	
 }

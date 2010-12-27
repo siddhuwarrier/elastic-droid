@@ -1,11 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-	<item android:id="@+id/displayinstances_menuitem_refresh" 
+	<item android:id="@+id/elasticips_menuitem_refresh" 
 	android:title="@string/refresh" 
 	android:visible="true" 
 	android:enabled="true" 
 	android:icon="@drawable/ic_menu_refresh"/>
 	
-	<item android:id="@+id/displayinstances_menuitem_about" 
+	<item android:id="@+id/elasticips_menuitem_about" 
 	android:title="@string/about_titletext" 
 	android:visible="true" 
 	android:enabled="true" 

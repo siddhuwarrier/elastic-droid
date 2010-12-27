@@ -23,6 +23,7 @@ import org.elasticdroid.tpl.GenericListActivity;
 import org.elasticdroid.utils.DialogConstants;
 
 import android.os.AsyncTask;
+import android.util.Log;
 
 /**
  * Abstract class to add a few additional must-implement methods to AsyncTask.
@@ -136,5 +137,15 @@ public abstract class GenericModel<T,U,V> extends AsyncTask<T, U, V> {
 				listActivity.processModelResults(result);
 			}
 		}
+	}
+	
+	/**
+	 * Executed on the UI thread when the progress bar is cancelled.
+	 * It returns null to the activity; the activity can process this if it likes.
+	 */
+	protected void onCancelled () {
+		Log.v(this.getClass().getName(), "Cancelled!");
+		//call the model results with a null
+		listActivity.processModelResults(null);
 	}
 }

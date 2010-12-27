@@ -1,7 +1,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 	<!-- Row 1 -dashboard specific stuff -->
 	<item android:id="@+id/dashboard_menuitem_refresh" 
-	android:title="@string/dashboard_menu_refresh" 
+	android:title="@string/refresh" 
 	android:visible="true" 
 	android:enabled="true" 
 	android:icon="@drawable/ic_menu_refresh"/>

@@ -757,12 +757,10 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 					InstanceStateConstants.RUNNING);
 			displayListIntent.putExtra("selectedRegion", selectedRegion); // selected region
 		}
-		else if (selectedItem.equals(this.getString(
-				R.string.ec2dashview_stoppedinstances))) {
+		else if (selectedItem.equals(this.getString(R.string.ec2dashview_stoppedinstances))) {
 			displayListIntent.setClassName("org.elasticdroid",
 			"org.elasticdroid.EC2DisplayInstancesView");
-			displayListIntent.putExtra(
-					"org.elasticdroid.EC2DashboardView.connectionData",
+			displayListIntent.putExtra("org.elasticdroid.EC2DashboardView.connectionData",
 					connectionData); // aws connection info
 			
 			Log.v(this.getClass().getName() + ".onListItemClick:",
@@ -774,6 +772,9 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 		else if (selectedItem.equals(this.getString(R.string.ec2dashview_elasticip))) {
 			Log.v(TAG, "Selected item: " + selectedItem);
 			displayListIntent.setClassName("org.elasticdroid", "org.elasticdroid.ElasticIPsView");
+			
+			displayListIntent.putExtra("org.elasticdroid.EC2DashboardView.connectionData",
+					connectionData); // aws connection info
 			displayListIntent.putExtra("selectedRegion", selectedRegion); // selected region
 		}
 		

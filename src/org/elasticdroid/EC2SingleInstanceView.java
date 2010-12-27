@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.elasticdroid.model.ElasticIPsModel;
+import org.elasticdroid.model.ds.SerializableAddress;
 import org.elasticdroid.model.ds.SerializableInstance;
 import org.elasticdroid.tpl.GenericListActivity;
 import org.elasticdroid.utils.DialogConstants;
@@ -300,7 +301,7 @@ public class EC2SingleInstanceView extends GenericListActivity {
 	@Override
 	public Object onRetainNonConfigurationInstance() {
 		if (elasticIpsModel != null) {
-			elasticIpsModel.setActivity(null);
+			elasticIpsModel.setActivityNull();
 			return elasticIpsModel;
 		}
 		
@@ -367,14 +368,10 @@ public class EC2SingleInstanceView extends GenericListActivity {
 		}
 		
 		// if the model returned a result; i.e. success.
-		if (result instanceof List<?>) {
+		if (result instanceof ArrayList<?>) {
 			
 			//if there is data, set boolean to true
-			if (((List<Address>) result).size() != 0) {
-				for (Address address : (List<Address>) result) {
-					Log.v(this.getClass().getName() + ".processModelResults()", address.getPublicIp());
-					Log.v(this.getClass().getName() + ".processModelResults()", address.getInstanceId());
-				}
+			if (((ArrayList<SerializableAddress>) result).size() != 0) {
 				isElasticIpAssigned = true;
 			}
 			else {
@@ -404,7 +401,14 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			alertDialogDisplayed = true;
 			killActivityOnError = false;//do not kill activity on connectivity error. allow client 
 			//to retry.
-		} 
+		}
+		
+		
+		//if failed, then display dialog box.
+		if (alertDialogDisplayed) {
+			alertDialogBox.setMessage(alertDialogMessage);
+			alertDialogBox.show();
+		}
 	}
 
 	/**

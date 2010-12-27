@@ -9,4 +9,7 @@
 It is presently being developed by <i>Siddhu Warrier</i>, <i>Galiia Khasanova</i>, and <i>Rodolfo Cartas</i>.
 </string>
 
+<string name="refresh">Refresh</string>
+
+<string name="cancelled">Loading cancelled. Select Menu->Refresh to try again.</string>
 </resources>
