@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="securityGroups_title">Security Groups</string>
-	<string name="securityGroups_no_description">No Description</string>
+	<string name="securityGroups_open_ports">Open ports: </string>
+	<string name="securityGroups_no_open_ports">No open ports</string>
 </resources>

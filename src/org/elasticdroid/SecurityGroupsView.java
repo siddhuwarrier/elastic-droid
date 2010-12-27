@@ -205,9 +205,9 @@ public class SecurityGroupsView extends GenericListActivity implements OnCancelL
 			}
 		}
 		
-		//if we have elastic IP data, reload the list (even if the model is running)
+		//if we have security groups data, reload the list (even if the model is running)
 		//it's nice not to see an empty line.
-		if (securityGroupsModel != null) {
+		if (securityGroups != null) {
 			setListAdapter(new SecurityGroupsAdapter(this, R.layout.securitygrouprow, securityGroups));
 		}
 	}
@@ -304,20 +304,9 @@ public class SecurityGroupsView extends GenericListActivity implements OnCancelL
 			progressDialogDisplayed = false;
 		}
 		
-		if (result instanceof ArrayList<?>) {
+		if (result instanceof List<?>) {
 			//success!!
-			List<SecurityGroup> nonSerializableSecurityGroups = (ArrayList<SecurityGroup>)result;
-			
-			//add the security groups to a list of serializable security groups
-			//NOTE: Doing this here in the view to avoid conflicts with SshConnectorModel
-			//which uses SecurityGroupsModel too!
-			securityGroups = new ArrayList<SerializableSecurityGroup>();
-			for(SecurityGroup nonSerializableGroup: nonSerializableSecurityGroups) {
-				securityGroups.add(new SerializableSecurityGroup(
-						nonSerializableGroup.getOwnerId(),
-						nonSerializableGroup.getGroupName(), 
-						nonSerializableGroup.getDescription()));
-			}
+			securityGroups = (ArrayList<SerializableSecurityGroup>)result;
 			
 			//set the list adapter to show the data.
 			setListAdapter(new SecurityGroupsAdapter(
@@ -494,18 +483,29 @@ class SecurityGroupsAdapter extends ArrayAdapter<SerializableSecurityGroup>{
 	
 		//get text view widgets
 		TextView textViewSecurityGroup = (TextView)securityGroupRow.findViewById(R.id.securityGroupName);
-		TextView textViewDescription = (TextView)securityGroupRow.findViewById(R.id.securityGroupDescription);
+		TextView textViewDescription = (TextView)securityGroupRow.findViewById(R.id.
+				securityGroupDescription);
 		
 		textViewSecurityGroup.setText(securityGroups.get(position).getGroupName());
 		
-		if(securityGroups.get(position).getDescription()!=null && 
-				!securityGroups.get(position).getDescription().trim().equals("")) {
-			textViewDescription.setText(securityGroups.get(position).getDescription());
-		} else {
-			textViewDescription.setText(context.getString(R.string.securityGroups_no_description));
+		ArrayList<String> openPorts = securityGroups.get(position).getOpenPorts();
+		if (openPorts.size() == 0) {
+			textViewDescription.setText(context.getString(R.string.securityGroups_no_open_ports));
 		}
-		
-		
+		else {
+			//add an extra space. looks like context.getString() strips spaces.
+			String descrTxt = context.getString(R.string.securityGroups_open_ports) + " ";
+			
+			//O(n). Shame on me! On top of another O(n) method. Shoot me.
+			for (String openPort : openPorts) {
+				descrTxt += openPort + ", ";
+			}
+			
+			descrTxt = descrTxt.substring(0, descrTxt.length() - 2);
+			
+			textViewDescription.setText(descrTxt);
+		}
+
 		return securityGroupRow; //return the populated row to display
 	}
 

@@ -28,6 +28,8 @@ import java.util.List;
 
 import org.apache.http.ConnectionClosedException;
 import org.elasticdroid.R;
+import org.elasticdroid.model.ds.SerializableIpPermission;
+import org.elasticdroid.model.ds.SerializableSecurityGroup;
 import org.elasticdroid.model.tpl.GenericModel;
 import org.elasticdroid.tpl.GenericActivity;
 import org.elasticdroid.tpl.GenericListActivity;
@@ -39,7 +41,6 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.ec2.model.Filter;
 import com.amazonaws.services.ec2.model.IpPermission;
-import com.amazonaws.services.ec2.model.SecurityGroup;
 
 /**
  * This class is a model class to get the SSH URI to use to connect to this instance.
@@ -181,7 +182,7 @@ public class SshConnectorModel extends GenericModel<String, Void, Object> {
 		
 		//get the information on the security groups in list
 		ArrayList<Filter> secGroupFilters = new ArrayList<Filter>();
-		List<SecurityGroup> securityGroups = null;//initialise it
+		List<SerializableSecurityGroup> securityGroups = null;//initialise it
 		boolean portFound = false; //set to indicate port was found
 		//used to identify whether the fail was cuz of the port failing, or cuz of the IP address
 		//ranges.
@@ -202,7 +203,7 @@ public class SshConnectorModel extends GenericModel<String, Void, Object> {
 		}
 		
 		if (result instanceof List<?>) {
-			securityGroups = (List<SecurityGroup>)result;
+			securityGroups = (List<SerializableSecurityGroup>)result;
 		}
 		//pass the exception on
 		else if (result instanceof AmazonServiceException) {
@@ -216,12 +217,12 @@ public class SshConnectorModel extends GenericModel<String, Void, Object> {
 		
 		//now scan through each of the security groups, and check if toPort is open in any of them.
 		//If so, check if this IP address is in the acceptable list
-		for (SecurityGroup securityGroup: securityGroups) {
+		for (SerializableSecurityGroup securityGroup: securityGroups) {
 			
-			List<IpPermission> permissions = securityGroup.getIpPermissions();
+			List<SerializableIpPermission> permissions = securityGroup.getIpPermissions();
 			
 			//loop through the permissions
-			for (IpPermission permission : permissions) {
+			for (SerializableIpPermission permission : permissions) {
 				if (permission.getToPort() == toPort) {
 					//check if the IP address is right
 					Log.v(this.getClass().getName(), "" + permission.getIpRanges().toString());

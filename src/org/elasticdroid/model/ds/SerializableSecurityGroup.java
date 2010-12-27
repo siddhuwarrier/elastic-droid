@@ -1,6 +1,10 @@
 package org.elasticdroid.model.ds;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+
+import com.amazonaws.services.ec2.model.IpPermission;
+import com.amazonaws.services.ec2.model.SecurityGroup;
 
 /**
  * This class has a subset of the methods available in the SecurityGroup class
@@ -48,18 +52,43 @@ public class SerializableSecurityGroup implements Serializable {
 	 */
 	private String description;
 
-	/* TODO IP Permissions List */
-
+	/**
+	 * The serializable IP perms; converted from the IP perm
+	 */
+	private ArrayList<SerializableIpPermission> ipPermissions;
+	
+	/**
+	 * SerializableSecurityGroup construcotr
+	 * @param ownerId ID of the owner of the SecGroup
+	 * @param groupName The name of the Sec Group
+	 * @param description The user-defined descr of the secgroup
+	 */
 	public SerializableSecurityGroup(String ownerId, String groupName,
 			String description) {
 		super();
 		this.ownerId = ownerId;
 		this.groupName = groupName;
 		this.description = description;
+		
+		this.ipPermissions = new ArrayList<SerializableIpPermission>();
 	}
-
-	public SerializableSecurityGroup() {
+	
+	/**
+	 * SerializbleSecurityGroup constructor that gets its data from a Security Group
+	 * @param securityGroup the security group to build the SerializableSecurityGroup from
+	 */
+	public SerializableSecurityGroup(SecurityGroup securityGroup) {
 		super();
+		
+		this.ownerId = securityGroup.getOwnerId();
+		this.groupName = securityGroup.getGroupName();
+		this.description = securityGroup.getDescription();
+		this.ipPermissions = new ArrayList<SerializableIpPermission>();
+		
+		//create SerializableIpPermission from each IpPermission
+		for (IpPermission ipPermission : securityGroup.getIpPermissions()) {
+			ipPermissions.add(new SerializableIpPermission(ipPermission));
+		}
 	}
 
 	public String getOwnerId() {
@@ -85,5 +114,34 @@ public class SerializableSecurityGroup implements Serializable {
 	public void setDescription(String description) {
 		this.description = description;
 	}
-
+	
+	/**
+	 * Return all of the IP permissions available
+	 * @return arraylist of SerializableIpPermissions
+	 */
+	public ArrayList<SerializableIpPermission> getIpPermissions() {
+		return ipPermissions;
+	}
+	
+	/**
+	 * Utility method to get a list of all open ports.
+	 * If the fromPort and toPort are different, a single string "fromport-toport" will
+	 * be returned.
+	 * @return ArrayList<String> of all open port ranges
+	 */
+	public ArrayList<String> getOpenPorts() {
+		ArrayList<String> openPorts = new ArrayList<String>();
+		
+		for (SerializableIpPermission ipPermission : ipPermissions) {
+			if (ipPermission.getFromPort() == ipPermission.getToPort()) {
+				openPorts.add(String.valueOf(ipPermission.getToPort()));
+			}
+			else {
+				openPorts.add(String.valueOf(ipPermission.getFromPort()) + "-" +
+						String.valueOf(ipPermission.getToPort()));
+			}
+		}
+		
+		return openPorts;
+	}
 }

@@ -26,6 +26,8 @@ import java.util.List;
 import org.apache.http.ConnectionClosedException;
 import org.elasticdroid.model.SecurityGroupsModel;
 import org.elasticdroid.model.SshConnectorModel;
+import org.elasticdroid.model.ds.SerializableIpPermission;
+import org.elasticdroid.model.ds.SerializableSecurityGroup;
 import org.elasticdroid.tpl.GenericActivity;
 import org.elasticdroid.utils.DialogConstants;
 
@@ -49,8 +51,6 @@ import android.widget.Spinner;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.ec2.model.Filter;
-import com.amazonaws.services.ec2.model.IpPermission;
-import com.amazonaws.services.ec2.model.SecurityGroup;
 
 /**
  * Collects information from user and uses ConnectBot to connect to the instance using SSH.
@@ -391,7 +391,7 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 			//handle result
 			if (result instanceof List<?>) {
 				try {
-					populateOpenPortsList((List<SecurityGroup>) result); //populate the spinner
+					populateOpenPortsList((List<SerializableSecurityGroup>) result); //populate the spinner
 				}
 				catch(ClassCastException exception) {
 					Log.e(TAG, exception.getMessage());
@@ -485,15 +485,15 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 	 * 
 	 * @param securityGroups Security groups returned by the model.
 	 */
-	private void populateOpenPortsList(List<SecurityGroup> securityGroups) {
+	private void populateOpenPortsList(List<SerializableSecurityGroup> securityGroups) {
 		
 		openPorts = new ArrayList<String>(); //(re)initialise openPorts
 		
 		//get the data to populate the spinner with
 		//very crap O(n2) algo
-		for (SecurityGroup securityGroup : securityGroups) {
-			List<IpPermission> ipPermissions = securityGroup.getIpPermissions();
-			for (IpPermission ipPermission : ipPermissions) {
+		for (SerializableSecurityGroup securityGroup : securityGroups) {
+			List<SerializableIpPermission> ipPermissions = securityGroup.getIpPermissions();
+			for (SerializableIpPermission ipPermission : ipPermissions) {
 				openPorts.add(String.valueOf(ipPermission.getToPort()));
 			}
 		}
@@ -548,7 +548,6 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 	 */
 	@Override
 	public void onClick(View button) {
-		// TODO Auto-generated method stub
 		switch(button.getId()) {
 		case R.id.sshConnectorLoginButton:
 			EditText usernameEditText = (EditText) findViewById(R.id.

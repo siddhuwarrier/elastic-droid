@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import org.elasticdroid.model.ds.SerializableSecurityGroup;
 import org.elasticdroid.model.tpl.GenericModel;
 import org.elasticdroid.tpl.GenericActivity;
 import org.elasticdroid.tpl.GenericListActivity;
@@ -96,6 +97,8 @@ public class SecurityGroupsModel extends GenericModel<Filter, Void, Object> {
 	
 	/**
 	 * The method that does the actual work 
+	 * 
+	 * Can return
 	 */
 	public Object getSecurityGroupData(Filter... filters) {
 		//create credentials using the BasicAWSCredentials class
@@ -122,8 +125,12 @@ public class SecurityGroupsModel extends GenericModel<Filter, Void, Object> {
 			return amazonClientException;
 		}
 		
-		//boolean publicIpAddressValid;
+		List<SerializableSecurityGroup> serSecurityGroups = new ArrayList
+			<SerializableSecurityGroup>();
+		for (SecurityGroup securityGroup: securityGroups) {
+			serSecurityGroups.add(new SerializableSecurityGroup(securityGroup));
+		}
 		
-		return securityGroups;
+		return serSecurityGroups;
 	}
 }
