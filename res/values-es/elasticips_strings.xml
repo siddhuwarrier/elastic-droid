@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="elasticips_title">IPs Elásticas</string>
+	<string name="elasticips_instanceID"><i>Instancia </i>%1$s</string>
+	<string name="elasticips_unassociated"><b>No Asociada</b></string>
+</resources>

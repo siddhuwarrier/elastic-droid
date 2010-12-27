@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="ec2singleinstance_tag">Etiqueta: %1$s</string>
+<string name="ec2singleinstance_state">Estado: </string>
+<string name="ec2singleinstance_type">Tipo: </string>
+<string name="ec2singleinstance_os">OS: </string>
+<string name="ec2singleinstance_launchtime">Hora de Inicio: </string>
+<string name="ec2singleinstance_launchdetails_days">hace %1$.1f días</string>
+<string name="ec2singleinstance_launchdetails_hrs">hace %1$.1f hrs</string>
+<string name="ec2singleinstance_keypair">Par de Llave: </string>
+<string name="ec2singleinstance_secgroup">Grupo de Seguridad: </string>
+<string name="ec2singleinstance_elastic_ip">IP Elástica: </string>
+<string name="ec2singleinstance_public_ip">IP Pública: </string>
+<string name="ec2singleinstance_ami">AMI ID: </string>
+<string name="ec2singleinstance_menu_monitor">Instancia de Monitor</string>
+<string name="ec2singleinstance_menu_stopinstance">Detener Instancia</string>
+<string name="ec2singleinstance_menu_startinstance">Iniciar Instancia</string>
+<string name="ec2singleinstance_menu_modifysecgroup">Modificar Grupo de Seguridad</string>
+<string name="ec2singleinstance_menu_ssh">Conectar (SSH)</string>
+</resources>

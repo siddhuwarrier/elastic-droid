@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="sshconnector_title">Conectarse usando SSH</string>
+<string name="sshconnector_username">Usuario</string>
+<string name="sshconnector_port">Puerto</string>
+<string name="sshconnector_publickey">Usar autenticación de llave pública</string>
+<string name="sshconnector_avail_ports">Puertos Disponibles</string>
+<string name="sshconnector_cannotretrievehostip">No se puede obtener la dirección IP de origen</string>
+<string name="sshconnector_ipaddressblocked">No se permite a su dirección IP acceder a este puerto</string>
+<string name="sshconnector_portblocked">Este puerto está cerrado</string>
+<string name="sshconnector_pickkey">Elija archivo de llave</string>
+<string name="sdcard_absent">No se encontró tarjeta SD</string>
+<string name="pick_from_sdcard">Elija /sdcard</string>
+<string name="connectbot_not_installed">La aplicación ConnectBot no se encuentra instalada. Instálela para
+ingresar a las instancias usando SSH.</string>
+</resources>

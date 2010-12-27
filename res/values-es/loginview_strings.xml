@@ -1,0 +1,21 @@
+<resources>
+<string name="loginview_aws_login_textview">Ingresar a AWS</string>
+<string name = "loginview_aws_username_textview">Usuario AWS:</string>
+<string name="loginview_aws_accesskey_textview">ID de Llave de Acceso:</string>
+<string name="loginview_aws_secretAccessKey_textview">ID de Llave Secreta de Acceso:</string>
+<string name="loginview_aws_login_button">Ingresar</string>
+<string name="loginview_alertdialogbox_button">Aceptar</string>
+<string name="loginview_username_empty_erro">El Usuario no puede estar vacío</string>
+<string name="loginview_accesskey_empty_err">La Llave de Acceso no puede estar vacía</string>
+<string name="loginview_secretaccesskey_empty_err">La Llave Secreta de Acceso no puede estar vacía</string>
+<string name="loginview_invalid_credentials_err">Credenciales Inválidas</string>
+<string name="loginview_invalid_keys_dlg">Llave de Acceso o Llave Secreta de Acceso inválidas. Reintrodúzcalas..</string>
+<string name="loginview_server_err_dlg">Error 5xx de Servidor AWS</string>
+<string name="loginview_unexpected_err_dlg">Error Inesperado:</string>
+<string name="loginview_bug_report_dlg">Envíe un reporte de falla.</string>
+<string name="loginview_no_connxn_dlg">Imposible conectarse a AWS. ¿Está conectado a Internet?</string>
+<string name="loginview_invalid_username_err">Usuario inválido</string>
+<string name="loginview_username_exists_dlg">Usuario ya existe: </string>
+<string name="loginview_wait_dlg">Espere...</string>
+<string name="loginview_switch_user">Cambiar de Usuario</string>
+</resources>

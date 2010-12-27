@@ -1,0 +1,14 @@
+<resources>
+<string name="app_name">Elastic Droid</string>
+<string name = "app_version">Iteration 2</string>
+
+<string name="about_titletext">Acerca de Elastic Droid</string>
+
+<string name="about_text">
+<b>Elastic Droid</b> es una aplicación libre y de código abierto bajo la licencia GNU General Public License v3. 
+</string>
+
+<string name="refresh">Actualizar</string>
+
+<string name="cancelled">Carga de datos cancelada. Elija Menu->Actualizar para intentarlo de nuevo.</string>
+</resources>
