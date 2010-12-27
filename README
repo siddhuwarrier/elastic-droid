@@ -2,4 +2,6 @@ To compile Elastic Droid using Ant, you must specify where your Android SDK is v
 
 sdk.dir=/path/to/android/sdk
 
+To set your development environment up, please see http://code.google.com/p/elastic-droid/wiki/DevEnvironmentSetup
+
 For information on this program, please contact Siddhu Warrier at siddhu AT siddhuw DOT info.
