@@ -30,6 +30,7 @@ import org.apache.http.ConnectionClosedException;
 import org.elasticdroid.R;
 import org.elasticdroid.model.tpl.GenericModel;
 import org.elasticdroid.tpl.GenericActivity;
+import org.elasticdroid.tpl.GenericListActivity;
 import org.elasticdroid.utils.MiscUtils;
 
 import android.util.Log;
@@ -106,6 +107,38 @@ public class SshConnectorModel extends GenericModel<String, Void, Object> {
 		this.username = username;
 		this.hostname = hostname;
 	}
+	
+	/**
+	 * Constructor, sets toPort to 22  
+	 * @param genericActivity
+	 */
+	public SshConnectorModel(GenericListActivity genericListActivity, HashMap<String, String> 
+		connectionData, String username, String hostname) {
+		
+		super(genericListActivity);
+		
+		this.connectionData = connectionData;
+		this.username = username;
+		this.hostname = hostname;
+		toPort = 22;
+	}
+	
+	/**
+	 * Constructor.
+	 * @param genericActivity The activity that called the model
+	 * @param toPort The port to try to connect to.
+	 */
+	public SshConnectorModel(GenericListActivity genericListActivity, HashMap<String, String> 
+		connectionData, String username, String hostname, int toPort) {
+		
+		super(genericListActivity); //call parent class constructor
+		
+		this.connectionData = connectionData;
+		this.toPort = toPort;
+		
+		this.username = username;
+		this.hostname = hostname;
+	}
 
 	/* (non-Javadoc)
 	 * @see android.os.AsyncTask#doInBackground(Params[])
@@ -134,8 +167,13 @@ public class SshConnectorModel extends GenericModel<String, Void, Object> {
 		}
 		//just a check in case they change the way whatismyip.org works
 		if (sourceIpAddress == null) {
-			return new ConnectionClosedException(
+			if (!listActivityUsed) {
+				return new ConnectionClosedException(
 					activity.getString(R.string.sshconnector_cannotretrievehostip));
+			} else {
+				return new ConnectionClosedException(
+						listActivity.getString(R.string.sshconnector_cannotretrievehostip));
+			}
 		}
 		Log.v(TAG, "Your Device's IP address is: " + sourceIpAddress);
 		
@@ -154,8 +192,14 @@ public class SshConnectorModel extends GenericModel<String, Void, Object> {
 		}
 		//pass the filters to the SecurityGroupsModel
 		//do not use the execute method so as to have it run in this thread
-		Object result = new SecurityGroupsModel(activity, connectionData).getSecurityGroupData(
+		Object result;
+		if (!listActivityUsed) {
+			result = new SecurityGroupsModel(activity, connectionData).getSecurityGroupData(
 				secGroupFilters.toArray(new Filter[secGroupFilters.size()]));
+		} else {
+			result = new SecurityGroupsModel(listActivity, connectionData).getSecurityGroupData(
+					secGroupFilters.toArray(new Filter[secGroupFilters.size()]));			
+		}
 		
 		if (result instanceof List<?>) {
 			securityGroups = (List<SecurityGroup>)result;
@@ -210,13 +254,27 @@ public class SshConnectorModel extends GenericModel<String, Void, Object> {
 		
 		//if we get here, we failed
 		if (portFound) {
+			
+			Log.v(TAG, "Val: " + R.string.sshconnector_ipaddressblocked);
 			//if we did find a port, return the error that the IP address provided is blocked.
-			return new ConnectionClosedException(activity.getString(
+			if (!listActivityUsed) {
+				return new ConnectionClosedException(activity.getString(
 					R.string.sshconnector_ipaddressblocked));
+			}
+			else {
+				return new ConnectionClosedException(listActivity.getString(
+						R.string.sshconnector_ipaddressblocked));				
+			}
 		} 
 		else {
-			return new ConnectionClosedException(activity.getString(
+			if (!listActivityUsed) {
+				return new ConnectionClosedException(activity.getString(
 					R.string.sshconnector_portblocked));
+			}
+			else {
+				return new ConnectionClosedException(listActivity.getString(
+						R.string.sshconnector_portblocked));				
+			}
 		}
 			
 	}

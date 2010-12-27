@@ -39,7 +39,7 @@ public abstract class GenericModel<T,U,V> extends AsyncTask<T, U, V> {
 	/** The list activity to call */
 	protected GenericListActivity listActivity;
 	/** Boolean to indicate if listActivity is used instead*/
-	private boolean listActivityUsed;
+	protected boolean listActivityUsed;
 	
 	/**
 	 * Constructor. Saves the activity that called this. This is used to return the data
