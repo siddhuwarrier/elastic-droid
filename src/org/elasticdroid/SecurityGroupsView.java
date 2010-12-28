@@ -493,16 +493,20 @@ class SecurityGroupsAdapter extends ArrayAdapter<SerializableSecurityGroup>{
 			textViewDescription.setText(context.getString(R.string.securityGroups_no_open_ports));
 		}
 		else {
-			//add an extra space. looks like context.getString() strips spaces.
-			String descrTxt = context.getString(R.string.securityGroups_open_ports) + " ";
+			StringBuffer descrTxt = new StringBuffer(context.getString(R.string.
+					securityGroups_open_ports));
+			descrTxt.append(" "); //append an extra space as context.getString() seems to strip 
+			//spaces
 			
 			//O(n). Shame on me! On top of another O(n) method. Shoot me.
 			for (String openPort : openPorts) {
-				descrTxt += openPort + ", ";
+				descrTxt.append(openPort);
+				descrTxt.append(", ");
 			}
 			
-			descrTxt = descrTxt.substring(0, descrTxt.length() - 2);
-			
+			//delete the last ", "
+			descrTxt.deleteCharAt(descrTxt.length() - 1);
+			descrTxt.deleteCharAt(descrTxt.length() - 1);
 			textViewDescription.setText(descrTxt);
 		}
 

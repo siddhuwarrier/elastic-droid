@@ -2,7 +2,7 @@
 <string name="ec2displayinstances_running_title">Запущенные экземляры</string>
 <string name="ec2displayinstances_stopped_title">Остановленные экземляры</string>
 <string name="ec2displayinstances_tag"><i>Тег:</i> %1$s</string>
-<string name="ec2displayinstances_instanceID"><i>ID экземляра:</i>: %1$s</string>
+<string name="ec2displayinstances_instanceID"><i>ID экземляра:</i> %1$s</string>
 <string name="ec2displayinstances_type"><i>Тип:</i> %1$s</string>
 <string name="ec2displayinstances_os"><i>ОС:</i> %1$s</string>
 <string name="ec2displayinstances_rundays">Запущен %1$.1f дн назад</string>

@@ -3,7 +3,7 @@
 <string name="ec2displayinstances_running_title">Running Instances</string>
 <string name="ec2displayinstances_stopped_title">Stopped Instances</string>
 <string name="ec2displayinstances_tag"><i>Tag:</i> %1$s</string>
-<string name="ec2displayinstances_instanceID"><i>Instance ID:</i>: %1$s</string>
+<string name="ec2displayinstances_instanceID"><i>Instance ID:</i> %1$s</string>
 <string name="ec2displayinstances_type"><i>Type:</i> %1$s</string>
 <string name="ec2displayinstances_os"><i>OS:</i> %1$s</string>
 <string name="ec2displayinstances_rundays">Started %1$.1f days ago</string>

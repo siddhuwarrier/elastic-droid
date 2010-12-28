@@ -2,6 +2,10 @@ package org.elasticdroid.model.ds;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+
+import android.util.Log;
 
 import com.amazonaws.services.ec2.model.IpPermission;
 import com.amazonaws.services.ec2.model.SecurityGroup;
@@ -130,18 +134,26 @@ public class SerializableSecurityGroup implements Serializable {
 	 * @return ArrayList<String> of all open port ranges
 	 */
 	public ArrayList<String> getOpenPorts() {
-		ArrayList<String> openPorts = new ArrayList<String>();
+		//ArrayList<String> openPorts = new ArrayList<String>();
+		
+		HashMap<String, Integer> openPorts = new HashMap<String, Integer>();
 		
 		for (SerializableIpPermission ipPermission : ipPermissions) {
 			if (ipPermission.getFromPort() == ipPermission.getToPort()) {
-				openPorts.add(String.valueOf(ipPermission.getToPort()));
+				openPorts.put(String.valueOf(ipPermission.getToPort()), 1);
 			}
 			else {
-				openPorts.add(String.valueOf(ipPermission.getFromPort()) + "-" +
-						String.valueOf(ipPermission.getToPort()));
+				StringBuffer strBuf = new StringBuffer(String.valueOf(
+						ipPermission.getFromPort()));
+				strBuf.append("-");
+				strBuf.append(ipPermission.getToPort());
+				Log.v(this.getClass().getName(), "Port range: " + strBuf.toString());
+				openPorts.put(strBuf.toString(), 1);
 			}
 		}
 		
-		return openPorts;
+		//convert to ArrayList<String> and return
+		return new ArrayList<String>(Arrays.asList(openPorts.keySet().toArray(
+				new String[openPorts.keySet().size()])));
 	}
 }

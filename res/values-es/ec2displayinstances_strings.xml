@@ -3,7 +3,7 @@
 <string name="ec2displayinstances_running_title">Instancias en Ejecución</string>
 <string name="ec2displayinstances_stopped_title">Instancias Detenidas</string>
 <string name="ec2displayinstances_tag"><i>Etiqueta:</i> %1$s</string>
-<string name="ec2displayinstances_instanceID"><i>ID de Instancia:</i>: %1$s</string>
+<string name="ec2displayinstances_instanceID"><i>ID de Instancia:</i> %1$s</string>
 <string name="ec2displayinstances_type"><i>Tipo:</i> %1$s</string>
 <string name="ec2displayinstances_os"><i>OS:</i> %1$s</string>
 <string name="ec2displayinstances_rundays">Iniciada hace %1$.1f días</string>
