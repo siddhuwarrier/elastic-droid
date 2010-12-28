@@ -761,6 +761,9 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 					connectionData); // aws connection info
 			displayListIntent.putExtra("selectedRegion", selectedRegion); // selected region
 		}
+		else {
+			return;
+		}
 		
 		startActivityForResult(displayListIntent, 0); //second arg ignored.
 	}
