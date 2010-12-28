@@ -136,11 +136,11 @@ public class SerializableSecurityGroup implements Serializable {
 	public ArrayList<String> getOpenPorts() {
 		//ArrayList<String> openPorts = new ArrayList<String>();
 		
-		HashMap<String, Integer> openPorts = new HashMap<String, Integer>();
+		HashMap<String, Void> openPorts = new HashMap<String, Void>();
 		
 		for (SerializableIpPermission ipPermission : ipPermissions) {
 			if (ipPermission.getFromPort() == ipPermission.getToPort()) {
-				openPorts.put(String.valueOf(ipPermission.getToPort()), 1);
+				openPorts.put(String.valueOf(ipPermission.getToPort()), null);
 			}
 			else {
 				StringBuffer strBuf = new StringBuffer(String.valueOf(
@@ -148,7 +148,7 @@ public class SerializableSecurityGroup implements Serializable {
 				strBuf.append("-");
 				strBuf.append(ipPermission.getToPort());
 				Log.v(this.getClass().getName(), "Port range: " + strBuf.toString());
-				openPorts.put(strBuf.toString(), 1);
+				openPorts.put(strBuf.toString(), null);
 			}
 		}
 		

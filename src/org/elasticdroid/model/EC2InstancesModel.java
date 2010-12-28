@@ -52,15 +52,17 @@ public class EC2InstancesModel extends GenericModel<Filter, Void, Object> {
 	private HashMap<String, String> connectionData;
 	/** Tag for logging */
 	private static final String TAG = "org.elasticdroid.model.EC2InstancesModel";
-	
+	/** Selected region */
+	private String selectedRegion;
 	/**
 	 * Start a new EC2InstancesModel object from a GenericListActivity
 	 * @param genericActivity Of type GenericActivity
 	 */
 	public EC2InstancesModel(GenericListActivity genericActivity, HashMap<String, String>
-		connectionData) {
+		connectionData, String selectedRegion) {
 		super(genericActivity);//call super class
 		this.connectionData = connectionData;
+		this.selectedRegion = selectedRegion;
 	}
 	
 	/**
@@ -68,9 +70,10 @@ public class EC2InstancesModel extends GenericModel<Filter, Void, Object> {
 	 * @param genericActivity
 	 */
 	public EC2InstancesModel(GenericActivity genericActivity, HashMap<String, String>
-		connectionData) {
+		connectionData, String selectedRegion) {
 		super(genericActivity);//call super class
 		this.connectionData = connectionData;
+		this.selectedRegion = selectedRegion;
 	}
 	
 	/**
@@ -100,7 +103,7 @@ public class EC2InstancesModel extends GenericModel<Filter, Void, Object> {
 		//1. create a filter for this region name
 		Filter regionFilter = new Filter("region-name");
 		regionFilter.setValues(new ArrayList<String>(Arrays.asList(
-				new String[]{connectionData.get("region")})));
+				new String[]{selectedRegion})));
 		
 		//2. query using this filter
 		try {
@@ -125,6 +128,8 @@ public class EC2InstancesModel extends GenericModel<Filter, Void, Object> {
 		amazonEC2Client.setEndpoint(regions.get(0).getEndpoint());
 		
 		//now get the instances
+		
+		Log.v(TAG, "Size of filters:" + filters.length);
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
 		request.setFilters(Arrays.asList(filters));
 		
@@ -146,6 +151,7 @@ public class EC2InstancesModel extends GenericModel<Filter, Void, Object> {
 			//note to self: List is an interface ArrayList implements.
 			//for each reservation, get the list of instances associated
 			for (Instance instance: reservation.getInstances()) {
+				
 				serInstances.add(new SerializableInstance(instance, securityGroups));
 			}
 		}
@@ -162,6 +168,6 @@ public class EC2InstancesModel extends GenericModel<Filter, Void, Object> {
 	@Override
 	protected Object doInBackground(Filter... filters) {
 		
-		return getInstances();
+		return getInstances(filters);
 	}
 }

@@ -177,6 +177,6 @@ public class LoginModel extends GenericModel<String, Void, Object> {
 			}	
 		}
 		
-		return null;
+		return true;
 	}
 }

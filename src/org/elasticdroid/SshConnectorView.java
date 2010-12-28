@@ -32,8 +32,6 @@ import org.elasticdroid.tpl.GenericActivity;
 import org.elasticdroid.utils.DialogConstants;
 
 import android.app.AlertDialog;
-import android.app.Dialog;
-import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -58,7 +56,7 @@ import com.amazonaws.services.ec2.model.Filter;
  *
  * 18 Dec 2010
  */
-public class SshConnectorView extends GenericActivity implements OnClickListener{
+public class SshConnectorView extends GenericActivity implements OnClickListener {
 
 	/** Connection data */
 	private HashMap<String, String> connectionData;
@@ -83,8 +81,6 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 	 * have the activity killed.
 	 */
 	private boolean killActivityOnError;
-    /**Is progress bar displayed */
-    private boolean progressDialogDisplayed;
 	/** The model used to retrieve security group info */
 	private SecurityGroupsModel securityGroupsModel;
 	/** The model used to verify input and retrieve SSH URI */
@@ -122,7 +118,7 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 		
 		// create and initialise the alert dialog
 		alertDialogBox = new AlertDialog.Builder(this).create(); // create alert
-																	// box to
+		alertDialogBox.setCancelable(false);
 		alertDialogBox.setButton(
 				this.getString(R.string.loginview_alertdialogbox_button),
 				new DialogInterface.OnClickListener() {
@@ -306,30 +302,6 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 	}
 	
 	/**
-	 * Function that handles the display of a progress dialog. Overriden from
-	 * Activity and not GenericActivity
-	 * 
-	 * @param id
-	 *            Dialog ID - Special treatment for Constants.PROGRESS_DIALOG
-	 */
-	@Override
-	protected Dialog onCreateDialog(int id) {
-		if (id == DialogConstants.PROGRESS_DIALOG.ordinal()) {
-			ProgressDialog dialog = new ProgressDialog(this);
-			dialog.setMessage(this.getString(R.string.loginview_wait_dlg));
-			dialog.setCancelable(false);
-	
-			progressDialogDisplayed = true;
-			Log.v(this.getClass().getName(), "progress dialog displayed="
-					+ progressDialogDisplayed);
-	
-			return dialog;
-		}
-		// if some other sort of dialog...
-		return super.onCreateDialog(id);
-	}
-
-	/**
 	 * Executes the model which will return the open ports assigned to this instance.
 	 * Uses SecurityGroupModel
 	 */
@@ -385,6 +357,7 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 		}
 		
 		//handle return of securityGroupsModel
+		//if this fails, just return the user back to the parent activity (EC2SingleInstanceView)
 		if (securityGroupsModel != null) {
 			securityGroupsModel = null; //set the model to null. it's usefulness is done.
 			
@@ -409,14 +382,14 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 					alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
 				}
 				alertDialogDisplayed = true;
-				killActivityOnError = false;//do not kill activity on server error
+				killActivityOnError = true;//do not kill activity on server error
 				//allow user to retry.
 			} 
 			else if (result instanceof AmazonClientException) {
 				alertDialogMessage = this
 						.getString(R.string.loginview_no_connxn_dlg);
 				alertDialogDisplayed = true;
-				killActivityOnError = false;//do not kill activity on connectivity error. allow 
+				killActivityOnError = true;//do not kill activity on connectivity error. allow 
 				//client to retry.
 			}
 		}
@@ -562,5 +535,20 @@ public class SshConnectorView extends GenericActivity implements OnClickListener
 			}
 			break;
 		}
+	}
+	
+	/** 
+	 * Handle cancel of progress dialog
+	 * @see android.content.DialogInterface.OnCancelListener#onCancel(android.content.
+	 * DialogInterface)
+	 */
+	@Override
+	public void onCancel(DialogInterface dialog) {
+		//this cannot be called UNLESS the user has the model running.
+		//i.e. the prog bar is visible
+		progressDialogDisplayed = false;
+		securityGroupsModel.cancel(true);
+		//kill the activity to return to previous view
+		finish();
 	}
 }

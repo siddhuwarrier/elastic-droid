@@ -21,18 +21,17 @@ package org.elasticdroid;
 import static org.elasticdroid.utils.ResultConstants.RESULT_ERROR;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 
-import org.elasticdroid.model.EC2DisplayInstancesModel;
+import org.elasticdroid.model.EC2InstancesModel;
 import org.elasticdroid.model.ds.SerializableInstance;
 import org.elasticdroid.tpl.GenericListActivity;
-import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 import org.elasticdroid.utils.DialogConstants;
+import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 
 import android.app.AlertDialog;
-import android.app.Dialog;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -49,9 +48,11 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.ec2.model.Filter;
 
 /**
  * This class will display a list of instances that are
@@ -75,10 +76,8 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 	private String selectedRegion;
     /** The connection data */
     private HashMap<String,String> connectionData;
-    /**Is progress bar displayed */
-    private boolean progressDialogDisplayed;
     /**The model object */
-    private EC2DisplayInstancesModel ec2DisplayInstancesModel;
+    private EC2InstancesModel ec2InstancesModel;
     
 	/** Dialog box for credential verification errors */
 	private AlertDialog alertDialogBox;
@@ -139,6 +138,7 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		// create and initialise the alert dialog
 		alertDialogBox = new AlertDialog.Builder(this).create(); // create alert
 																	// box to
+		alertDialogBox.setCancelable(false);
 		alertDialogBox.setButton(
 				this.getString(R.string.loginview_alertdialogbox_button),
 				new DialogInterface.OnClickListener() {
@@ -211,15 +211,15 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		 * has come back up. */
 		Object retained = getLastNonConfigurationInstance();
 		//if there was a model executing when the object was destroyed.
-		if (retained instanceof EC2DisplayInstancesModel) {
+		if (retained instanceof EC2InstancesModel) {
 			Log.i(this.getClass().getName() + ".onRestoreInstanceState()","Reclaiming previous " +
 					"background task");
 			
-			ec2DisplayInstancesModel = (EC2DisplayInstancesModel) retained;//force typecast
-			ec2DisplayInstancesModel.setActivity(this);//pass the model reference to activity
+			ec2InstancesModel = (EC2InstancesModel) retained;//force typecast
+			ec2InstancesModel.setActivity(this);//pass the model reference to activity
 		} 
 		else {
-			ec2DisplayInstancesModel = null;
+			ec2InstancesModel = null;
 			
 			Log.v(this.getClass().getName(),"No model object, or model finished before activity " +
 					"was recreated.");
@@ -256,7 +256,7 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		if (alertDialogDisplayed) {
 			alertDialogBox.setMessage(alertDialogMessage);
 			alertDialogBox.show();
-		} else if ((ec2DisplayInstancesModel == null) && (instanceData == null)) {
+		} else if ((ec2InstancesModel == null) && (instanceData == null)) {
 			executeModel();
 		}
 	}
@@ -283,7 +283,7 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		//if we have instance data, save it.
 		//but don't bother saving it if the model is not null, i.e. a new model
 		//is executing.
-		if ((instanceData != null) && (ec2DisplayInstancesModel == null)) {
+		if ((instanceData != null) && (ec2InstancesModel == null)) {
 			saveState.putSerializable("instanceData", instanceData);
 		}
 		
@@ -304,9 +304,9 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		// if the model is being executed when the onDestroy method is called.
 		//tell the model that the activity has now disappeared. Hopefully, the
 		//activity will return.
-		if (ec2DisplayInstancesModel != null) {
-			ec2DisplayInstancesModel.setActivity(null);
-			return ec2DisplayInstancesModel;
+		if (ec2InstancesModel != null) {
+			ec2InstancesModel.setActivityNull();
+			return ec2InstancesModel;
 		}
 		//if there was no model being executed, just return null
 		return null;
@@ -318,12 +318,21 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 	 * runs in a different thread and calls processModelResults when done.
 	 */
 	private void executeModel() {
-		ec2DisplayInstancesModel = new EC2DisplayInstancesModel(this);
+		ec2InstancesModel = new EC2InstancesModel(this, connectionData, selectedRegion);
 		// add the endpoint for this region to connectionData
 		// it's not nice to modify a member like this, now, is it?
-		connectionData.put("region", selectedRegion);
-		connectionData.put("listType", String.valueOf(listType));
-		ec2DisplayInstancesModel.execute(new HashMap<?, ?>[] { connectionData });
+		
+		Filter instanceStateFilter = new Filter("instance-state-code");
+		if (listType == InstanceStateConstants.RUNNING) {
+			instanceStateFilter.setValues(Arrays.asList(
+					new String[]{String.valueOf(InstanceStateConstants.RUNNING)}));
+		}
+		else {
+			instanceStateFilter.setValues(Arrays.asList(
+					new String[]{String.valueOf(InstanceStateConstants.STOPPED)}));
+		}
+		
+		ec2InstancesModel.execute(instanceStateFilter);
 	}
 
 	//overriden methods
@@ -335,64 +344,72 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 	@Override
 	public void processModelResults(Object result) {
 		Log.v(this.getClass().getName()+".processModelResults()", "Model returned...");
-		//set reference to model object to null
-		ec2DisplayInstancesModel = null;
+
 		// dismiss the progress dialog if displayed. Check redundant
 		if (progressDialogDisplayed) {
 			removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
 			progressDialogDisplayed = false;
 		}
 		
-		//get the model data
-		if (result instanceof ArrayList<?>) {
-			try {
-				instanceData = (ArrayList<SerializableInstance>)result;
-			}
-			catch(Exception exception) {
-	    		Log.e(this.getClass().getName(), exception.getMessage());
-	    		//return the failure to the mama class 
-				Intent resultIntent = new Intent();
-				resultIntent.setType(this.getClass().getName());
-				resultIntent.putExtra("EXCEPTION_MSG", this.getClass().getName() + ":" + 
-						exception.getMessage());
-				setResult(RESULT_ERROR, resultIntent);
-			}	
+		//i.e. user did not cancel
+		if (result != null) {
+			//set reference to model object to null
+			ec2InstancesModel = null;
 			
-			if (instanceData.size() != 0) {
-				//add the instances to the list adapter to display.
-				setListAdapter(new EC2DisplayInstancesAdapter(this, R.layout.ec2displayinstancesrow, 
-						instanceData, listType));
+			//get the model data
+			if (result instanceof ArrayList<?>) {
+				try {
+					instanceData = (ArrayList<SerializableInstance>)result;
+				}
+				catch(Exception exception) {
+		    		Log.e(this.getClass().getName(), exception.getMessage());
+		    		//return the failure to the mama class 
+					Intent resultIntent = new Intent();
+					resultIntent.setType(this.getClass().getName());
+					resultIntent.putExtra("EXCEPTION_MSG", this.getClass().getName() + ":" + 
+							exception.getMessage());
+					setResult(RESULT_ERROR, resultIntent);
+				}	
+				
+				if (instanceData.size() != 0) {
+					//add the instances to the list adapter to display.
+					setListAdapter(new EC2DisplayInstancesAdapter(this, R.layout.ec2displayinstancesrow, 
+							instanceData, listType));
+				}
+				//if no data found, just show a String adapter
+				else {
+					setListAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, 
+							new String[]{"No instances found."}));
+				}
 			}
-			//if no data found, just show a String adapter
-			else {
-				setListAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, 
-						new String[]{"No instances found."}));
+			else if (result instanceof AmazonServiceException) {
+				// if a server error
+				if (((AmazonServiceException) result).getErrorCode()
+						.startsWith("5")) {
+					alertDialogMessage = "AWS server error.";
+				} else {
+					alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
+				}
+				alertDialogDisplayed = true;
+				killActivityOnError = false;//do not kill activity on server error
+				//allow user to retry.
+			}
+			else if (result instanceof AmazonClientException) {
+				alertDialogMessage = this.getString(R.string.loginview_no_connxn_dlg);
+				alertDialogDisplayed = true;
+				killActivityOnError = false;//do not kill activity on connectivity error. allow client 
+			}
+			else if (result instanceof IllegalArgumentException) {
+				alertDialogMessage = this
+				.getString(R.string.ec2dashview_illegal_arg_exception);
+				alertDialogDisplayed = true;
+				killActivityOnError = true;
 			}
 		}
-		else if (result instanceof AmazonServiceException) {
-			// if a server error
-			if (((AmazonServiceException) result).getErrorCode()
-					.startsWith("5")) {
-				alertDialogMessage = "AWS server error.";
-			} else {
-				alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
-			}
-			alertDialogDisplayed = true;
-			killActivityOnError = false;//do not kill activity on server error
-			//allow user to retry.
+		else {
+			Toast.makeText(this, Html.fromHtml(this.getString(R.string.cancelled)), Toast.
+					LENGTH_LONG).show();
 		}
-		else if (result instanceof AmazonClientException) {
-			alertDialogMessage = this.getString(R.string.loginview_no_connxn_dlg);
-			alertDialogDisplayed = true;
-			killActivityOnError = false;//do not kill activity on connectivity error. allow client 
-		}
-		else if (result instanceof IllegalArgumentException) {
-			alertDialogMessage = this
-			.getString(R.string.ec2dashview_illegal_arg_exception);
-			alertDialogDisplayed = true;
-			killActivityOnError = true;
-		}
-		
 		//if failed, then display dialog box.
 		if (alertDialogDisplayed) {
 			alertDialogBox.setMessage(alertDialogMessage);
@@ -400,30 +417,6 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		}
 	}
 
-	/**
-	 * Function that handles the display of a progress dialog. Overriden from
-	 * Activity and not GenericActivity
-	 * 
-	 * @param id
-	 *            Dialog ID - Special treatment for Constants.PROGRESS_DIALOG
-	 */
-	@Override
-	protected Dialog onCreateDialog(int id) {
-		if (id == DialogConstants.PROGRESS_DIALOG.ordinal()) {
-			ProgressDialog dialog = new ProgressDialog(this);
-			dialog.setMessage(this.getString(R.string.loginview_wait_dlg));
-			dialog.setCancelable(false);
-	
-			progressDialogDisplayed = true;
-			Log.v(this.getClass().getName(), "progress dialog displayed="
-					+ progressDialogDisplayed);
-	
-			return dialog;
-		}
-		// if some other sort of dialog...
-		return super.onCreateDialog(id);
-	}
-	
 	/**
 	 * Handle the selection of a given instance, and pass the relevant SerializableInstance object
 	 * on.
@@ -499,6 +492,18 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		}
 	}
 	
+	/** 
+	 * Handle cancel of progress dialog
+	 * @see android.content.DialogInterface.OnCancelListener#onCancel(android.content.
+	 * DialogInterface)
+	 */
+	@Override
+	public void onCancel(DialogInterface dialog) {
+		//this cannot be called UNLESS the user has the model running.
+		//i.e. the prog bar is visible
+		progressDialogDisplayed = false;
+		ec2InstancesModel.cancel(true);
+	}
 }
 
 /**

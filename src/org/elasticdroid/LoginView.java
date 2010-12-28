@@ -35,6 +35,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.SQLException;
 import android.os.Bundle;
+import android.text.Html;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -42,6 +43,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -69,9 +71,6 @@ public class LoginView extends GenericActivity implements OnClickListener {
 	private LoginModel loginModel;
 	/** Dialog box for credential verification errors */
 	private AlertDialog alertDialogBox;
-	/** set to show if progress dialog displayed. Used to decide whether to restore progress dialog
-	 * when screen rotated.*/
-    private boolean progressDialogDisplayed;
     /** set to show if alert dialog displayed. Used to decide whether to restore progress dialog
 	 * when screen rotated. */
     private boolean alertDialogDisplayed;
@@ -105,7 +104,7 @@ public class LoginView extends GenericActivity implements OnClickListener {
         
         //create the alert dialog
 		alertDialogBox = new AlertDialog.Builder(this).create(); //create alert box to
-		
+		alertDialogBox.setCancelable(false);
 		//add a neutral OK button and set action.
 		alertDialogBox.setButton(this.getString(R.string.loginview_alertdialogbox_button), new DialogInterface.OnClickListener() {			 
             //click listener on the alert box - unlock orientation when clicked.
@@ -245,15 +244,44 @@ public class LoginView extends GenericActivity implements OnClickListener {
 		
 		//dismiss the progress bar
 		if (progressDialogDisplayed) {
+			progressDialogDisplayed = false;
 			dismissDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
-		}		
+		}
+		
+		if (result == null) {
+			Toast.makeText(this, Html.fromHtml(this.getString(R.string.cancelled_login)), Toast.
+					LENGTH_LONG).show();
+			
+			return; //do not execute the rest of this method.
+		}
+		
 		/*
 		 * The result returned by the model can be:
-		 * a) AmazonServiceException: if authentication failed (typically).
-		 * b) AmazonClientException: if communication to AWS failed (user not connected to internet?).
-		 * c) null: if the credentials have been validated.
+		 * a) true: if authentication successful.
+		 * b) AmazonServiceException: if authentication failed (typically).
+		 * c) AmazonClientException: if communication to AWS failed (user not connected to internet?).
+		 * d) null: if the credentials have been validated.
 		 */
-		if (result instanceof AmazonServiceException) {
+		if (result instanceof Boolean) {
+			HashMap<String, String> connectionData = new HashMap<String, String>();
+			
+			//TODO add the ability to change the default dashboard for a user
+			finish(); //finish the activity; we dont want the user to be able to return to this screen using the 
+			//back key.
+			Intent displayDashboardIntent = new Intent();
+			displayDashboardIntent.setClassName("org.elasticdroid", "org.elasticdroid.EC2DashboardView");
+			//pass the username, access key, and secret access key to the dashboard as arguments
+			//create a HashMap<String,String> to hold the connection data
+			connectionData.put("username",username);
+			connectionData.put("accessKey", accessKey);
+			connectionData.put("secretAccessKey", secretAccessKey);
+			
+			//add connection data to intent, and start new activity
+			displayDashboardIntent.putExtra("org.elasticdroid.LoginView.connectionData", 
+					connectionData);
+			startActivity(displayDashboardIntent);
+		}
+		else if (result instanceof AmazonServiceException) {
 			if ((((AmazonServiceException)result).getStatusCode() == HttpStatus.SC_UNAUTHORIZED) ||
 					(((AmazonServiceException)result).getStatusCode() == HttpStatus.SC_FORBIDDEN))
 			{
@@ -311,27 +339,6 @@ public class LoginView extends GenericActivity implements OnClickListener {
 			alertDialogBox.setMessage(alertDialogMessage);
 			alertDialogBox.show();//show error
 		}
-		//if alertdialogdisplayed is false, that means cred verification was successful.
-		//display dashboard
-		else {
-			HashMap<String, String> connectionData = new HashMap<String, String>();
-			
-			//TODO add the ability to change the default dashboard for a user
-			finish(); //finish the activity; we dont want the user to be able to return to this screen using the 
-			//back key.
-			Intent displayDashboardIntent = new Intent();
-			displayDashboardIntent.setClassName("org.elasticdroid", "org.elasticdroid.EC2DashboardView");
-			//pass the username, access key, and secret access key to the dashboard as arguments
-			//create a HashMap<String,String> to hold the connection data
-			connectionData.put("username",username);
-			connectionData.put("accessKey", accessKey);
-			connectionData.put("secretAccessKey", secretAccessKey);
-			
-			//add connection data to intent, and start new activity
-			displayDashboardIntent.putExtra("org.elasticdroid.LoginView.connectionData", 
-					connectionData);
-			startActivity(displayDashboardIntent);
-		}
 	}
 	
 	/**
@@ -352,36 +359,6 @@ public class LoginView extends GenericActivity implements OnClickListener {
 		return null;
 	}
 
-	/**
-	 * Overriden from Activity and not GenericActivity!
-	 * @param id Dialog ID - special treatment for ProgressDialog
-	 * @param dialog - the dialog object itself. 
-	 */
-	@Override
-	protected void onPrepareDialog(int id, Dialog dialog) {
-        super.onPrepareDialog(id, dialog);
-        if (id == DialogConstants.PROGRESS_DIALOG.ordinal()) {
-        	progressDialogDisplayed = true;
-        }
-	}
-
-	/**
-	 *  
-	 * Overriden from Activity and not GenericActivity
-	 * @param id DIalog ID - Special treatment for Constants.PROGRESS_DIALOG
-	 */
-	@Override
-	protected Dialog onCreateDialog(int id) {
-		if (id == DialogConstants.PROGRESS_DIALOG.ordinal()) {
-	        ProgressDialog dialog = new ProgressDialog(this);
-	        dialog.setMessage(this.getString(R.string.loginview_wait_dlg));
-	        dialog.setCancelable(false);
-	        return dialog;
-		}
-		//if some other sort of dialog...
-        return super.onCreateDialog(id);
-	}
-	
 	/**
 	 * Saves data to restore when activity recreated.
 	 * 
@@ -534,5 +511,18 @@ public class LoginView extends GenericActivity implements OnClickListener {
 		default:
 			return super.onOptionsItemSelected(selectedItem);
 		}
+	}
+	
+	/** 
+	 * Handle cancel of progress dialog
+	 * @see android.content.DialogInterface.OnCancelListener#onCancel(android.content.
+	 * DialogInterface)
+	 */
+	@Override
+	public void onCancel(DialogInterface dialog) {
+		//this cannot be called UNLESS the user has the model running.
+		//i.e. the prog bar is visible
+		Log.v(this.getClass().getName(), "Activity: Cancelled!");
+		loginModel.cancel(true);
 	}
 }//end of class

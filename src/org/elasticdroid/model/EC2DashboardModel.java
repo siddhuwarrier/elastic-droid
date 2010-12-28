@@ -20,7 +20,7 @@ package org.elasticdroid.model;
 
 import java.util.HashMap;
 
-import org.elasticdroid.model.tpl.GenericListModel;
+import org.elasticdroid.model.tpl.GenericModel;
 import org.elasticdroid.tpl.GenericListActivity;
 import org.elasticdroid.utils.AWSConstants;
 import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
@@ -31,7 +31,6 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
-import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Reservation;
@@ -41,7 +40,7 @@ import com.amazonaws.services.ec2.model.Reservation;
  *
  * 14 Nov 2010
  */
-public class EC2DashboardModel extends GenericListModel<HashMap<?,?>, 
+public class EC2DashboardModel extends GenericModel<HashMap<?,?>, 
 	Void, Object> {
 	/**
 	 * 

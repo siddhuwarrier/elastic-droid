@@ -16,5 +16,4 @@
 <string name="loginview_no_connxn_dlg">Нет возможности подключиться к AWS. Пожалуйста, проверьте подключение к сети интернет.</string>
 <string name="loginview_invalid_username_err">Неправильное имя пользователя</string>
 <string name="loginview_username_exists_dlg">Данный пользователь уже зарегистрирован</string>
-<string name="loginview_wait_dlg">Пожалуйста, подождите...</string>
 </resources>

@@ -18,7 +18,15 @@
  */
 package org.elasticdroid.tpl;
 
+import org.elasticdroid.R;
+import org.elasticdroid.utils.DialogConstants;
+
 import android.app.Activity;
+import android.app.Dialog;
+import android.app.ProgressDialog;
+import android.content.DialogInterface.OnCancelListener;
+import android.os.Bundle;
+import android.util.Log;
 
 /**
  * This is an Abstract class so that the Views can call the appropriate method
@@ -30,12 +38,50 @@ import android.app.Activity;
  *
  * 2 Nov 2010
  */
-public abstract class GenericActivity extends Activity {
+public abstract class GenericActivity extends Activity implements OnCancelListener {
 
+    /**Is progress bar displayed */
+    protected boolean progressDialogDisplayed;
+    
+    /**Log TAG */
+    private static final String TAG = "org.elasticdroid.tpl.GenericActivity";
+    
 	/**
 	 * Process results from model. Called by onPostExecute() method
 	 * in any given Model class.
 	 * @param result
 	 */
-	public abstract void processModelResults(Object result);
+	public abstract void processModelResults(Object result);	
+	
+	/**
+	 * Function that handles the display of a progress dialog. Overriden from
+	 * Activity and not GenericActivity
+	 * 
+	 * @param id Dialog ID - Special treatment for Constants.PROGRESS_DIALOG
+	 */
+	@Override
+	protected Dialog onCreateDialog(int id) {
+		if (id == DialogConstants.PROGRESS_DIALOG.ordinal()) {
+			ProgressDialog dialog = new ProgressDialog(this);
+			dialog.setMessage(this.getString(R.string.wait_dlg));
+			dialog.setCancelable(true);
+			dialog.setOnCancelListener(this);
+			
+			return dialog;
+		}
+		// if some other sort of dialog...
+		return super.onCreateDialog(id);
+	}
+	
+	/**
+	 * Called each time a dialog is created.
+	 */
+	@Override
+	protected void onPrepareDialog(int id, Dialog dialog, Bundle ignore) {
+		if (id == DialogConstants.PROGRESS_DIALOG.ordinal()) {
+			progressDialogDisplayed = true;
+			Log.v(this.getClass().getName(), "Dialog prepped.progress dialog displayed=" + 
+					progressDialogDisplayed);
+		}
+	}
 }

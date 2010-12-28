@@ -21,7 +21,7 @@ package org.elasticdroid.model;
 import java.util.HashMap;
 import java.util.List;
 
-import org.elasticdroid.model.tpl.GenericListModel;
+import org.elasticdroid.model.tpl.GenericModel;
 import org.elasticdroid.tpl.GenericListActivity;
 
 import android.util.Log;
@@ -37,14 +37,13 @@ import com.amazonaws.services.ec2.model.Region;
  *
  * 8 Dec 2010
  */
-public class RetrieveRegionModel extends GenericListModel<HashMap<?,?>, Void, Object> {
+public class RetrieveRegionModel extends GenericModel<HashMap<?,?>, Void, Object> {
 
 	/**
 	 * @param genericActivity
 	 */
 	public RetrieveRegionModel(GenericListActivity genericActivity) {
 		super(genericActivity);
-		// TODO Auto-generated constructor stub
 	}
 	
 	@SuppressWarnings("unchecked")

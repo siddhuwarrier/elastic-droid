@@ -10,6 +10,8 @@ It is presently being developed by <i>Siddhu Warrier</i>, <i>Galiia Khasanova</i
 </string>
 
 <string name="refresh">Refresh</string>
-
+<string name="wait_dlg">Please wait...</string>
 <string name="cancelled">Loading cancelled. Select Menu->Refresh to try again.</string>
+<!--  Cancelled message for when u need to click on the login button to retry -->
+<string name="cancelled_login">Loading cancelled. Click on the Login button to retry.</string>
 </resources>

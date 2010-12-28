@@ -16,6 +16,5 @@
 <string name="loginview_no_connxn_dlg">Imposible conectarse a AWS. ¿Está conectado a Internet?</string>
 <string name="loginview_invalid_username_err">Usuario inválido</string>
 <string name="loginview_username_exists_dlg">Usuario ya existe: </string>
-<string name="loginview_wait_dlg">Espere...</string>
 <string name="loginview_switch_user">Cambiar de Usuario</string>
 </resources>

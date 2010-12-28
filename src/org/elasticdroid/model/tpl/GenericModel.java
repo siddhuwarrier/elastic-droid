@@ -18,10 +18,13 @@
  */
 package org.elasticdroid.model.tpl;
 
+import org.elasticdroid.R;
 import org.elasticdroid.tpl.GenericActivity;
 import org.elasticdroid.tpl.GenericListActivity;
 import org.elasticdroid.utils.DialogConstants;
 
+import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -146,6 +149,11 @@ public abstract class GenericModel<T,U,V> extends AsyncTask<T, U, V> {
 	protected void onCancelled () {
 		Log.v(this.getClass().getName(), "Cancelled!");
 		//call the model results with a null
-		listActivity.processModelResults(null);
+		if (listActivityUsed) {
+			listActivity.processModelResults(null);
+		}
+		else {
+			activity.processModelResults(null);
+		}
 	}
 }

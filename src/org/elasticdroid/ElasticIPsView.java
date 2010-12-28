@@ -65,8 +65,6 @@ public class ElasticIPsView extends GenericListActivity implements OnCancelListe
 	private String selectedRegion;
     /** The connection data */
     private HashMap<String,String> connectionData;
-    /**Is progress bar displayed */
-    private boolean progressDialogDisplayed;
 	/**
 	 * set to show if alert dialog displayed. Used to decide whether to restore
 	 * progress dialog when screen rotated.
@@ -130,7 +128,7 @@ public class ElasticIPsView extends GenericListActivity implements OnCancelListe
     	
 		// create and initialise the alert dialog
 		alertDialogBox = new AlertDialog.Builder(this).create(); // create alert
-																	// box to
+		alertDialogBox.setCancelable(false);
 		alertDialogBox.setButton(
 				this.getString(R.string.loginview_alertdialogbox_button),
 				new DialogInterface.OnClickListener() {
@@ -157,6 +155,8 @@ public class ElasticIPsView extends GenericListActivity implements OnCancelListe
 				});
 		
 		setContentView(R.layout.elasticips);
+		
+		setTitle(connectionData.get("username") + "(" + selectedRegion + ")");
 	}
 	
 	/**
@@ -295,79 +295,52 @@ public class ElasticIPsView extends GenericListActivity implements OnCancelListe
 	@SuppressWarnings("unchecked")
 	@Override
 	public void processModelResults(Object result) {
-		elasticIpsModel = null; //set the model to null
-		
 		// dismiss the progress dialog if displayed. Check redundant
 		if (progressDialogDisplayed) {
 			removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
 			progressDialogDisplayed = false;
 		}
 		
-		if (result instanceof ArrayList<?>) {
-			//success!!
-			elasticIps = (ArrayList<SerializableAddress>)result;
-			//set the list adapter to show the data.
-			setListAdapter(new ElasticIPsAdapter(
-					this, 
-					R.layout.elasticipsrow, 
-					elasticIps));
-		}
-		else if (result instanceof AmazonServiceException) {
-			// if a server error
-			if (((AmazonServiceException) result).getErrorCode()
-					.startsWith("5")) {
-				alertDialogMessage = "AWS server error.";
-			} else {
-				alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
+		if (result != null) {
+			
+			elasticIpsModel = null; //set the model to null
+			
+			if (result instanceof ArrayList<?>) {
+				//success!!
+				elasticIps = (ArrayList<SerializableAddress>)result;
+				//set the list adapter to show the data.
+				setListAdapter(new ElasticIPsAdapter(
+						this, 
+						R.layout.elasticipsrow, 
+						elasticIps));
 			}
-			alertDialogDisplayed = true;
-			killActivityOnError = false;//do not kill activity on server error
-			//allow user to retry.
+			else if (result instanceof AmazonServiceException) {
+				// if a server error
+				if (((AmazonServiceException) result).getErrorCode()
+						.startsWith("5")) {
+					alertDialogMessage = "AWS server error.";
+				} else {
+					alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
+				}
+				alertDialogDisplayed = true;
+				killActivityOnError = false;//do not kill activity on server error
+				//allow user to retry.
+			}
+			else if (result instanceof AmazonClientException) {
+				alertDialogMessage = this.getString(R.string.loginview_no_connxn_dlg);
+				alertDialogDisplayed = true;
+				killActivityOnError = false;//do not kill activity on connectivity error. allow client 
+			}
 		}
-		else if (result instanceof AmazonClientException) {
-			alertDialogMessage = this.getString(R.string.loginview_no_connxn_dlg);
-			alertDialogDisplayed = true;
-			killActivityOnError = false;//do not kill activity on connectivity error. allow client 
-		}
-		//if result = null, the model was cancelled. Issue a wee toast.
-		else if (result == null) {
+		else {
 			Toast.makeText(this, Html.fromHtml(this.getString(R.string.cancelled)), Toast.
 					LENGTH_LONG).show();
 		}
-		
 		//if failed, then display dialog box.
 		if (alertDialogDisplayed) {
 			alertDialogBox.setMessage(alertDialogMessage);
 			alertDialogBox.show();
 		}
-	}
-	
-	/**
-	 * Function that handles the display of a progress dialog. Overriden from
-	 * Activity and not GenericActivity
-	 * 
-	 * You need this method in your class if you want to have a prog bar displayed by the model.
-	 * 
-	 * @param id
-	 *            Dialog ID - Special treatment for Constants.PROGRESS_DIALOG
-	 */
-	@Override
-	protected Dialog onCreateDialog(int id) {
-		if (id == DialogConstants.PROGRESS_DIALOG.ordinal()) {
-			ProgressDialog dialog = new ProgressDialog(this);
-			dialog.setMessage(this.getString(R.string.loginview_wait_dlg));
-			dialog.setCancelable(true);
-			
-			dialog.setOnCancelListener(this);
-	
-			progressDialogDisplayed = true;
-			Log.v(TAG, "progress dialog displayed="
-					+ progressDialogDisplayed);
-	
-			return dialog;
-		}
-		// if some other sort of dialog...
-		return super.onCreateDialog(id);
 	}
 	
 	/**
@@ -388,18 +361,6 @@ public class ElasticIPsView extends GenericListActivity implements OnCancelListe
 		return super.onKeyDown(keyCode, event);
 	}
 
-	/** 
-	 * Handle cancel of progress dialog
-	 * @see android.content.DialogInterface.OnCancelListener#onCancel(android.content.
-	 * DialogInterface)
-	 */
-	@Override
-	public void onCancel(DialogInterface dialog) {
-		//this cannot be called UNLESS the user has the model running.
-		//i.e. the prog bar is visible
-		elasticIpsModel.cancel(true);
-	}
-	
 	/**
 	 * Overridden method to display the menu on press of the menu key
 	 * 
@@ -434,6 +395,19 @@ public class ElasticIPsView extends GenericListActivity implements OnCancelListe
 		default:
 			return super.onOptionsItemSelected(selectedItem);
 		}
+	}
+
+	/** 
+	 * Handle cancel of progress dialog
+	 * @see android.content.DialogInterface.OnCancelListener#onCancel(android.content.
+	 * DialogInterface)
+	 */
+	@Override
+	public void onCancel(DialogInterface dialog) {
+		//this cannot be called UNLESS the user has the model running.
+		//i.e. the prog bar is visible
+		progressDialogDisplayed = false;
+		elasticIpsModel.cancel(true);
 	}
 	
 }
@@ -500,5 +474,27 @@ class ElasticIPsAdapter extends ArrayAdapter<SerializableAddress>{
 		
 		return elasticIpRow; //return the populated row to display
 	}
-
+	
+	/**
+	 * TODO When more secgroup functionality is added, re-enable it. 
+	 * 
+	 * Function to disable all items in the ListView, as we do not want users clicking on
+	 * them.
+	 */
+	@Override
+    public boolean areAllItemsEnabled() 
+    { 
+            return false; 
+    } 
+    
+    /**
+     * TODO When more secgroup functionality is added, re-enable it.
+     * 
+     * Another function that does the same as hte function above
+     */
+	@Override
+    public boolean isEnabled(int position) 
+    { 
+            return false; 
+    } 
 }

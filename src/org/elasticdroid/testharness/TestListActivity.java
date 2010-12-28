@@ -20,6 +20,8 @@ package org.elasticdroid.testharness;
 
 import org.elasticdroid.tpl.GenericListActivity;
 
+import android.content.DialogInterface;
+
 /**
  * A test list activity that expects no intent, to test 
  * Models.
@@ -37,6 +39,18 @@ public class TestListActivity extends GenericListActivity {
 	public void processModelResults(Object result) {
 		// TODO Auto-generated method stub
 
+	}
+	
+	/** 
+	 * Handle cancel of progress dialog
+	 * @see android.content.DialogInterface.OnCancelListener#onCancel(android.content.
+	 * DialogInterface)
+	 */
+	@Override
+	public void onCancel(DialogInterface dialog) {
+		//this cannot be called UNLESS the user has the model running.
+		//i.e. the prog bar is visible
+		progressDialogDisplayed = false;
 	}
 
 }

@@ -28,26 +28,26 @@ import org.elasticdroid.db.ElasticDroidDB;
 import org.elasticdroid.model.EC2DashboardModel;
 import org.elasticdroid.model.RetrieveRegionModel;
 import org.elasticdroid.tpl.GenericListActivity;
-import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 import org.elasticdroid.utils.DialogConstants;
+import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 
 import android.app.AlertDialog;
-import android.app.Dialog;
-import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Html;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
-import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Spinner;
+import android.widget.Toast;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.AdapterView.OnItemSelectedListener;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -115,8 +115,6 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 	 * time by Vuew
 	 */
 	private String selectedRegion;
-	/** boolean to indicate if progress dialog is displayed */
-	private boolean progressDialogDisplayed;
 	/**
 	 * boolean to indicate if an error that occurred is sufficiently serious to
 	 * have the activity killed.
@@ -210,8 +208,8 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 		}
 
 		// create and initialise the alert dialog
-		alertDialogBox = new AlertDialog.Builder(this).create(); // create alert
-																	// box to
+		alertDialogBox = new AlertDialog.Builder(this).create(); // create alert dialog box
+		alertDialogBox.setCancelable(false);								
 		alertDialogBox.setButton(
 				this.getString(R.string.loginview_alertdialogbox_button),
 				new DialogInterface.OnClickListener() {
@@ -428,13 +426,13 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 			Log.v(this.getClass().getName() + ".onRetainNonConfigInstance()", "Saving " +
 			"ec2DashboardModel");
 			
-			ec2DashboardModel.setActivity(null);
+			ec2DashboardModel.setActivityNull();
 			return ec2DashboardModel;
 		}
 		else if (retrieveRegionModel != null) {
 			Log.v(this.getClass().getName() + ".onRetainNonConfigInstance()", "Saving " +
 					"retrieveRegionModel");
-			retrieveRegionModel.setActivity(null);
+			retrieveRegionModel.setActivityNull();
 			return retrieveRegionModel;
 		}
 		//both are null, return null
@@ -472,17 +470,25 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 	public void processModelResults(Object result) {
 		Log.v(this.getClass().getName(), "Processing model results...");
 		
+		// dismiss the progress dialog if displayed. Check redundant
+		if (progressDialogDisplayed) {
+			progressDialogDisplayed = false;
+			removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
+		}
+		
+		if (result == null) {
+			Toast.makeText(this, Html.fromHtml(this.getString(R.string.cancelled)), Toast.
+					LENGTH_LONG).show();
+			
+			return; //do not execute the rest of this method.
+		}
+
 		//check which model returned. Only one model can be executing at a time.
 		//model to retrieve regions was executed.
 		if (retrieveRegionModel != null) {
 			//set reference to model to null
 			retrieveRegionModel = null;
-			// dismiss the progress dialog if displayed. Check redundant
-			if (progressDialogDisplayed) {
-				progressDialogDisplayed = false;
-				removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
-			}
-	
+			
 			if (result instanceof HashMap<?, ?>) {
 				try {
 					regionData = (HashMap<String, String>) result;
@@ -527,11 +533,6 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 		else {
 			//set model reference to null
 			ec2DashboardModel = null;
-			// dismiss the progress dialog if displayed. Check redundant
-			if (progressDialogDisplayed) {
-				progressDialogDisplayed = false;
-				removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
-			}
 	
 			// if the result is an instance of Hashtable<?,?> populate listview
 			if (result instanceof HashMap<?, ?>) {
@@ -690,30 +691,6 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 				android.R.layout.simple_list_item_1,
 				(String[]) dashboardItems.toArray(new String[dashboardItems
 						.size()])));
-	}
-
-	/**
-	 * Function that handles the display of a progress dialog. Overriden from
-	 * Activity and not GenericActivity
-	 * 
-	 * @param id
-	 *            Dialog ID - Special treatment for Constants.PROGRESS_DIALOG
-	 */
-	@Override
-	protected Dialog onCreateDialog(int id) {
-		if (id == DialogConstants.PROGRESS_DIALOG.ordinal()) {
-			ProgressDialog dialog = new ProgressDialog(this);
-			dialog.setMessage(this.getString(R.string.loginview_wait_dlg));
-			dialog.setCancelable(false);
-
-			progressDialogDisplayed = true;
-			Log.v(this.getClass().getName(), "progress dialog displayed="
-					+ progressDialogDisplayed);
-
-			return dialog;
-		}
-		// if some other sort of dialog...
-		return super.onCreateDialog(id);
 	}
 
 	/**
@@ -939,6 +916,25 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 				// "dont bother reloading the dashboard, mate"
 				// to EC2Dashboard View. See onResume to see what this bool does.
 			}
+		}
+	}
+	
+	/** 
+	 * Handle cancel of progress dialog
+	 * @see android.content.DialogInterface.OnCancelListener#onCancel(android.content.
+	 * DialogInterface)
+	 */
+	@Override
+	public void onCancel(DialogInterface dialog) {
+		//this cannot be called UNLESS the user has the model running.
+		//i.e. the prog bar is visible
+		progressDialogDisplayed = false;
+		
+		if (retrieveRegionModel != null) {
+			retrieveRegionModel.cancel(true);
+		}
+		else if (ec2DashboardModel != null) {
+			ec2DashboardModel.cancel(true);
 		}
 	}
 }

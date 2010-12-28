@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
+import org.elasticdroid.model.EC2InstancesModel;
 import org.elasticdroid.model.ElasticIPsModel;
 import org.elasticdroid.model.ds.SerializableAddress;
 import org.elasticdroid.model.ds.SerializableInstance;
@@ -32,8 +33,6 @@ import org.elasticdroid.utils.DialogConstants;
 import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 
 import android.app.AlertDialog;
-import android.app.Dialog;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -50,10 +49,10 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.ec2.model.Address;
 import com.amazonaws.services.ec2.model.Filter;
 
 /**
@@ -93,12 +92,16 @@ public class EC2SingleInstanceView extends GenericListActivity {
 	 * have the activity killed.
 	 */
 	private boolean killActivityOnError;
-    /**Is progress bar displayed */
-    private boolean progressDialogDisplayed;
+
     /**
      * Elastic IP Model object
      */
     private ElasticIPsModel elasticIpsModel;
+    /**
+     * EC2 Instances Model object
+     */
+    private EC2InstancesModel ec2InstancesModel;
+    
     /**
      * Is an Elastic IP assigned to this instance.
      * Model answers this question.
@@ -108,6 +111,11 @@ public class EC2SingleInstanceView extends GenericListActivity {
      * executed.
      */
 	private Boolean isElasticIpAssigned;
+	
+	/**
+	 * Tag for logging
+	 */
+	private static final String TAG = "org.elasticdroid.EC2SingleInstanceView";
 	
 	/**
 	 * Called when activity is created.
@@ -131,7 +139,7 @@ public class EC2SingleInstanceView extends GenericListActivity {
         	//the possible exceptions are NullPointerException: the Hashmap was not found, or
         	//ClassCastException: the argument passed is not Hashmap<String, String>. In either case,
         	//just print out the error and exit. This is very inelegant, but this is a programmer's bug
-    		Log.e(this.getClass().getName(), exception.getMessage());
+    		Log.e(TAG, exception.getMessage());
     		finish(); //this will cause it to return to {@link EC2DisplayInstancesView}.
     	}
     	
@@ -140,13 +148,13 @@ public class EC2SingleInstanceView extends GenericListActivity {
     				"org.elasticdroid.model.SerializableInstance");
     	}
     	catch(Exception exception) {
-    		Log.e(this.getClass().getName(), exception.getMessage());
+    		Log.e(TAG, exception.getMessage());
     		finish(); //this will cause it to return to {@link EC2DisplayInstancesView}.
     	}    
     	
 		// create and initialise the alert dialog
 		alertDialogBox = new AlertDialog.Builder(this).create(); // create alert
-																	// box to
+		alertDialogBox.setCancelable(false);
 		alertDialogBox.setButton(
 				this.getString(R.string.loginview_alertdialogbox_button),
 				new DialogInterface.OnClickListener() {
@@ -196,13 +204,13 @@ public class EC2SingleInstanceView extends GenericListActivity {
 	public void onRestoreInstanceState(Bundle stateToRestore) {
 		//restore alertDialogDisplayed boolean
 		alertDialogDisplayed = stateToRestore.getBoolean("alertDialogDisplayed");
-		Log.v(this.getClass().getName(), "alertDialogDisplayed = "
+		Log.v(TAG, "alertDialogDisplayed = "
 				+ alertDialogDisplayed);
 		alertDialogMessage = stateToRestore.getString("alertDialogMessage");
 		
 		//was a progress dialog being displayed? Restore the answer to this question.
 		progressDialogDisplayed = stateToRestore.getBoolean("progressDialogDisplayed");
-		Log.v(this.getClass().getName() + ".onRestoreInstanceState", "progressDialogDisplayed:" + 
+		Log.v(TAG + ".onRestoreInstanceState", "progressDialogDisplayed:" + 
 				progressDialogDisplayed);
 		
 		//check if the key exists before assigning it.
@@ -217,15 +225,28 @@ public class EC2SingleInstanceView extends GenericListActivity {
 		//if there was a model executing when the object was destroyed, retained will be an 
 		//instance of ElasticIpsModel
 		if (retained instanceof ElasticIPsModel) {
-			Log.i(this.getClass().getName() + ".onRestoreInstanceState()","Reclaiming previous " +
+			Log.i(TAG + ".onRestoreInstanceState()","Reclaiming previous " +
 				"background task");
 			elasticIpsModel = (ElasticIPsModel)retained;
 			elasticIpsModel.setActivity(this);//tell the model of the new activity created
+			
+			ec2InstancesModel = null; //set EC2 instances model to null (redundant assignment)
+		}
+		else if (retained instanceof EC2InstancesModel) {
+			Log.i(TAG + ".onRestoreInstanceState()","Reclaiming previous " +
+			"background task");
+			
+			ec2InstancesModel = (EC2InstancesModel) retained;
+			ec2InstancesModel.setActivity(this);
+			
+			elasticIpsModel = null; //set the ElasticIP model to null (redundant assignment)
 		}
 		else {
+			//set both models to null
 			elasticIpsModel = null;
+			ec2InstancesModel = null;
 			
-			Log.v(this.getClass().getName(),"No model object, or model finished before activity " +
+			Log.v(TAG,"No model object, or model finished before activity " +
 					"was recreated.");
 			
 			//now if there is no model anymore, and progressDialogDisplayed is set to true,
@@ -244,7 +265,7 @@ public class EC2SingleInstanceView extends GenericListActivity {
 	public void onResume() {
 		super.onResume(); //call superclass onResume()
 		
-		Log.v(this.getClass().getName() + ".onResume()", "onResume");
+		Log.v(TAG + ".onResume()", "onResume");
 		
 		//don't execute ElasticIpModel if instance is stopped or summat
 		if (instance.getStateCode() != InstanceStateConstants.RUNNING) {
@@ -256,12 +277,18 @@ public class EC2SingleInstanceView extends GenericListActivity {
 		if (alertDialogDisplayed) {
 			alertDialogBox.setMessage(alertDialogMessage);
 			alertDialogBox.show();
-		} else if (isElasticIpAssigned == null) {
-				executeModel();
-		} else {
+		} 
+		//execute Elastic IPs model only if EC2 instances model is not running
+		else if ((elasticIpsModel == null) && (ec2InstancesModel == null) && (isElasticIpAssigned == 
+			null)) {
+				executeElasticIpModel();
+		} 
+		else {
 			//populate the list
-			setListAdapter(new EC2SingleInstanceAdapter(this, R.layout.ec2singleinstance, 
+			if (isElasticIpAssigned != null) {
+				setListAdapter(new EC2SingleInstanceAdapter(this, R.layout.ec2singleinstance, 
 					instance, isElasticIpAssigned));
+			}
 		}
 	}
 	
@@ -304,6 +331,11 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			elasticIpsModel.setActivityNull();
 			return elasticIpsModel;
 		}
+		else if (ec2InstancesModel != null) {
+			//the user has asked the single instance view to be refreshed
+			ec2InstancesModel.setActivityNull();
+			return ec2InstancesModel;
+		}
 		
 		return null;
 	}
@@ -311,8 +343,8 @@ public class EC2SingleInstanceView extends GenericListActivity {
 	/**
 	 * Executes the model which will return the Elastic IP(s) assigned to this instance.
 	 */
-	private void executeModel() {
-		Log.v(this.getClass().getName() + ".executeModel()", "Going to execute model!");
+	private void executeElasticIpModel() {
+		Log.v(TAG + ".executeModel()", "Going to execute model!");
 		elasticIpsModel = new ElasticIPsModel(this, connectionData);
 		
 		//filter results that are not relevant to this instance
@@ -329,28 +361,20 @@ public class EC2SingleInstanceView extends GenericListActivity {
 	}
 	
 	/**
-	 * Function that handles the display of a progress dialog. Overriden from
-	 * Activity and not GenericActivity
-	 * 
-	 * @param id
-	 *            Dialog ID - Special treatment for Constants.PROGRESS_DIALOG
+	 * Executes the model that will refresh the instance.
 	 */
-	@Override
-	protected Dialog onCreateDialog(int id) {
-		if (id == DialogConstants.PROGRESS_DIALOG.ordinal()) {
-			ProgressDialog dialog = new ProgressDialog(this);
-			dialog.setMessage(this.getString(R.string.loginview_wait_dlg));
-			dialog.setCancelable(false);
-
-			progressDialogDisplayed = true;
-			Log.v(this.getClass().getName(), "progress dialog displayed="
-					+ progressDialogDisplayed);
-
-			return dialog;
-		}
-		// if some other sort of dialog...
-		return super.onCreateDialog(id);
+	private void executeEC2InstanceModel() {
+		//create a new filter
+		Filter singleInstanceFilter = new Filter("instance-id").withValues(new String[]{
+				instance.getInstanceId()
+		});
+		
+		Log.v(TAG, "Region:" + connectionData.get("region"));
+		Log.v(TAG, "Instance ID:" + instance.getInstanceId());
+		ec2InstancesModel = new EC2InstancesModel(this, connectionData, selectedRegion);
+		ec2InstancesModel.execute(singleInstanceFilter);
 	}
+	
 	/**
 	 * Process results from model
 	 * @param Object, which can be a List<Address> or exceptions
@@ -359,7 +383,7 @@ public class EC2SingleInstanceView extends GenericListActivity {
 	@Override
 	public void processModelResults(Object result) {
 		
-		Log.v(this.getClass().getName() + ".processModelResults()", "Processing model results...");
+		Log.v(TAG + ".processModelResults()", "Processing model results...");
 		
 		// dismiss the progress dialog if displayed. Check redundant
 		if (progressDialogDisplayed) {
@@ -367,42 +391,95 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
 		}
 		
-		// if the model returned a result; i.e. success.
-		if (result instanceof ArrayList<?>) {
+		if (result == null) {
+			Toast.makeText(this, Html.fromHtml(this.getString(R.string.cancelled)), Toast.
+					LENGTH_LONG).show();
 			
-			//if there is data, set boolean to true
-			if (((ArrayList<SerializableAddress>) result).size() != 0) {
-				isElasticIpAssigned = true;
-			}
-			else {
-				isElasticIpAssigned = false; //this has to be done manually because we are using a 
-				//Boolean and not a boolean. When null, we execute the model.
-			}
-			
-			//populate the list
-			setListAdapter(new EC2SingleInstanceAdapter(this, R.layout.ec2singleinstance, 
-					instance, isElasticIpAssigned));
-		}
-		else if (result instanceof AmazonServiceException) {
-			// if a server error
-			if (((AmazonServiceException) result).getErrorCode()
-					.startsWith("5")) {
-				alertDialogMessage = this.getString(R.string.loginview_server_err_dlg);
-			} else {
-				alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
-			}
-			alertDialogDisplayed = true;
-			killActivityOnError = false;//do not kill activity on server error
-			//allow user to retry.
-		} 
-		else if (result instanceof AmazonClientException) {
-			alertDialogMessage = this
-					.getString(R.string.loginview_no_connxn_dlg);
-			alertDialogDisplayed = true;
-			killActivityOnError = false;//do not kill activity on connectivity error. allow client 
-			//to retry.
+			return; //don't execute the rest of this method.
 		}
 		
+		if (elasticIpsModel != null) {
+			elasticIpsModel = null;
+			// if the model returned a result; i.e. success.
+			if (result instanceof ArrayList<?>) {
+				
+				//if there is data, set boolean to true
+				if (((ArrayList<SerializableAddress>) result).size() != 0) {
+					isElasticIpAssigned = true;
+				}
+				else {
+					isElasticIpAssigned = false; //this has to be done manually because we are 
+					//using a Boolean and not a boolean. When null, we execute the model.
+				}
+				
+				//populate the list
+				setListAdapter(new EC2SingleInstanceAdapter(this, R.layout.ec2singleinstance, 
+						instance, isElasticIpAssigned));
+			}
+			else if (result instanceof AmazonServiceException) {
+				// if a server error
+				if (((AmazonServiceException) result).getErrorCode()
+						.startsWith("5")) {
+					alertDialogMessage = this.getString(R.string.loginview_server_err_dlg);
+				} else {
+					alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
+				}
+				alertDialogDisplayed = true;
+				killActivityOnError = false;//do not kill activity on server error
+				//allow user to retry.
+			} 
+			else if (result instanceof AmazonClientException) {
+				alertDialogMessage = this
+						.getString(R.string.loginview_no_connxn_dlg);
+				alertDialogDisplayed = true;
+				killActivityOnError = false;//do not kill activity on connectivity error. allow client 
+				//to retry.
+			}
+		}
+		else if (ec2InstancesModel != null) {
+			ec2InstancesModel = null; //set model to null
+			
+			// dismiss the progress dialog if displayed. Check redundant
+			if (progressDialogDisplayed) {
+				progressDialogDisplayed = false;
+				removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
+			}
+			
+			if (result instanceof ArrayList<?>) {
+				//there's going to be only 1 entry. Tested in unit tests
+				Log.v(TAG, "Result size: " + ((ArrayList<SerializableInstance>) result).size());
+				instance = ((ArrayList<SerializableInstance>) result).get(0);
+				
+				if (isElasticIpAssigned != null) {
+					//populate the list
+					setListAdapter(new EC2SingleInstanceAdapter(this, R.layout.ec2singleinstance, 
+							instance, isElasticIpAssigned));
+				}
+				else {
+					//elastic IP not assigned; rerun model.
+					executeElasticIpModel();
+				}
+			}
+			else if (result instanceof AmazonServiceException) {
+				// if a server error
+				if (((AmazonServiceException) result).getErrorCode()
+						.startsWith("5")) {
+					alertDialogMessage = this.getString(R.string.loginview_server_err_dlg);
+				} else {
+					alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
+				}
+				alertDialogDisplayed = true;
+				killActivityOnError = false;//do not kill activity on server error
+				//allow user to retry.
+			} 
+			else if (result instanceof AmazonClientException) {
+				alertDialogMessage = this
+						.getString(R.string.loginview_no_connxn_dlg);
+				alertDialogDisplayed = true;
+				killActivityOnError = false;//do not kill activity on connectivity error. allow client 
+				//to retry.
+			}
+		}
 		
 		//if failed, then display dialog box.
 		if (alertDialogDisplayed) {
@@ -440,7 +517,7 @@ public class EC2SingleInstanceView extends GenericListActivity {
 		
 		if (instance.getStateCode() != InstanceStateConstants.RUNNING) {
 			//if the instance is not running, disable monitoring and SSH
-			Log.v(this.getClass().getName() + ".onPrepareOptionsMenu()", "Removing monitoring and" +
+			Log.v(TAG + ".onPrepareOptionsMenu()", "Removing monitoring and" +
 					"SSH connect options.");
 			menu.removeItem(R.id.singleinstance_menuitem_monitor);
 			menu.removeItem(R.id.singleinstance_menuitem_ssh);
@@ -461,7 +538,7 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			startActivity(aboutIntent);
 			return true;
 		case R.id.singleinstance_menuitem_ssh:
-			Log.v(this.getClass().getName() + ".onOptionsItemSelected()", "User wishes to SSH!");
+			Log.v(TAG + ".onOptionsItemSelected()", "User wishes to SSH!");
 			
 			//call the SSH connector view using the intent
 			Intent sshConnectorIntent = new Intent();
@@ -481,12 +558,15 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			//start the activity
 			startActivity(sshConnectorIntent);
 			
-			/*Intent connectBotIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
-			startActivity(connectBotIntent);*/
-			
-			
 			return true;
-		
+		case R.id.singleinstance_menuitem_refresh:
+			//create the model and launch it with the filter
+			if (isElasticIpAssigned == null) {
+				Log.v(TAG, "Elastic IP check has not been done. Redo!");
+				executeElasticIpModel();
+			}
+			executeEC2InstanceModel();
+			return true;
 		default:
 			return super.onOptionsItemSelected(selectedItem);
 		}
@@ -504,6 +584,24 @@ public class EC2SingleInstanceView extends GenericListActivity {
 		}
 		
 		return super.onKeyDown(keyCode, event);
+	}
+	
+	/** 
+	 * Handle cancel of progress dialog
+	 * @see android.content.DialogInterface.OnCancelListener#onCancel(android.content.
+	 * DialogInterface)
+	 */
+	@Override
+	public void onCancel(DialogInterface dialog) {
+		//this cannot be called UNLESS the user has the model running.
+		//i.e. the prog bar is visible
+		progressDialogDisplayed = false;
+		if (elasticIpsModel != null) {
+			elasticIpsModel.cancel(true);
+		}
+		else if (ec2InstancesModel != null) {
+			ec2InstancesModel.cancel(true);
+		}
 	}
 }
 
@@ -581,8 +679,15 @@ class EC2SingleInstanceAdapter extends ArrayAdapter<RowData> {
 				((ImageView) instanceMetricRow.findViewById(R.id.instanceStatusIcon)).
 					setImageResource(R.drawable.green_light);
 			}
-			else if (instance.getStateCode() == InstanceStateConstants.STOPPED) {
+			else if ((instance.getStateCode() == InstanceStateConstants.STOPPED) || (instance.
+					getStateCode() == InstanceStateConstants.TERMINATED)) {
 				instanceStatusIcon.setImageResource(R.drawable.red_light);				
+			}
+			else if (instance.getStateCode() == InstanceStateConstants.SHUTTING_DOWN) {
+				instanceStatusIcon.setImageResource(R.drawable.yellow_light);
+			}
+			else if (instance.getStateCode() == InstanceStateConstants.PENDING) {
+				instanceStatusIcon.setImageResource(R.drawable.yellow_light);
 			}
 			break;
 			

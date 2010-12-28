@@ -6,5 +6,6 @@
 <b>Elastic Droid</b> - это программное обеспечение, которое распространяется свободно с лицензией GNU General Public License v3. 
 В настоящее время разработчиками являются <i>Siddhu Warrier</i>, <i>Galiia Khasanova</i>, и <i>Rodolfo Cartas</i>.
 </string>
-<string name="refresh">Refresh</string>
+<string name="refresh">Обновить</string>
+<string name="wait_dlg">Пожалуйста, подождите...</string>
 </resources>
