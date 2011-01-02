@@ -100,9 +100,7 @@ public class EC2DisplayInstancesView extends GenericListActivity {
     private ArrayList<SerializableInstance> instanceData;
 	
 	/**
-	 * This method is called when the activity is (re)started, and receives
-	 * an {@link org.elasticdroid.utils.AWSConstants.InstanceConstants} enumerator
-	 * as an intent, which tells it what sort of list to display. 
+	 * This method is called when the activity is (re)started.
 	 * 
 	 * @param savedInstanceState Instance state saved (if any) on screen destroy. See 
 	 * @see EC2DisplayInstancesView#onSaveInstanceState(Bundle)

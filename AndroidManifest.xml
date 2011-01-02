@@ -39,6 +39,10 @@
 	</activity>
 	
 	<activity 
+    	android:label="" android:name=".MonitorInstanceView">
+	</activity>
+	
+	<activity 
     	android:label="" android:name=".ElasticIPsView">
 	</activity>
 

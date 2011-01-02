@@ -49,6 +49,24 @@ public class AWSConstants {
 		 * End point for EC2 in the APAC region
 		 */
 		public static final String EC2_APAC ="ec2.ap-southeast-1.amazonaws.com";
+		
+		/*----------------------------------------------------------------------*/
+		/**
+		 * End point for Cloudwatch in the EU West region
+		 */
+		public static final String CLOUDWATCH_EU_WEST = "monitoring.eu-west-1.amazonaws.com";
+		/**
+		 * End point for Cloudwatch in the US East region
+		 */
+		public static final String CLOUDWATCH_US_EAST = "monitoring.amazonaws.com";
+		/**
+		 * End point for Cloudwatch in the US West region
+		 */
+		public static final String CLOUDWATCH_US_WEST = "monitoring.us-west-1.amazonaws.com";
+		/**
+		 * End point for CloudWatch in the APAC region
+		 */
+		public static final String CLOUDWATCH_APAC="monitoring.ap-southeast-1.amazonaws.com";
 	}
 	
 	/**

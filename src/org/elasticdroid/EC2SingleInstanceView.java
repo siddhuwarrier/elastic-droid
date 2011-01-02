@@ -567,6 +567,17 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			}
 			executeEC2InstanceModel();
 			return true;
+		case R.id.singleinstance_menuitem_monitor:
+			Intent monitorIntent = new Intent();
+			monitorIntent.setClassName("org.elasticdroid", 
+					"org.elasticdroid.MonitorInstanceView");
+			//send it the AWS connection data.
+			monitorIntent.putExtra("org.elasticdroid.EC2SingleInstanceView.connectionData", 
+					connectionData);
+			monitorIntent.putExtra("instanceId", instance.getInstanceId());
+			monitorIntent.putExtra("selectedRegion", selectedRegion);
+			
+			startActivity(monitorIntent);
 		default:
 			return super.onOptionsItemSelected(selectedItem);
 		}
