@@ -18,6 +18,8 @@
  */
 package org.elasticdroid.utils;
 
+import org.elasticdroid.utils.AWSConstants.EndPoints;
+
 import android.util.Log;
 
 /**
@@ -89,5 +91,4 @@ public class MiscUtils {
 		
 		return true;
 	}
-
 }

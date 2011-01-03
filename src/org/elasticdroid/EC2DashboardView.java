@@ -237,7 +237,7 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 
 		setContentView(R.layout.ec2dashboard);
 		// set the title to the username of the person currently logged in.
-		this.setTitle("Logged in as " +  connectionData.get("username"));
+		this.setTitle(connectionData.get("username"));
 		
 		onCreateExecuted = true;
 	}

@@ -20,11 +20,6 @@ package org.elasticdroid.utils;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Date;
-
-import org.elasticdroid.utils.AWSConstants.EndPoints;
-
-import android.util.Log;
 
 /**
  * Utility class to hold input requried by the AWS CloudWatch API
@@ -132,25 +127,6 @@ public class CloudWatchInput implements Serializable {
 	 */
 	public ArrayList<String> getStatistics() {
 		return statistics;
-	}
-	
-	/**
-	 * Get the endpoint for the {@link CloudWatchInput#region} stored in this 
-	 * {@link CloudWatchInput} instance.
-	 * @return String from {@link AWSConstants}
-	 */
-	public String getEndpoint() {
-		if (region.equals("eu-west-1")) {
-			return EndPoints.CLOUDWATCH_EU_WEST;
-		}
-		else if (region.equals("us-east-1")) {
-			return EndPoints.CLOUDWATCH_US_EAST;
-		}
-		else if (region.equals("us-west-1")) {
-			return EndPoints.CLOUDWATCH_US_WEST;
-		}		
-
-		return EndPoints.CLOUDWATCH_APAC;
 	}
 	
 	/**

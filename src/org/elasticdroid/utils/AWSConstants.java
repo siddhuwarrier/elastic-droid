@@ -67,6 +67,12 @@ public class AWSConstants {
 		 * End point for CloudWatch in the APAC region
 		 */
 		public static final String CLOUDWATCH_APAC="monitoring.ap-southeast-1.amazonaws.com";
+		
+		/**
+		 * Get the endpoint for the {@link CloudWatchInput#region} stored in this 
+		 * {@link CloudWatchInput} instance.
+		 * @return String from {@link AWSConstants}
+		 */
 	}
 	
 	/**
@@ -110,5 +116,43 @@ public class AWSConstants {
 		 * Instance is stopped.
 		 */
 		public static final int STOPPED = 80;
+	}
+	
+	/**
+	 * Utility method to return the Cloudwatch endpoint for the region selected
+	 * @param region Region selected
+	 * @return The CloudWatch end point for the region selected.
+	 */
+	public static String getCloudWatchEndpoint(String region) {
+		if (region.equals("eu-west-1")) {
+			return EndPoints.CLOUDWATCH_EU_WEST;
+		}
+		else if (region.equals("us-east-1")) {
+			return EndPoints.CLOUDWATCH_US_EAST;
+		}
+		else if (region.equals("us-west-1")) {
+			return EndPoints.CLOUDWATCH_US_WEST;
+		}		
+
+		return EndPoints.CLOUDWATCH_APAC;
+	}
+	
+	/**
+	 * Utility method to return the endpoint for the region selected
+	 * @param region Region selected
+	 * @return The EC2 end point for the region selected.
+	 */
+	public static String getEC2Endpoint(String region) {
+		if (region.equals("eu-west-1")) {
+			return EndPoints.EC2_EU_WEST;
+		}
+		else if (region.equals("us-east-1")) {
+			return EndPoints.EC2_US_EAST;
+		}
+		else if (region.equals("us-west-1")) {
+			return EndPoints.EC2_US_WEST;
+		}		
+
+		return EndPoints.EC2_APAC;
 	}
 }

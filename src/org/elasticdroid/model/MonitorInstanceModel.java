@@ -28,9 +28,8 @@ import java.util.List;
 import org.elasticdroid.model.tpl.GenericModel;
 import org.elasticdroid.tpl.GenericActivity;
 import org.elasticdroid.tpl.GenericListActivity;
+import org.elasticdroid.utils.AWSConstants;
 import org.elasticdroid.utils.CloudWatchInput;
-import org.elasticdroid.utils.AWSConstants.EndPoints;
-import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 
 import android.util.Log;
 
@@ -116,7 +115,8 @@ public class MonitorInstanceModel extends GenericModel<Dimension, Void, Object> 
 		}
 		catch(AmazonClientException amazonClientException) { 
 			//If any internal errors are encountered inside the client while attempting to make 
-			//the request or handle the response. For example if a network connection is not available. 
+			//the request or handle the response. For example if a network connection is not
+			//available. 
 			Log.e(this.getClass().getName(), "Exception:" + amazonClientException.getMessage());
 			return amazonClientException;
 		}
@@ -131,7 +131,8 @@ public class MonitorInstanceModel extends GenericModel<Dimension, Void, Object> 
 		request.setStatistics(cloudWatchInput.getStatistics());
 		request.setDimensions(Arrays.asList(dimensions));
 		//tell the cloudwatch client where to look!
-		cloudWatchClient.setEndpoint(cloudWatchInput.getEndpoint());
+		cloudWatchClient.setEndpoint(AWSConstants.getCloudWatchEndpoint(cloudWatchInput.
+				getRegion()));
 		
 		//get the monitoring result!
 		try {

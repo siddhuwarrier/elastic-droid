@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:orientation="vertical"
+  android:layout_width="wrap_content"
+  android:layout_height="wrap_content">
+        
+	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:orientation="horizontal"
+	android:padding="10sp">
+		<TextView
+			android:id="@+id/measureTextView"
+			android:layout_marginTop="5sp"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/monitorinstanceview_measure"
+			android:textSize="22sp"
+			android:textColor="#ffffff"
+			android:layout_gravity="center_vertical"
+			android:paddingRight="10sp"
+		/>
+		<Spinner android:id="@+id/measureSpinner"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_weight="2"
+			android:prompt="@string/monitorinstanceview_measure"
+			android:textSize="20sp" 
+		/>
+	</LinearLayout>
+	
+	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content"
+	android:orientation="horizontal"
+	android:padding="10sp">
+		<TextView
+			android:id="@+id/durationTextView"
+			android:layout_marginTop="5sp"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/monitorinstanceview_duration"
+			android:textSize="22sp"
+			android:textColor="#ffffff"
+			android:layout_gravity="center_vertical"
+			android:paddingRight="10sp"
+		/>
+		<Spinner android:id="@+id/durationSpinner"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_weight="2"
+			android:prompt="@string/monitorinstanceview_duration"
+			android:textSize="20sp" 
+			android:entries="@array/monitorinstanceview_duration_array"
+		/>
+	</LinearLayout>
+	<!-- Buttons -->
+    <Button
+        android:id="@+id/changeButton"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/sakEntry"
+        android:layout_marginTop="10sp"
+        android:text="@string/monitorinstanceview_change" />
+</LinearLayout>

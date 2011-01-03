@@ -28,19 +28,28 @@ import org.achartengine.model.XYMultipleSeriesDataset;
 import org.achartengine.model.XYSeries;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
+
 import org.elasticdroid.model.MonitorInstanceModel;
 import org.elasticdroid.tpl.GenericActivity;
 import org.elasticdroid.utils.CloudWatchInput;
 import org.elasticdroid.utils.DialogConstants;
+import static org.elasticdroid.utils.MonitoringDurations.*;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.text.Html;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -156,10 +165,8 @@ public class MonitorInstanceView extends GenericActivity {
 				}
 			);
 		
-  		this.setContentView(R.layout.monitorinstancesview);
-  		
-  		dataset = new XYMultipleSeriesDataset();
-  		multiRenderer = new XYMultipleSeriesRenderer();
+  		this.setContentView(R.layout.monitorinstance);  	
+  		this.setTitle(connectionData.get("username")+ " (" + selectedRegion +")"); //set title
   	}
   	
   	
@@ -184,11 +191,30 @@ public class MonitorInstanceView extends GenericActivity {
 		Log.v(TAG + ".onRestoreInstanceState", "progressDialogDisplayed:" + 
 				progressDialogDisplayed);
 		
+		/*get the model data back, so that you can inform the model that the activity
+		 * has come back up. */
+		Object retained = getLastNonConfigurationInstance();
+		if (retained instanceof MonitorInstanceModel) {
+			monitorInstanceModel = (MonitorInstanceModel) retained;
+			monitorInstanceModel.setActivity(this);
+		}
 		
 		//restore the input data
 		cloudWatchInput = (CloudWatchInput)(stateToRestore.getSerializable("cloudWatchInput"));
+		
+		//restore the chart data
+		multiRenderer = (XYMultipleSeriesRenderer) stateToRestore.getSerializable("multiRenderer");
+		dataset = (XYMultipleSeriesDataset) stateToRestore.getSerializable("dataset");
+		
+		((TextView)findViewById(R.id.monitorInstanceTextView)).setText(stateToRestore.getString(
+				"titleText"));
 	}
 	
+	/**
+	 * Executed last in the (re)awakening sequence. Gets Cloudwatch input data and either:
+	 * a) starts model, or
+	 * b) re-renders chart
+	 */
 	@Override
   	public void onResume() {
   		super.onResume();
@@ -205,10 +231,16 @@ public class MonitorInstanceView extends GenericActivity {
 			alertDialogBox.setMessage(alertDialogMessage);
 			alertDialogBox.show();
 		}
-		//execute the model if it's not already running, and we have no chart yet
-		else if ((monitorInstanceModel == null) && (chartView == null)) {
+		//execute the model if it's not already running, and we have no chart data yet
+		else if ((monitorInstanceModel == null) && (dataset == null)) {
 			Log.d(TAG, "About to execute model...");
 			executeModel();
+		}
+		//else if dataset is not null, re-render the chart
+		else if (dataset != null) {
+			Log.d(TAG, "Re-rendering charts");
+			//this will now add the chart into the layout.Whee!
+			addChartToLayout();
 		}
   	}
 	
@@ -217,6 +249,7 @@ public class MonitorInstanceView extends GenericActivity {
 	 * Apart from the usual, this saves:
 	 * <ul>
 	 * <li> cloudWatchInput: The cloudwatch input set (if any).</li>
+	 * <li> titleString: The title string for the graph being displayed. </li>
 	 * </ul>
 	 */
 	@Override
@@ -236,6 +269,16 @@ public class MonitorInstanceView extends GenericActivity {
 		if (cloudWatchInput != null) {
 			saveState.putSerializable("cloudWatchInput", cloudWatchInput);
 		}
+		
+		//save chart info
+		if (chartView != null) {
+			saveState.putSerializable("dataset", dataset);
+			saveState.putSerializable("multiRenderer", multiRenderer);
+		}
+		
+		//save the title text
+		saveState.putString("titleText", 
+				((TextView)findViewById(R.id.monitorInstanceTextView)).getText().toString());
 	}
 	
 	/**
@@ -280,6 +323,15 @@ public class MonitorInstanceView extends GenericActivity {
 			removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
 		}
 		
+		//if result returned is null,d isplay a toast and do not try to re-execute the model
+		//unless the user forces re-execution.
+		if (result == null) {
+			Toast.makeText(this, Html.fromHtml(this.getString(R.string.cancelled)), Toast.
+					LENGTH_LONG).show();
+			
+			return; //don't execute the rest of this method.
+		}
+		
 		monitorInstanceModel = null; //set the model to null
 		
 		if (result instanceof List<?>) {
@@ -307,6 +359,12 @@ public class MonitorInstanceView extends GenericActivity {
 			killActivityOnError = false;//do not kill activity on connectivity error. allow client 
 			//to retry.
 		}
+		
+		//if failed, then display dialog box.
+		if (alertDialogDisplayed) {
+			alertDialogBox.setMessage(alertDialogMessage);
+			alertDialogBox.show();
+		}
 	}
 	
 	/**
@@ -324,11 +382,17 @@ public class MonitorInstanceView extends GenericActivity {
 
 	/**
 	 * Draw chart
-	 * TODO use real data
 	 */
 	private void drawChart() {
-		XYSeries cloudWatchSeries = new XYSeries("Graph");
+		XYSeries cloudWatchSeries = new XYSeries(cloudWatchInput.getMeasureName());
 		
+		//initialise the datasert and multi-series renderer if they are uninitialised ATM.
+		if (dataset == null) {
+			dataset = new XYMultipleSeriesDataset();
+		}
+		if (multiRenderer == null) {
+			multiRenderer = new XYMultipleSeriesRenderer();
+		}
 		//remove all existing series. We are going to display only one at a time
 		for (int seriesCount = 0; seriesCount < dataset.getSeriesCount(); seriesCount ++) {
 			dataset.removeSeries(seriesCount);
@@ -338,8 +402,6 @@ public class MonitorInstanceView extends GenericActivity {
 		//add data into the series
 		for (Datapoint cloudWatchDatum : cloudWatchData) {
 			//add the timestamp and the data
-			Log.v(TAG, "Timestamp:" + cloudWatchDatum.getTimestamp().toString() + ", Val: " + 
-					cloudWatchDatum.getAverage());
 			cloudWatchSeries.add(cloudWatchDatum.getTimestamp().getTime(), cloudWatchDatum.
 					getAverage());
 		}
@@ -352,33 +414,145 @@ public class MonitorInstanceView extends GenericActivity {
 		
 		multiRenderer.addSeriesRenderer(renderer);
 		multiRenderer.setAntialiasing(true);
-		multiRenderer.setXTitle("Count");
-		multiRenderer.setYTitle("Value");
+		multiRenderer.setYTitle(cloudWatchData.get(0).getUnit());
 		
 		multiRenderer.setLabelsTextSize(16);
-		multiRenderer.setAxisTitleTextSize(20);
+		multiRenderer.setAxisTitleTextSize(16);
 		multiRenderer.setShowLegend(false);
 		multiRenderer.setShowGrid(true);
 		
-		if (chartView == null) {
-			//chartView = ChartFactory.getLineChartView(this, dataset, multiRenderer);
-			chartView = ChartFactory.getTimeChartView(this, dataset, multiRenderer, "HH:mm");
-			
-		    LinearLayout layout = (LinearLayout) findViewById(R.id.chart);
-		    layout.addView(chartView, new LayoutParams(LayoutParams.FILL_PARENT,
-		              LayoutParams.FILL_PARENT));
+		
+		//set the title correctly
+		TextView titleTextView = (TextView)findViewById(R.id.monitorInstanceTextView);
+		long duration = cloudWatchInput.getEndTime() - cloudWatchInput.getStartTime();
+		
+		if (duration == LAST_HOUR.getDuration()) {
+			titleTextView.setText(cloudWatchInput.getMeasureName() + " (" + LAST_HOUR.getString(
+					this) + ")");
 		}
-		else {
-			chartView.repaint();
+		else if (duration == LAST_SIX_HOURS.getDuration()) {
+			titleTextView.setText(cloudWatchInput.getMeasureName() + " (" + LAST_SIX_HOURS.
+					getString(this) + ")");
+		}
+		else if (duration == LAST_TWELVE_HOURS.getDuration()) {
+			titleTextView.setText(cloudWatchInput.getMeasureName() + " (" + LAST_TWELVE_HOURS.
+					getString(this) + ")");
+		}
+		else if (duration == LAST_DAY.getDuration()) {
+			titleTextView.setText(cloudWatchInput.getMeasureName() + " (" + LAST_DAY.getString(this)
+					+ ")");
+		}
+		
+		addChartToLayout(); //wasteful, but forceLayout does not work all the time (immediately)
+	}
+	
+	/**
+	 * Utility method to add ChartView to their layout
+	 */
+	private void addChartToLayout() {
+		
+		chartView = ChartFactory.getTimeChartView(this, dataset, multiRenderer, "HH:mm");
+		
+	    LinearLayout layout = (LinearLayout) findViewById(R.id.chart);
+	    layout.removeAllViews();
+	    layout.addView(chartView, new LayoutParams(LayoutParams.FILL_PARENT,
+	              LayoutParams.FILL_PARENT));
+	}
+	
+	/**
+	 * Overridden method to display the menu on press of the menu key
+	 * 
+	 * Inflates and shows menu for displayed instances view.
+	 */
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.monitorinstance_menu, menu);
+	
+		return true;
+	}
+	
+	/**
+	 * Overriden. Prepares menu. Does nothing atm.
+	 */
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu) {
+		//does nothing now.
+		return true;
+	}
+	
+	/**
+	 * Overriden method to handle selection of menu item
+	 */
+	@Override
+	public boolean onOptionsItemSelected(MenuItem selectedItem) {
+		switch (selectedItem.getItemId()) {
+		case R.id.monitorinstance_menuitem_refresh:
+			executeModel();
+			return true;
+		case R.id.monitorinstance_menuitem_about:
+			Intent aboutIntent = new Intent(this, AboutView.class);
+			startActivity(aboutIntent);
+			return true;
+		case R.id.monitorinstance_menuitem_graphtype:
+			Intent optionsIntent = new Intent(this, MonitorInstanceOptionsView.class);
+			optionsIntent.putExtra("org.elasticdroid.MonitorInstanceView.connectionData", 
+					connectionData);
+			optionsIntent.putExtra("selectedRegion", selectedRegion);
+			optionsIntent.putExtra("instanceId", instanceId);
+			//also tell the activity what the currently selected measure and duration are
+			optionsIntent.putExtra("selectedMeasureName", cloudWatchInput.getMeasureName());
+			optionsIntent.putExtra("selectedDuration", 
+					cloudWatchInput.getEndTime() - cloudWatchInput.getStartTime());
+			
+			startActivityForResult(optionsIntent, 0); //second arg ignored
+			
+			return true;
+		default:
+			return super.onOptionsItemSelected(selectedItem);
+		}
+	}
+	/**
+	 * Handle back button.
+	 * If back button is pressed, UI should die.
+	 */
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		//do not allow user to return to previous screen on pressing back button
+		if (keyCode == KeyEvent.KEYCODE_BACK) {
+			finish();  
+		}
+		
+		return super.onKeyDown(keyCode, event);
+	}
+	
+	/**
+	 * Called when the graph type selector activity returns.
+	 */
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		switch (resultCode) {
+		case RESULT_OK:
+			//set the start time, end time and measure name. if no data provided, then keep using
+			//the old data
+			cloudWatchInput.setStartTime(data.getLongExtra("startTime", cloudWatchInput.
+					getStartTime()));
+			cloudWatchInput.setEndTime(data.getLongExtra("endTime", cloudWatchInput.
+					getEndTime()));
+			cloudWatchInput.setMeasureName(data.getStringExtra("measureName"));
+			
+			//execute the model to repopulate.
+			executeModel();
+			break;
 		}
 	}
 	
-	/* (non-Javadoc)
-	 * @see android.content.DialogInterface.OnCancelListener#onCancel(android.content.DialogInterface)
+	/**
+	 * Handle the cancellation of the execution of the model.
 	 */
 	@Override
 	public void onCancel(DialogInterface dialog) {
-		// TODO Auto-generated method stub
-		
+		progressDialogDisplayed = false;
+		monitorInstanceModel.cancel(true);
 	}
 }

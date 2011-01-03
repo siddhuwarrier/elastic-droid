@@ -55,6 +55,11 @@
     	android:theme="@android:style/Theme.Dialog">
 	</activity>
 	
+	<activity 
+    	android:label="" android:name=".MonitorInstanceOptionsView"
+    	android:theme="@android:style/Theme.Dialog">
+	</activity>
+	
     <activity 
     	android:label="" android:name=".testharness.TestListActivity">
 	</activity>
