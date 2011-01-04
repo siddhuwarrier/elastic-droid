@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+	<item android:id="@+id/monitorinstance_menuitem_refresh" 
+		android:title="@string/refresh" 
+		android:visible="true" 
+		android:enabled="true" 
+		android:icon="@drawable/ic_menu_refresh"/>
+
+	<item android:id="@+id/monitorinstance_menuitem_graphtype" 
+		android:title="@string/monitorinstanceview_graphtype" 
+		android:visible="true" 
+		android:enabled="true" 
+		android:icon="@drawable/ic_menu_manage"/>
+		
+	<item android:id="@+id/monitorinstance_menuitem_about" 
+		android:title="@string/about_titletext" 
+		android:visible="true" 
+		android:enabled="true" 
+		android:icon="@drawable/ic_menu_elasticdroid"/>		
+</menu>

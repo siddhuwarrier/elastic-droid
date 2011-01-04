@@ -15,6 +15,7 @@
  */
 package org.elasticdroid;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -29,6 +30,8 @@ import org.achartengine.model.XYSeries;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
 
+import org.elasticdroid.db.ElasticDroidDB;
+import org.elasticdroid.model.CloudWatchMetricsModel;
 import org.elasticdroid.model.MonitorInstanceModel;
 import org.elasticdroid.tpl.GenericActivity;
 import org.elasticdroid.utils.CloudWatchInput;
@@ -84,14 +87,18 @@ public class MonitorInstanceView extends GenericActivity {
 	 * Monitor Instance model
 	 */
 	private MonitorInstanceModel monitorInstanceModel;
+	/** The metrics model */
+	private CloudWatchMetricsModel metricsModel;
 	/**
 	 * The {@link CloudWatchInput} data to provide the model with.
 	 */
 	private CloudWatchInput cloudWatchInput;
 	/** String holding selected region */
 	private String selectedRegion;
-	/** Data from CloudWatch */
+	/** Data from CloudWatch; returned by {@link MonitorInstanceModel} */
 	private List<Datapoint> cloudWatchData;
+	/** Cloudwatch metrics; returneed by  {@link CloudWatchMetricsModel}*/
+	private ArrayList<String> measureNames;
 	
 	
 	/**
@@ -195,12 +202,21 @@ public class MonitorInstanceView extends GenericActivity {
 		 * has come back up. */
 		Object retained = getLastNonConfigurationInstance();
 		if (retained instanceof MonitorInstanceModel) {
+			Log.v(TAG, "Restoring monitorinstancemodel on activity restore...");
 			monitorInstanceModel = (MonitorInstanceModel) retained;
 			monitorInstanceModel.setActivity(this);
+		}
+		else if (retained instanceof CloudWatchMetricsModel) {
+			Log.v(TAG, "Restoring metrics model on activity restore...");
+			
+			metricsModel = (CloudWatchMetricsModel) retained;
+			metricsModel.setActivity(this);
 		}
 		
 		//restore the input data
 		cloudWatchInput = (CloudWatchInput)(stateToRestore.getSerializable("cloudWatchInput"));
+		//restore the measure data if any
+		measureNames = stateToRestore.getStringArrayList("measureNames");
 		
 		//restore the chart data
 		multiRenderer = (XYMultipleSeriesRenderer) stateToRestore.getSerializable("multiRenderer");
@@ -220,22 +236,17 @@ public class MonitorInstanceView extends GenericActivity {
   		super.onResume();
 		//if there was a dialog box, display it
 		//if failed, then display dialog box.
-  		
-  		if (cloudWatchInput == null) {
-  			setCloudWatchInputDefaults();
-  		}
-  		
+
   		Log.d(TAG + ".onResume()", "onResume");
   		
 		if (alertDialogDisplayed) {
 			alertDialogBox.setMessage(alertDialogMessage);
 			alertDialogBox.show();
 		}
-		//execute the model if it's not already running, and we have no chart data yet
-		else if ((monitorInstanceModel == null) && (dataset == null)) {
-			Log.d(TAG, "About to execute model...");
-			executeModel();
-		}
+		else if ((cloudWatchInput == null) && (metricsModel == null) && (monitorInstanceModel == null)) {
+  			//this will execute the models as necessary!
+  			executeAllModels();
+  		}
 		//else if dataset is not null, re-render the chart
 		else if (dataset != null) {
 			Log.d(TAG, "Re-rendering charts");
@@ -276,6 +287,10 @@ public class MonitorInstanceView extends GenericActivity {
 			saveState.putSerializable("multiRenderer", multiRenderer);
 		}
 		
+		if (measureNames != null) {
+			saveState.putStringArrayList("measureNames", measureNames);
+		}
+		
 		//save the title text
 		saveState.putString("titleText", 
 				((TextView)findViewById(R.id.monitorInstanceTextView)).getText().toString());
@@ -291,25 +306,126 @@ public class MonitorInstanceView extends GenericActivity {
 	public Object onRetainNonConfigurationInstance() {
 		//save the monitor instance model if the model is running
 		if (monitorInstanceModel != null) {
+			Log.v(TAG, "Saving monitorinstancemodel on activity destroy...");
 			monitorInstanceModel.setActivityNull(); //tell the model the activity is going on hols.
 			return monitorInstanceModel;
+		}
+		else if (metricsModel != null) {
+			Log.v(TAG, "Saving metrics model on activity destroy...");
+			metricsModel.setActivityNull();
+			return metricsModel;
 		}
 		
 		return null;
 	}
   	
-  	/**
-  	 * Execute model
-  	 */
-  	private void executeModel() {
-  		//create a dimension which specifies that we want to see data for this instance
+	/**
+	 * Method that tries to get the default selections of the user from the DB.
+	 * If it can't find it in the DB, it uses the first measureName obtained from the metrics model.
+	 * If it can't find the measureNames, it calls the metricModel. When the MetricModel finishes,
+	 * it calls this method again.
+	 */
+	private void executeAllModels() {
+		long timeNow = new Date().getTime();
+		long timeOneHrAgo = timeNow - 3600000; //subtract 3,600,000 milliseconds	
+		
+		//we have no data in DB!
+		if (measureNames == null) {
+			executeMetricsModel();
+		}
+		else {
+			cloudWatchInput = new CloudWatchInput(timeOneHrAgo, timeNow, new Integer(300), 
+					measureNames.get(0), "AWS/EC2", 
+					new ArrayList<String>(Arrays.asList(new String[]{"Average"})), selectedRegion);
+			
+			//Get defaults from DB
+			try {
+				getDefaultsFromDb();
+			} catch (SQLException e) {
+				// Error fetching from DB.
+				//set CloudWatchInput to some random data
+				cloudWatchInput = new CloudWatchInput(timeOneHrAgo, timeNow, new Integer(300), 
+						measureNames.get(0), "AWS/EC2", new ArrayList<String>(
+								Arrays.asList(new String[]{"Average"})), selectedRegion);
+				
+				//write this in as the default
+				try {
+					long retVal = new ElasticDroidDB(this).setMonitoringDefaults(
+							connectionData.get("username"), 
+							instanceId, 
+							"instance", 
+							cloudWatchInput, 
+							false);
+					if (retVal == -1) {
+						Toast.makeText(this, "Could not save monitoring defaults to DB", Toast.
+								LENGTH_LONG).show();
+					}
+				} catch (SQLException exception) {
+					Log.e(TAG, exception.getMessage());
+					Toast.makeText(this, "Could not save monitoring defaults to DB", Toast.
+							LENGTH_LONG).show();
+				}
+				
+			}
+		}
+	}
+
+	private void getDefaultsFromDb() throws SQLException {
+		new ElasticDroidDB(this).getMonitoringDefaults(instanceId, selectedRegion);
+	}
+
+
+	/**
+	 * Execute model to get list of valid metrics for this instance.
+	 */
+	private void executeMetricsModel() {
+  		//get the end point for the selected region and pass it to the model  		
+  		metricsModel = new CloudWatchMetricsModel(this, connectionData, selectedRegion);
   		Dimension dimension = new Dimension();
   		dimension.setName("InstanceId");
   		dimension.setValue(instanceId);
   		
+  		metricsModel.execute(dimension);
+	}
+	
+  	/**
+  	 * Execute model to produce the chart for the measure selected.
+  	 */
+  	private void executeChartModel() {
+  		//create a dimension which specifies that we want to see data for this instance
+  		Dimension dimension = new Dimension();
+  		dimension.setName("InstanceId");
+  		dimension.setValue(instanceId);
   		//create and start the model
   		monitorInstanceModel = new MonitorInstanceModel(this, connectionData, cloudWatchInput);
   		monitorInstanceModel.execute(dimension);
+  	}
+  	
+  	/**
+  	 * Utility method called when the user touches "Refresh"
+  	 * 
+  	 *  It resets the end time to the current time, and the start time to endtime - duration
+  	 *  where duration = original end time - original start time 
+  	 */
+  	private void refresh() {
+  		//there are no measurenames. This can happen if the user cancelled before measureNames
+  		//were received.
+  		if (measureNames == null) {
+  			executeMetricsModel(); //this will cause the chart model to be executed as well
+  		}
+  		else {
+	  		//get the duration
+	  		long duration = cloudWatchInput.getEndTime() - cloudWatchInput.getStartTime();
+	  		//get current time
+	  		long currentTime =new Date().getTime();
+	  		
+	  		cloudWatchInput.setEndTime(currentTime); //set end time to current time
+	  		cloudWatchInput.setStartTime(currentTime - duration); //set start time to current time -
+	  		//duration
+	  		
+	  		//call the model to get the values.
+	  		executeChartModel();
+  		}
   	}
   	
 	/**
@@ -332,34 +448,70 @@ public class MonitorInstanceView extends GenericActivity {
 			return; //don't execute the rest of this method.
 		}
 		
-		monitorInstanceModel = null; //set the model to null
-		
-		if (result instanceof List<?>) {
-			cloudWatchData = (List<Datapoint>) result;
-			Log.v(TAG, "Drawing chart...");
-			//draw chart
-			drawChart();
-		}
-		else if (result instanceof AmazonServiceException) {
-			// if a server error
-			if (((AmazonServiceException) result).getErrorCode()
-					.startsWith("5")) {
-				alertDialogMessage = this.getString(R.string.loginview_server_err_dlg);
-			} else {
-				alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
+		//due to a limitation in my code, multiple models can't be executed in parallel as we can't
+		//then tell which one ran
+		if (monitorInstanceModel != null) {
+			monitorInstanceModel = null; //set the model to null
+			
+			if (result instanceof List<?>) {
+				Log.v(TAG, "Drawing chart...");
+				//draw chart
+				drawChart((List<Datapoint>) result);
 			}
-			alertDialogDisplayed = true;
-			killActivityOnError = false;//do not kill activity on server error
-			//allow user to retry.
-		} 
-		else if (result instanceof AmazonClientException) {
-			alertDialogMessage = this
-					.getString(R.string.loginview_no_connxn_dlg);
-			alertDialogDisplayed = true;
-			killActivityOnError = false;//do not kill activity on connectivity error. allow client 
-			//to retry.
+			else if (result instanceof AmazonServiceException) {
+				// if a server error
+				if (((AmazonServiceException) result).getErrorCode()
+						.startsWith("5")) {
+					alertDialogMessage = this.getString(R.string.loginview_server_err_dlg);
+				} else {
+					alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
+				}
+				alertDialogDisplayed = true;
+				killActivityOnError = false;//do not kill activity on server error
+				//allow user to retry.
+			} 
+			else if (result instanceof AmazonClientException) {
+				alertDialogMessage = this
+						.getString(R.string.loginview_no_connxn_dlg);
+				alertDialogDisplayed = true;
+				killActivityOnError = false;//do not kill activity on connectivity error. allow client 
+				//to retry.
+			}
 		}
-		
+		else if (metricsModel != null) {
+			metricsModel = null;
+			
+			Log.v(TAG, "Metrics model returned...");
+			if (result instanceof ArrayList<?>) {
+				measureNames = (ArrayList<String>) result;
+				for (String measureName : measureNames) {
+					Log.v(TAG, "Measure: "+ measureName);
+				}
+				//set the cloudwatch input defaults
+				executeAllModels();
+				//now execute chart model
+				Log.v(TAG, "Calling chart model...");
+				executeChartModel();
+			}
+			else if (result instanceof AmazonServiceException) {
+				// if a server error
+				if (((AmazonServiceException) result).getErrorCode()
+						.startsWith("5")) {
+					alertDialogMessage = this.getString(R.string.loginview_server_err_dlg);
+				} else {
+					alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
+				}
+				alertDialogDisplayed = true;
+				killActivityOnError = true;//all errors should cause death of activity
+			} 
+			else if (result instanceof AmazonClientException) {
+				alertDialogMessage = this
+						.getString(R.string.loginview_no_connxn_dlg);
+				alertDialogDisplayed = true;
+				killActivityOnError = true;//all errors should cause death of activity 
+				//to retry.
+			}
+		}
 		//if failed, then display dialog box.
 		if (alertDialogDisplayed) {
 			alertDialogBox.setMessage(alertDialogMessage);
@@ -368,22 +520,9 @@ public class MonitorInstanceView extends GenericActivity {
 	}
 	
 	/**
-	 * Small utility method to populate cloudWatchInput with defaults.
-	 */
-	private void setCloudWatchInputDefaults() {
-		long timeNow = new Date().getTime();
-		long timeOneHrAgo = timeNow - 3600000; //subtract 3,600,000 milliseconds	
-		
-		cloudWatchInput = new CloudWatchInput(timeOneHrAgo, timeNow, new Integer(300), 
-				"CPUUtilization", "AWS/EC2", 
-				new ArrayList<String>(Arrays.asList(new String[]{"Average"})), selectedRegion);
-	}
-
-
-	/**
 	 * Draw chart
 	 */
-	private void drawChart() {
+	private void drawChart(List<Datapoint> cloudWatchData) {
 		XYSeries cloudWatchSeries = new XYSeries(cloudWatchInput.getMeasureName());
 		
 		//initialise the datasert and multi-series renderer if they are uninitialised ATM.
@@ -399,7 +538,14 @@ public class MonitorInstanceView extends GenericActivity {
 			multiRenderer.removeSeriesRenderer(multiRenderer.getSeriesRendererAt(seriesCount));
 		}
 		
-		//add data into the series
+		if (cloudWatchData.size() == 0) {
+			Toast.makeText(this, this.getString(R.string.monitorinstanceview_nodata), Toast.
+					LENGTH_LONG).show();
+			
+			//dont try to plot the graph
+			return;
+		}
+
 		for (Datapoint cloudWatchDatum : cloudWatchData) {
 			//add the timestamp and the data
 			cloudWatchSeries.add(cloudWatchDatum.getTimestamp().getTime(), cloudWatchDatum.
@@ -450,8 +596,12 @@ public class MonitorInstanceView extends GenericActivity {
 	 * Utility method to add ChartView to their layout
 	 */
 	private void addChartToLayout() {
-		
-		chartView = ChartFactory.getTimeChartView(this, dataset, multiRenderer, "HH:mm");
+		if (chartView != null) {
+			chartView.repaint();
+		}
+		else {
+			chartView = ChartFactory.getTimeChartView(this, dataset, multiRenderer, "HH:mm");
+		}
 		
 	    LinearLayout layout = (LinearLayout) findViewById(R.id.chart);
 	    layout.removeAllViews();
@@ -483,12 +633,17 @@ public class MonitorInstanceView extends GenericActivity {
 	
 	/**
 	 * Overriden method to handle selection of menu item
+	 * Handles:
+	 * <ul>
+	 * 	<li>Refresh</li>
+	 *  <li>Setting graph options : measure, duration </li>
+	 * </ul>
 	 */
 	@Override
 	public boolean onOptionsItemSelected(MenuItem selectedItem) {
 		switch (selectedItem.getItemId()) {
 		case R.id.monitorinstance_menuitem_refresh:
-			executeModel();
+			refresh(); 
 			return true;
 		case R.id.monitorinstance_menuitem_about:
 			Intent aboutIntent = new Intent(this, AboutView.class);
@@ -496,14 +651,13 @@ public class MonitorInstanceView extends GenericActivity {
 			return true;
 		case R.id.monitorinstance_menuitem_graphtype:
 			Intent optionsIntent = new Intent(this, MonitorInstanceOptionsView.class);
-			optionsIntent.putExtra("org.elasticdroid.MonitorInstanceView.connectionData", 
-					connectionData);
-			optionsIntent.putExtra("selectedRegion", selectedRegion);
-			optionsIntent.putExtra("instanceId", instanceId);
-			//also tell the activity what the currently selected measure and duration are
-			optionsIntent.putExtra("selectedMeasureName", cloudWatchInput.getMeasureName());
+			
+			//tell the activity what the currently selected measure and duration are
+			optionsIntent.putExtra("selectedMeasureIdx", measureNames.indexOf(cloudWatchInput.
+					getMeasureName()));
 			optionsIntent.putExtra("selectedDuration", 
 					cloudWatchInput.getEndTime() - cloudWatchInput.getStartTime());
+			optionsIntent.putStringArrayListExtra("measureNames", measureNames);
 			
 			startActivityForResult(optionsIntent, 0); //second arg ignored
 			
@@ -542,7 +696,7 @@ public class MonitorInstanceView extends GenericActivity {
 			cloudWatchInput.setMeasureName(data.getStringExtra("measureName"));
 			
 			//execute the model to repopulate.
-			executeModel();
+			executeChartModel();
 			break;
 		}
 	}
@@ -553,6 +707,11 @@ public class MonitorInstanceView extends GenericActivity {
 	@Override
 	public void onCancel(DialogInterface dialog) {
 		progressDialogDisplayed = false;
-		monitorInstanceModel.cancel(true);
+		if (monitorInstanceModel != null) {
+			monitorInstanceModel.cancel(true);
+		}
+		else if (metricsModel != null) {
+			metricsModel.cancel(true);
+		}
 	}
 }

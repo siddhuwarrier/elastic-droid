@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="monitorinstanceview_graphtype">Graph Options</string>
+	<string name="monitorinstanceview_measure">Measure</string>
+	<string name="monitorinstanceview_duration">Duration</string>
+	<string-array name="monitorinstanceview_duration_array">
+		<item>Last hour</item>
+		<item>Last 6 hours</item>
+		<item>Last 12 hours</item>
+		<item>Last 24 hours</item>
+	</string-array>
+	<string name="monitorinstanceview_interval">Sample interval (min)</string>
+	<string name="monitorinstanceview_change">Change</string>
+	<string name="monitorinstanceview_nodata">No data found for period.</string>
+</resources>

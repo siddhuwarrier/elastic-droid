@@ -18,16 +18,16 @@
  */
 package org.elasticdroid;
 
+import static org.elasticdroid.utils.MonitoringDurations.LAST_DAY;
+import static org.elasticdroid.utils.MonitoringDurations.LAST_HOUR;
+import static org.elasticdroid.utils.MonitoringDurations.LAST_SIX_HOURS;
+import static org.elasticdroid.utils.MonitoringDurations.LAST_TWELVE_HOURS;
+
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 
-import org.elasticdroid.model.CloudWatchMetricsModel;
 import org.elasticdroid.tpl.GenericActivity;
-import org.elasticdroid.utils.DialogConstants;
-import static org.elasticdroid.utils.MonitoringDurations.*;
 
-import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
@@ -38,10 +38,6 @@ import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.cloudwatch.model.Dimension;
-
 /**
  * Graph to display options to be set for monitoring instances.
  * 
@@ -51,87 +47,24 @@ import com.amazonaws.services.cloudwatch.model.Dimension;
  */
 public class MonitorInstanceOptionsView extends GenericActivity implements OnClickListener {
 
-	/** The metrics model */
-	private CloudWatchMetricsModel metricsModel;
-	/** The connection data */
-	private HashMap<String, String> connectionData;
 	/** The list of measurenames; returned by the model */
 	ArrayList<String> measureNames;
 	/** Logging tag */
 	private final static String TAG = "org.elasticdroid.MonitorInstanceOptionsView";
-	/** Selected region */
-	private String selectedRegion;
-	/** The selected instance */
-	private String instanceId;
-	
-	/** Dialog box for displaying errors */
-	private AlertDialog alertDialogBox;
-	/**
-	 * set to show if alert dialog displayed. Used to decide whether to restore
-	 * progress dialog when screen rotated.
-	 */
-	private boolean alertDialogDisplayed;
-	/** message displayed in {@link #alertDialogBox alertDialogBox}. */
-	private String alertDialogMessage;
-	/**
-	 * boolean to indicate if an error that occurred is sufficiently serious to
-	 * have the activity killed.
-	 */
-	private boolean killActivityOnError;
 	
 	/**
 	 * Called when activity is first displayed.
 	 * Should receive list of regions as Intent.
 	 */
-	@SuppressWarnings("unchecked")
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
+		Log.v(TAG, "Starting MonitorInstanceOptionsView");
 		Intent intent = this.getIntent();
-    	try {
-    		this.connectionData = (HashMap<String, String>)intent.getSerializableExtra(
-    				"org.elasticdroid.MonitorInstanceView.connectionData");
-    	}
-    	catch(Exception exception) {
-        	//the possible exceptions are NullPointerException: the Hashmap was not found, or
-        	//ClassCastException: the argument passed is not Hashmap<String, String>. In either case,
-        	//just print out the error and exit. This is very inelegant, but this is a programmer's
-    		//bug
-    		Log.e(TAG, exception.getMessage());
-    		finish(); //this will cause it to return to {@link EC2DisplayInstancesView}.
-    	}
-    	
-    	this.instanceId = intent.getStringExtra("instanceId"); //instance ID can be null. see
-    	//execute model for how this is handled. Note, we're not using this atm, and it's there 
-    	//purely as future-proofing 
-    	this.selectedRegion = intent.getStringExtra("selectedRegion");
-    	
-		// create and initialise the alert dialog
-		alertDialogBox = new AlertDialog.Builder(this).create(); // create alert
-		alertDialogBox.setCancelable(false);
-		alertDialogBox.setButton(
-				this.getString(R.string.loginview_alertdialogbox_button),
-				new DialogInterface.OnClickListener() {
-					// click listener on the alert box - unlock orientation when
-					// clicked.
-					// this is to prevent orientation changing when alert box
-					// locked.
-					public void onClick(DialogInterface arg0, int arg1) {
-						alertDialogDisplayed = false;
-						alertDialogBox.dismiss(); // dismiss dialog.
-						// if an error occurs that is serious enough return the
-						// user to the login
-						// screen. THis happens due to exceptions caused by
-						// programming errors and
-						// exceptions caused due to invalid credentials.
-						if (killActivityOnError) {
-							MonitorInstanceOptionsView.this.finish();
-						}
-					}
-				}
-			);
 		
+		this.measureNames = intent.getStringArrayListExtra("measureNames");
+
     	//set the content view
     	this.setContentView(R.layout.monitorinstanceoptions);
     	this.setTitle(this.getString(R.string.monitorinstanceview_graphtype)); //set title
@@ -139,6 +72,9 @@ public class MonitorInstanceOptionsView extends GenericActivity implements OnCli
     	//add a listener for the OK button
     	(this.findViewById(R.id.changeButton)).setOnClickListener(this);
     	
+    	//populate the measureSpinner
+		populateMeasureSpinner();
+		
     	//set duration spinner selection to the appropriate value
     	long selectedDuration = intent.getLongExtra("selectedDuration", LAST_HOUR.getDuration());
     	
@@ -154,170 +90,10 @@ public class MonitorInstanceOptionsView extends GenericActivity implements OnCli
     	else if (selectedDuration == LAST_DAY.getDuration()) {
     		((Spinner)findViewById(R.id.durationSpinner)).setSelection(LAST_DAY.getPos());	
     	}
+    	
 	}
-	
-	/**
-	 * Restore instance state when the activity is reconstructed after a destroy
-	 * 
-	 * This method restores:
-	 * <ul>
-	 * <li>cloudWatchInput: The input data (such as period, measure name etc) for the display</li>
-	 * </ul>
-	 */
-	@Override
-	public void onRestoreInstanceState(Bundle stateToRestore) {
-		//restore alertDialogDisplayed boolean
-		alertDialogDisplayed = stateToRestore.getBoolean("alertDialogDisplayed");
-		Log.v(TAG, "alertDialogDisplayed = "
-				+ alertDialogDisplayed);
-		alertDialogMessage = stateToRestore.getString("alertDialogMessage");
-		
-		//was a progress dialog being displayed? Restore the answer to this question.
-		progressDialogDisplayed = stateToRestore.getBoolean("progressDialogDisplayed");
-		Log.v(TAG + ".onRestoreInstanceState", "progressDialogDisplayed:" + 
-				progressDialogDisplayed);
-		
-		/*get the model data back, so that you can inform the model that the activity
-		 * has come back up. */
-		Object retained = getLastNonConfigurationInstance();
-		if (retained instanceof CloudWatchMetricsModel) {
-			metricsModel = (CloudWatchMetricsModel) retained;
-			metricsModel.setActivity(this);
-		}
-		
-		measureNames = stateToRestore.getStringArrayList("measureNames");
-	}
-	
-	/**
-	 * Resume activity
-	 * Execute model to get measures if we do not have measures already 
-	 */
-	@Override
-	public void onResume() {
-		super.onResume();
-		
-		if ((metricsModel == null) && (measureNames == null)) {
-			executeModel();
-		}
-		//if we have metrics, populate the measure spinner
-		else if (measureNames != null) {
-			populateMeasureSpinner();
-		}
-	}
-	
-	/**Strin
-	 * Save state of the activity on destroy/stop.
-	 * Apart from the usual, this saves:
-	 * <ul>
-	 * <li> metrics: The measures the user can choose from.</li>
-	 * </ul>
-	 */
-	@Override
-	public void onSaveInstanceState(Bundle saveState) {
-		// if a dialog is displayed when this happens, dismiss it
-		if (alertDialogDisplayed) {
-			alertDialogBox.dismiss();
-		}
-		
-		//save the info as to whether dialog is displayed
-		saveState.putBoolean("alertDialogDisplayed", alertDialogDisplayed);
-		//save the dialog msg
-		saveState.putString("alertDialogMessage", alertDialogMessage);
-		
-		//save if progress dialog is being displayed.
-		saveState.putBoolean("progressDialogDisplayed", progressDialogDisplayed);
-		
-		if (measureNames != null) {
-			saveState.putStringArrayList("measureNames", measureNames);
-		}
-	}
-	
-	/**
-	 * Save reference to {@link org.elasticdroid.model.CloudWatchMetricsModel} Async
-	 * Task when object is destroyed (for instance when screen rotated).
-	 * 
-	 * This is done as the Async Task is running in the background.
-	 */
-	@Override
-	public Object onRetainNonConfigurationInstance() {
-		if (metricsModel != null) {
-			metricsModel.setActivityNull(); //tell the mdoel the activity is restarting
-			return metricsModel;
-		}
-		
-		return null;
-	}
-	
+
   	/**
-  	 * Execute model
-  	 */
-  	private void executeModel() {
-  		//get the end point for the selected region and pass it to the model  		
-  		metricsModel = new CloudWatchMetricsModel(this, connectionData, selectedRegion);
-  		Dimension dimension = new Dimension();
-  		dimension.setName("InstanceId");
-  		dimension.setValue(instanceId);
-  		
-  		metricsModel.execute(dimension);
-  	}
-
-	/* (non-Javadoc)
-	 * @see org.elasticdroid.tpl.GenericActivity#processModelResults(java.lang.Object)
-	 */
-	@SuppressWarnings("unchecked")
-	@Override
-	public void processModelResults(Object result) {
-		if (progressDialogDisplayed) {
-			progressDialogDisplayed = false;
-			removeDialog(DialogConstants.PROGRESS_DIALOG.ordinal());
-		}
-		
-		//result is null if user cancels. If user cancels, kill the activity.
-		if (result == null) {
-			Intent resultIntent = new Intent();
-			resultIntent.setType(this.getClass().getName());
-			
-			setResult(RESULT_CANCELED, resultIntent); //let the calling activity know that the user
-			//chose to cancel
-			
-			finish(); //kill activity
-		}
-		
-		Log.v(TAG, "Processing model results...");
-		metricsModel = null;
-		if (result instanceof ArrayList<?>) {
-			measureNames = (ArrayList<String>) result;
-			
-			populateMeasureSpinner();
-		}
-		else if (result instanceof AmazonServiceException) {
-			// if a server error
-			if (((AmazonServiceException) result).getErrorCode()
-					.startsWith("5")) {
-				alertDialogMessage = this.getString(R.string.loginview_server_err_dlg);
-			} else {
-				alertDialogMessage = this.getString(R.string.loginview_invalid_keys_dlg);
-			}
-			alertDialogDisplayed = true;
-			killActivityOnError = true;//all errors should cause death of activity
-		} 
-		else if (result instanceof AmazonClientException) {
-			alertDialogMessage = this
-					.getString(R.string.loginview_no_connxn_dlg);
-			alertDialogDisplayed = true;
-			killActivityOnError = true;//all errors should cause death of activity 
-			//to retry.
-		}
-		
-		//if failed, then display dialog box.
-		if (alertDialogDisplayed) {
-			alertDialogBox.setMessage(alertDialogMessage);
-			alertDialogBox.show();
-		}
-		
-	}
-
-	/**
 	 * Populate the measure spinner
 	 */
 	private void populateMeasureSpinner() {
@@ -330,13 +106,9 @@ public class MonitorInstanceOptionsView extends GenericActivity implements OnCli
 		((Spinner) findViewById(R.id.measureSpinner)).setAdapter(spinnerAdapter);
 		
 		//get the selected measurename sent by intent, and set it.
-		Intent intent = this.getIntent();
-		String selectedMeasureName = intent.getStringExtra("selectedMeasureName");
+		int selectedMeasureIdx = this.getIntent().getIntExtra("selectedMeasureIdx", 0);
 		//if the selected measure name is found, set the spinner to show that as the selection.
-		if (measureNames.indexOf(selectedMeasureName) >= 0) {
-			((Spinner) findViewById(R.id.measureSpinner)).setSelection(measureNames.indexOf(
-					selectedMeasureName));
-		}
+		((Spinner) findViewById(R.id.measureSpinner)).setSelection(selectedMeasureIdx);
 	}
 	/**
 	 * Handle click on the change button.
@@ -400,12 +172,18 @@ public class MonitorInstanceOptionsView extends GenericActivity implements OnCli
 	}
 
 	/** 
-	 * Handle cancellation of progress dialog
-	 * @see android.content.DialogInterface.OnCancelListener#onCancel(android.content.DialogInterface)
+	 * No progress dialog displayed, so nothing done.
 	 */
 	@Override
 	public void onCancel(DialogInterface dialog) {
-		progressDialogDisplayed = false;
-		metricsModel.cancel(true);
+	}
+
+	/**
+	 * No model executed; does nothing
+	 */
+	@Override
+	public void processModelResults(Object ignore) {
+		// IGnore
+		
 	}
 }

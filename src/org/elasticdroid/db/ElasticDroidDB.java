@@ -21,9 +21,13 @@ package org.elasticdroid.db;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Hashtable;
 
 import org.elasticdroid.db.tblinfo.LoginTbl;
+import org.elasticdroid.db.tblinfo.MonitorTbl;
+import org.elasticdroid.db.tblinfo.ResourceTypeTbl;
+import org.elasticdroid.utils.CloudWatchInput;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -46,9 +50,9 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 	/**Name of database */
 	private static final String DATABASE_NAME = "elasticdroid.db";
 	/** Database version */
-	//TODO use properties file for this and above.
-	private static final int DATABASE_VERSION = 1;
-	
+	private static final int DATABASE_VERSION = 6;
+	/** Logging tag */
+	private static final String TAG = "org.elasticdroid.db.ElasticDroidDB";
 	/**
 	 * Initialises the superclass constructor.
 	 * 
@@ -57,6 +61,8 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 	public ElasticDroidDB(Context context) {
 		super(context,DATABASE_NAME, null, DATABASE_VERSION);
 		
+		//check for upgrades by getting a writable database and then close it.
+		this.getWritableDatabase().close();
 	}
 	
 	/** 
@@ -66,27 +72,80 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 	public void onCreate(SQLiteDatabase db) {
 		Log.v(this.getClass().getName(), "DB onCreate()");
 		
-		//execute the SQL query
-		db.execSQL("Create TABLE " + LoginTbl.TBL_NAME + "(" + LoginTbl._ID + " integer " +
-				"primary key autoincrement, " + LoginTbl.COL_USERNAME + " text not null UNIQUE, " +
-				LoginTbl.COL_ACCESSKEY + " text not null, " + LoginTbl.COL_SECRETACCESSKEY +
-				" text not null," + LoginTbl.COL_DEFAULTREGION + " text, " + "UNIQUE("+ LoginTbl.COL_ACCESSKEY + ", " +  
-				LoginTbl.COL_SECRETACCESSKEY +"));");
+		// Enable foreign key constraints
+		db.execSQL("PRAGMA foreign_keys=ON;");
+	      
+		//execute the SQL queries to create the tables
+		createLoginTbl(db);
+		createResourceTypeTbl(db);
+		createMonitorTbl(db);
 	}
 	
 	/**
 	 * onUpgrade: to be executed when change made to DB.
-	 * 
-	 * This is used to upgrade from v1 to v2 atm. will be useful for
-	 * anybody who might have installed tags from iteration 1. Adds a new column to store
-	 * default region.
-	 * 
-	 * Which is to say, nobody. But nevertheless..
 	 */
 	@Override
 	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+		
+		Log.v(TAG, "Upgrading database from v" + oldVersion + " to v" + newVersion);
+		
+		switch(oldVersion) {
+		case 1: //drop through
+		case 2: //drop through
+		case 3:
+			db.execSQL("PRAGMA foreign_keys=ON;");	
+			db.execSQL("DROP table if exists " + ResourceTypeTbl.TBL_NAME);
+			db.execSQL("DROP table if exists " + MonitorTbl.TBL_NAME);
+			//recreate them properly
+		    
+			createResourceTypeTbl(db);
+			createMonitorTbl(db);
+		case 4:
+			//write in values
+			ContentValues insertValues = new ContentValues();
+			insertValues.put(ResourceTypeTbl.COL_RESNAME, "instance");
+			db.insert(ResourceTypeTbl.TBL_NAME, ResourceTypeTbl.COL_RESNAME, insertValues);
+			insertValues.put(ResourceTypeTbl.COL_RESNAME, "volume");
+			db.insert(ResourceTypeTbl.TBL_NAME, ResourceTypeTbl.COL_RESNAME, insertValues);
+			
+			break;
+		case 5:
+			db.execSQL("Alter TABLE " + MonitorTbl.TBL_NAME + " add COLUMN " + MonitorTbl.COL_WATCH
+					+ " integer not null default 0;");
+		}
 	}
 	
+	private void createLoginTbl(SQLiteDatabase db) {
+		db.execSQL("Create TABLE " + LoginTbl.TBL_NAME + "(" + 
+				LoginTbl._ID + " integer primary key autoincrement, " + 
+				LoginTbl.COL_USERNAME + " text not null UNIQUE, " +
+				LoginTbl.COL_ACCESSKEY + " text not null, " + 
+				LoginTbl.COL_SECRETACCESSKEY + " text not null," + 
+				LoginTbl.COL_DEFAULTREGION + " text, " + 
+				"UNIQUE("+ LoginTbl.COL_ACCESSKEY + ", " +  LoginTbl.COL_SECRETACCESSKEY +"));");
+	}
+	
+	private void createResourceTypeTbl(SQLiteDatabase db) {
+	    db.execSQL("Create TABLE " + ResourceTypeTbl.TBL_NAME + "(" + 
+	    		ResourceTypeTbl.COL_RESTYPE + " integer primary key autoincrement, " 
+	    		+ ResourceTypeTbl.COL_RESNAME + " text not null);");
+	}
+	
+	private void createMonitorTbl(SQLiteDatabase db) {
+	    db.execSQL("Create TABLE " + MonitorTbl.TBL_NAME + "(" + 
+	    		MonitorTbl._ID + " integer primary key autoincrement, " +   
+	    		MonitorTbl.COL_USERNAME + " text not null UNIQUE, " + 
+	    		MonitorTbl.COL_AWSID + " integer not null, "  + 
+	    		MonitorTbl.COL_RESTYPE + " integer not null, " +  
+	    		MonitorTbl.COL_DEFAULTMEASURENAME + " text not null, " + 
+	    		MonitorTbl.COL_DEFAULTDURATION + " integer not null, " +
+	    		MonitorTbl.COL_PERIOD + " integer not null, " +
+	    		MonitorTbl.COL_NAMESPACE + " text not null, " +
+	    		MonitorTbl.COL_WATCH + " integer not null, " +
+	    		MonitorTbl.FOREIGN_KEY_USERNAME + ", " +
+	    		MonitorTbl.FOREIGN_KEY_RESTYPE + ");");
+	}
+
 	/**
 	 * Convenience method to get list of users in DB {@link #DATABASE_NAME}.
 	 * @return Hashtable<String, ArrayList<String>> of user data.
@@ -182,5 +241,111 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 		finally {
 			db.close();
 		}
+	}
+	
+	/**
+	 * Get the default monitoring info for this AWS resource
+	 */
+	public CloudWatchInput getMonitoringDefaults(String awsId, String region) throws SQLException {
+		CloudWatchInput cloudWatchInput = null;
+		
+		SQLiteDatabase db = this.getReadableDatabase();
+		
+		Cursor queryCursor;
+		
+		try {
+			queryCursor = db.query(MonitorTbl.TBL_NAME, 
+					new String[]{MonitorTbl.COL_DEFAULTMEASURENAME, MonitorTbl.COL_DEFAULTDURATION,
+					MonitorTbl.COL_PERIOD, MonitorTbl.COL_NAMESPACE}, 
+					MonitorTbl.COL_AWSID + "= ?", 
+					new String[]{awsId}, 
+					null, 
+					null, 
+					null);
+			if (queryCursor.getCount() != 1) {
+				throw new SQLException("No data");
+			}
+			
+			long duration = queryCursor.getLong(1);
+			long endTime = new Date().getTime();
+			long startTime = endTime - duration;
+			
+			cloudWatchInput = new CloudWatchInput(
+					startTime, 
+					endTime, 
+					Integer.valueOf(queryCursor.getInt(2)), 
+					queryCursor.getString(0),
+					queryCursor.getString(3),
+					new ArrayList<String>(Arrays.asList(new String[]{"Average"})),//TODO fix this 
+					region);
+			
+			queryCursor.moveToFirst();
+		}
+		catch(SQLException exception) {
+			throw exception;
+		}
+		finally {
+			db.close();
+		}
+		
+		return cloudWatchInput;
+	}
+	
+	/**
+	 * Set monitoring defaults for resource awsID.
+	 * @param username
+	 * @param awsId
+	 * @param resName
+	 * @param input
+	 * @param watch
+	 * @return
+	 * @throws SQLException
+	 */
+	public long setMonitoringDefaults(String username, String awsId, String resName, 
+			CloudWatchInput input, boolean watch) throws SQLException {
+		
+		int resType; // the resource type (id in ResourceTypeTbl) for the resName passed in.
+		SQLiteDatabase db = this.getReadableDatabase();
+		//get the res ID for this resName
+		Cursor queryCursor;
+		try {
+			queryCursor = db.query(ResourceTypeTbl.TBL_NAME, 
+					new String[]{ResourceTypeTbl.COL_RESTYPE}, 
+					ResourceTypeTbl.COL_RESNAME + "= ?", 
+					new String[]{resName}, 
+					null, 
+					null, 
+					null);
+			
+			if (queryCursor.getCount() != 1) {
+				throw new SQLException("No data");
+			}
+			
+			queryCursor.moveToFirst();
+			resType = queryCursor.getInt(0);
+		}
+		catch(SQLException exception) {
+			throw exception;
+		}
+		
+		Log.v(TAG, "ResType: " + resType);
+		//write in values
+		ContentValues insertValues = new ContentValues();
+		insertValues.put(MonitorTbl.COL_AWSID, awsId);
+		insertValues.put(MonitorTbl.COL_DEFAULTDURATION, input.getEndTime() - input.getStartTime());
+		insertValues.put(MonitorTbl.COL_DEFAULTMEASURENAME, input.getMeasureName());
+		insertValues.put(MonitorTbl.COL_NAMESPACE, input.getNamespace());
+		insertValues.put(MonitorTbl.COL_PERIOD, input.getPeriod());
+		insertValues.put(MonitorTbl.COL_RESTYPE, resType);
+		insertValues.put(MonitorTbl.COL_USERNAME, username);
+		insertValues.put(MonitorTbl.COL_WATCH, watch?1:0); //1 if true, 0 if false cuz SQLite hasn't
+		//a boolean type
+		
+		long retVal = db.insert(MonitorTbl.TBL_NAME, MonitorTbl.COL_WATCH, insertValues); //null 
+		//column hack is ignored
+		
+		db.close(); //Close DB. This is, like, as important as brushing ur teeth before bed, man.
+		
+		return retVal;
 	}
 }
