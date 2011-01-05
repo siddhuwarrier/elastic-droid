@@ -4,8 +4,10 @@
 <string name="about_titletext">Об Elastic Droid</string>
 <string name="about_text">
 <b>Elastic Droid</b> - это программное обеспечение, которое распространяется свободно с лицензией GNU General Public License v3. 
-В настоящее время разработчиками являются <i>Siddhu Warrier</i>, <i>Galiia Khasanova</i>, и <i>Rodolfo Cartas</i>.
 </string>
 <string name="refresh">Обновить</string>
 <string name="wait_dlg">Пожалуйста, подождите...</string>
+<string name="cancelled">Loading cancelled. Select Menu->Refresh to try again.</string>
+<!--  Cancelled message for when u need to click on the login button to retry -->
+<string name="cancelled_login">Loading cancelled. Click on the Login button to retry.</string>
 </resources>

@@ -1,12 +1,11 @@
 <resources>
 <string name="app_name">Elastic Droid</string>
-<string name = "app_version">Iteration 2</string>
+<string name = "app_version">v 0.3</string>
 
 <string name="about_titletext">About Elastic Droid</string>
 
 <string name="about_text">
 <b>Elastic Droid</b> is a free, open source application licensed using the GNU General Public License v3. 
-It is presently being developed by <i>Siddhu Warrier</i>, <i>Galiia Khasanova</i>, and <i>Rodolfo Cartas</i>.
 </string>
 
 <string name="refresh">Refresh</string>

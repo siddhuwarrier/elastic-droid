@@ -7,6 +7,5 @@
 <string name="ec2displayinstances_os"><i>ОС:</i> %1$s</string>
 <string name="ec2displayinstances_rundays">Запущен %1$.1f дн назад</string>
 <string name="ec2displayinstances_runhrs">Запущен %1$.1f ч назад</string>
-
 <string name="ec2displayinstances_menu_refresh">Обновить</string>
 </resources>

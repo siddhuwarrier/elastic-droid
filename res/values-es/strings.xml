@@ -8,4 +8,6 @@
 <string name="refresh">Actualizar</string>
 <string name="wait_dlg">Espere...</string>
 <string name="cancelled">Carga de datos cancelada. Elija Menu->Actualizar para intentarlo de nuevo.</string>
+<!--  Cancelled message for when u need to click on the login button to retry -->
+<string name="cancelled_login">Loading cancelled. Click on the Login button to retry.</string>
 </resources>
