@@ -16,7 +16,7 @@
 		android:title="@string/ec2singleinstance_menu_monitor" 
 		android:visible="true" 
 		android:enabled="true" 
-		android:icon="@drawable/ic_menu_view"/>
+		android:icon="@drawable/ic_menu_chart"/>
 		
 	<item android:id="@+id/singleinstance_menuitem_controlinstance" 
 		android:title="@string/ec2singleinstance_menu_stopinstance" 

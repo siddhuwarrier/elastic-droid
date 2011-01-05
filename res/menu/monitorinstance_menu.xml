@@ -11,6 +11,12 @@
 		android:visible="true" 
 		android:enabled="true" 
 		android:icon="@drawable/ic_menu_manage"/>
+	
+	<item android:id="@+id/monitorinstance_menuitem_watch" 
+		android:title="@string/monitorinstanceview_watch" 
+		android:visible="true" 
+		android:enabled="true" 
+		android:icon="@drawable/ic_menu_view"/>
 		
 	<item android:id="@+id/monitorinstance_menuitem_about" 
 		android:title="@string/about_titletext" 

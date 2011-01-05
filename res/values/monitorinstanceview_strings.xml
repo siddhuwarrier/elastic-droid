@@ -12,4 +12,8 @@
 	<string name="monitorinstanceview_interval">Sample interval (min)</string>
 	<string name="monitorinstanceview_change">Change</string>
 	<string name="monitorinstanceview_nodata">No data found for period.</string>
+	<string name="monitorinstanceview_default">Set as default</string>
+	<string name="monitorinstanceview_watch">Watch this instance</string>
+	<string name="monitorinstanceview_watch_alert">This instance is now being watched. From 
+	the next release, you will be able to access watched instances more easily.</string>
 </resources>

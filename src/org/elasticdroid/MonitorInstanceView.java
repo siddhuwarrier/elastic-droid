@@ -31,6 +31,7 @@ import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
 
 import org.elasticdroid.db.ElasticDroidDB;
+import org.elasticdroid.db.tblinfo.MonitorTbl;
 import org.elasticdroid.model.CloudWatchMetricsModel;
 import org.elasticdroid.model.MonitorInstanceModel;
 import org.elasticdroid.tpl.GenericActivity;
@@ -247,8 +248,8 @@ public class MonitorInstanceView extends GenericActivity {
   			//this will execute the models as necessary!
   			executeAllModels();
   		}
-		//else if dataset is not null, re-render the chart
-		else if (dataset != null) {
+		//if dataset is not null, re-render the chart
+		if (dataset != null) {
 			Log.d(TAG, "Re-rendering charts");
 			//this will now add the chart into the layout.Whee!
 			addChartToLayout();
@@ -340,13 +341,22 @@ public class MonitorInstanceView extends GenericActivity {
 			
 			//Get defaults from DB
 			try {
-				getDefaultsFromDb();
+				cloudWatchInput = new ElasticDroidDB(this).getMonitoringDefaults(instanceId, 
+						selectedRegion);
 			} catch (SQLException e) {
 				// Error fetching from DB.
-				//set CloudWatchInput to some random data
-				cloudWatchInput = new CloudWatchInput(timeOneHrAgo, timeNow, new Integer(300), 
-						measureNames.get(0), "AWS/EC2", new ArrayList<String>(
-								Arrays.asList(new String[]{"Average"})), selectedRegion);
+				//set CloudWatchInput to use CPUUtilization if present, or the first in the list
+				//measure names if CPUUtilization isn't.
+				if (measureNames.contains("CPUUtilization")) {
+					cloudWatchInput = new CloudWatchInput(timeOneHrAgo, timeNow, new Integer(300), 
+							"CPUUtilization", "AWS/EC2", new ArrayList<String>(
+									Arrays.asList(new String[]{"Average"})), selectedRegion);
+				}
+				else {
+					cloudWatchInput = new CloudWatchInput(timeOneHrAgo, timeNow, new Integer(300), 
+							measureNames.get(0), "AWS/EC2", new ArrayList<String>(
+									Arrays.asList(new String[]{"Average"})), selectedRegion);					
+				}
 				
 				//write this in as the default
 				try {
@@ -365,14 +375,10 @@ public class MonitorInstanceView extends GenericActivity {
 					Toast.makeText(this, "Could not save monitoring defaults to DB", Toast.
 							LENGTH_LONG).show();
 				}
-				
 			}
 		}
 	}
 
-	private void getDefaultsFromDb() throws SQLException {
-		new ElasticDroidDB(this).getMonitoringDefaults(instanceId, selectedRegion);
-	}
 
 
 	/**
@@ -645,10 +651,12 @@ public class MonitorInstanceView extends GenericActivity {
 		case R.id.monitorinstance_menuitem_refresh:
 			refresh(); 
 			return true;
+		
 		case R.id.monitorinstance_menuitem_about:
 			Intent aboutIntent = new Intent(this, AboutView.class);
 			startActivity(aboutIntent);
 			return true;
+		
 		case R.id.monitorinstance_menuitem_graphtype:
 			Intent optionsIntent = new Intent(this, MonitorInstanceOptionsView.class);
 			
@@ -662,6 +670,23 @@ public class MonitorInstanceView extends GenericActivity {
 			startActivityForResult(optionsIntent, 0); //second arg ignored
 			
 			return true;
+		
+		case R.id.monitorinstance_menuitem_watch:
+			new ElasticDroidDB(this).updateMonitoringDefaults(
+					new String[]{MonitorTbl.COL_WATCH}, 
+					new String[]{String.valueOf(1)}, //SQLite does not support booleans; so 1=true 
+					instanceId); //instance ID
+			
+			//set alert dialog box params
+			alertDialogMessage = this.getString(R.string.monitorinstanceview_watch_alert);
+			alertDialogDisplayed = true;
+			killActivityOnError = false;
+			//display alert dialog box
+			alertDialogBox.setMessage(alertDialogMessage);
+			alertDialogBox.show();
+			
+			return true;
+		
 		default:
 			return super.onOptionsItemSelected(selectedItem);
 		}
@@ -694,6 +719,16 @@ public class MonitorInstanceView extends GenericActivity {
 			cloudWatchInput.setEndTime(data.getLongExtra("endTime", cloudWatchInput.
 					getEndTime()));
 			cloudWatchInput.setMeasureName(data.getStringExtra("measureName"));
+			
+			//if this should be set as default, write to DB
+			if (data.getBooleanExtra("setAsDefault", false)) {
+				new ElasticDroidDB(this).updateMonitoringDefaults(
+						new String[]{MonitorTbl.COL_DEFAULTDURATION, MonitorTbl.
+								COL_DEFAULTMEASURENAME}, 
+						new String[]{String.valueOf(cloudWatchInput.getEndTime() - 
+								cloudWatchInput.getStartTime()), cloudWatchInput.getMeasureName()}, 
+						instanceId);
+			}
 			
 			//execute the model to repopulate.
 			executeChartModel();

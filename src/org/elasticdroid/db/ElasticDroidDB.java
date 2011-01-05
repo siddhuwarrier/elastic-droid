@@ -50,7 +50,7 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 	/**Name of database */
 	private static final String DATABASE_NAME = "elasticdroid.db";
 	/** Database version */
-	private static final int DATABASE_VERSION = 6;
+	private static final int DATABASE_VERSION = 7;
 	/** Logging tag */
 	private static final String TAG = "org.elasticdroid.db.ElasticDroidDB";
 	/**
@@ -112,6 +112,10 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 		case 5:
 			db.execSQL("Alter TABLE " + MonitorTbl.TBL_NAME + " add COLUMN " + MonitorTbl.COL_WATCH
 					+ " integer not null default 0;");
+		case 6:
+			//drop table and recreate
+			db.execSQL("DROP table if exists " + MonitorTbl.TBL_NAME);
+			createMonitorTbl(db);
 		}
 	}
 	
@@ -134,7 +138,7 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 	private void createMonitorTbl(SQLiteDatabase db) {
 	    db.execSQL("Create TABLE " + MonitorTbl.TBL_NAME + "(" + 
 	    		MonitorTbl._ID + " integer primary key autoincrement, " +   
-	    		MonitorTbl.COL_USERNAME + " text not null UNIQUE, " + 
+	    		MonitorTbl.COL_USERNAME + " text not null, " + 
 	    		MonitorTbl.COL_AWSID + " integer not null, "  + 
 	    		MonitorTbl.COL_RESTYPE + " integer not null, " +  
 	    		MonitorTbl.COL_DEFAULTMEASURENAME + " text not null, " + 
@@ -236,7 +240,7 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 				new String[]{username});
 		}
 		catch(Exception ignore) {
-			Log.e("AWSUtilities.setDefaultRegion:", ignore.getMessage());
+			Log.e(TAG, ignore.getMessage());
 		}
 		finally {
 			db.close();
@@ -265,6 +269,8 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 			if (queryCursor.getCount() != 1) {
 				throw new SQLException("No data");
 			}
+		
+			queryCursor.moveToFirst(); //move to the first position
 			
 			long duration = queryCursor.getLong(1);
 			long endTime = new Date().getTime();
@@ -277,9 +283,7 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 					queryCursor.getString(0),
 					queryCursor.getString(3),
 					new ArrayList<String>(Arrays.asList(new String[]{"Average"})),//TODO fix this 
-					region);
-			
-			queryCursor.moveToFirst();
+					region);			
 		}
 		catch(SQLException exception) {
 			throw exception;
@@ -347,5 +351,30 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 		db.close(); //Close DB. This is, like, as important as brushing ur teeth before bed, man.
 		
 		return retVal;
+	}
+	
+	public int updateMonitoringDefaults(String[] columns, String[] data, String awsId) {
+		SQLiteDatabase db = this.getReadableDatabase();
+		int numAffectedRows = 0; //number of Rows affected
+		ContentValues updateValues = new ContentValues();
+		
+		for (int idx = 0; idx < columns.length; idx ++) {
+			updateValues.put(columns[idx], data[idx]);			
+		}
+		
+		try {
+			numAffectedRows = db.update(MonitorTbl.TBL_NAME, 
+				updateValues, 
+				MonitorTbl.COL_AWSID + "=?", 
+				new String[]{awsId});
+		}
+		catch(Exception ignore) {
+			Log.e(TAG, ignore.getMessage());
+		}
+		finally {
+			db.close();
+		}
+		
+		return numAffectedRows;
 	}
 }

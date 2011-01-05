@@ -36,6 +36,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
 import android.widget.Spinner;
 
 /**
@@ -148,6 +149,10 @@ public class MonitorInstanceOptionsView extends GenericActivity implements OnCli
 		resultIntent.putExtra("startTime", startTime);
 		resultIntent.putExtra("endTime", endTime);
 		resultIntent.putExtra("measureName", measureName);
+		resultIntent.putExtra("setAsDefault",((CheckBox)findViewById(R.id.defaultMeasureCheckBox)).
+				isChecked()); //tell the monitor instance view whether to save the selection as 
+		//default or not.
+		
 		
 		setResult(RESULT_OK, resultIntent);
 		
