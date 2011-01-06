@@ -9,5 +9,5 @@
 <string name="ec2dashview_illegal_arg_exception"><b>Модели были переданы некорректные аргументы. 
 Пожалуйста, пришлите отчет об ошибке.</b></string>
 <string name="ec2dashview_region">Регион:</string>
-<string name="dashboard_menu_default_region">Set default region</string>
+<string name="dashboard_menu_default_region">Установить регион по умолчанию</string>
 </resources>

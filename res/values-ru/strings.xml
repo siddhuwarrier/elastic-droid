@@ -1,13 +1,13 @@
 <resources>
 <string name="app_name">Elastic Droid</string>
 <string name = "app_version">Итерация 1</string>
-<string name="about_titletext">Об Elastic Droid</string>
+<string name="about_titletext">Проект Elastic Droid</string>
 <string name="about_text">
 <b>Elastic Droid</b> - это программное обеспечение, которое распространяется свободно с лицензией GNU General Public License v3. 
 </string>
 <string name="refresh">Обновить</string>
 <string name="wait_dlg">Пожалуйста, подождите...</string>
-<string name="cancelled">Loading cancelled. Select Menu->Refresh to try again.</string>
+<string name="cancelled">Загрузка отменена. Выберите пункт меню Обновить для запуска.</string>
 <!--  Cancelled message for when u need to click on the login button to retry -->
-<string name="cancelled_login">Loading cancelled. Click on the Login button to retry.</string>
+<string name="cancelled_login">Загрузка отменена. Нажмите на кнопку Войти для входа.</string>
 </resources>

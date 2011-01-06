@@ -12,5 +12,5 @@
 <string name="wait_dlg">Please wait...</string>
 <string name="cancelled">Loading cancelled. Select Menu->Refresh to try again.</string>
 <!--  Cancelled message for when u need to click on the login button to retry -->
-<string name="cancelled_login">Loading cancelled. Click on the Login button to retry.</string>
+<string name="cancelled_login">Loading cancelled. Press the Login button to try again.</string>
 </resources>

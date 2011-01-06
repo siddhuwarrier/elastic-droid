@@ -9,7 +9,7 @@
 		<item>Last 12 hours</item>
 		<item>Last 24 hours</item>
 	</string-array>
-	<string name="monitorinstanceview_interval">Sample interval (min)</string>
+	<string name="monitorinstanceview_interval">Sampling interval (min)</string>
 	<string name="monitorinstanceview_change">Change</string>
 	<string name="monitorinstanceview_nodata">No data found for period.</string>
 	<string name="monitorinstanceview_default">Set as default</string>

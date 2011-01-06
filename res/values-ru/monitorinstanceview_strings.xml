@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="monitorinstanceview_graphtype">Graph Options</string>
-	<string name="monitorinstanceview_measure">Measure</string>
-	<string name="monitorinstanceview_duration">Duration</string>
+	<string name="monitorinstanceview_graphtype">Опции графиков</string>
+	<string name="monitorinstanceview_measure">Измерение</string>
+	<string name="monitorinstanceview_duration">Продолжительность</string>
 	<string-array name="monitorinstanceview_duration_array">
-		<item>Last hour</item>
-		<item>Last 6 hours</item>
-		<item>Last 12 hours</item>
-		<item>Last 24 hours</item>
+		<item>За час</item>
+		<item>За 6 часов</item>
+		<item>За 12 часов</item>
+		<item>За 24 часа</item>
 	</string-array>
-	<string name="monitorinstanceview_interval">Sample interval (min)</string>
-	<string name="monitorinstanceview_change">Change</string>
-	<string name="monitorinstanceview_nodata">No data found for period.</string>
-	<string name="monitorinstanceview_default">Set as default</string>
-	<string name="monitorinstanceview_watch">Watch this instance</string>
-	<string name="monitorinstanceview_watch_alert">This instance is now being watched. From 
-	the next release, you will be able to access watched instances more easily.</string>
+	<string name="monitorinstanceview_interval">Интервал выборки (мин)</string>
+	<string name="monitorinstanceview_change">Изменить</string>
+	<string name="monitorinstanceview_nodata">Данные в указанном периоде не найдены.</string>
+	<string name="monitorinstanceview_default">Установить по умолчанию</string>
+	<string name="monitorinstanceview_watch">Мониторинг экземляра</string>
+	<string name="monitorinstanceview_watch_alert">Этот экземпляр находится под наблюдением. 
+	В следующей версии проекта доступ к наблюдению за экземплярами будет более простым.</string>
 </resources>
