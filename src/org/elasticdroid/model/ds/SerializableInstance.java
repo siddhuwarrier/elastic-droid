@@ -225,4 +225,20 @@ public class SerializableInstance implements Serializable {
 	public String getRootDeviceType() {
 		return rootDeviceType;
 	}
+	
+	/**
+	 * Set the state code for this {@link SerializableInstance}
+	 * @param {@link SerializableInstance#stateCode}
+	 */
+	public void setStateCode(Integer stateCode) {
+		this.stateCode = stateCode;
+	}
+	
+	/**
+	 * Set the state code for this {@link SerializableInstance}
+	 * @param {@link SerializableInstance#stateCode}
+	 */
+	public void setStateName(String stateName) {
+		this.stateName = stateName;
+	}
 }

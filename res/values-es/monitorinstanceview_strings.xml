@@ -16,4 +16,5 @@
 	<string name="monitorinstanceview_watch">Watch this instance</string>
 	<string name="monitorinstanceview_watch_alert">This instance is now being watched. From 
 	the next release, you will be able to access watched instances more easily.</string>
+	<string name="monitorinstanceview_cannotsave">Could not save monitoring defaults to DB</string>
 </resources>

@@ -16,4 +16,5 @@
 	<string name="monitorinstanceview_watch">Мониторинг экземляра</string>
 	<string name="monitorinstanceview_watch_alert">Этот экземпляр находится под наблюдением. 
 	В следующей версии проекта доступ к наблюдению за экземплярами будет более простым.</string>
+	<string name="monitorinstanceview_cannotsave">Could not save monitoring defaults to DB</string>
 </resources>

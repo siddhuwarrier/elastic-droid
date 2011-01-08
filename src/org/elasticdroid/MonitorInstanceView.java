@@ -335,6 +335,16 @@ public class MonitorInstanceView extends GenericActivity {
 			executeMetricsModel();
 		}
 		else {
+			//it appears that no measures are available for instances stopped before AWS started  
+			//free basic monitoring, if they are started all of a sudden now. I am guessing this
+			//is when this problem occurs. In this case, fail and return.
+			if (measureNames.size() == 0 ) {
+				Toast.makeText(this, this.getString(R.string.monitorinstanceview_nomeasures), Toast.
+						LENGTH_LONG).show();
+				
+				//dont try to plot the graph; just kill it.
+				finish();
+			}
 			cloudWatchInput = new CloudWatchInput(timeOneHrAgo, timeNow, new Integer(300), 
 					measureNames.get(0), "AWS/EC2", 
 					new ArrayList<String>(Arrays.asList(new String[]{"Average"})), selectedRegion);
@@ -367,8 +377,8 @@ public class MonitorInstanceView extends GenericActivity {
 							cloudWatchInput, 
 							false);
 					if (retVal == -1) {
-						Toast.makeText(this, "Could not save monitoring defaults to DB", Toast.
-								LENGTH_LONG).show();
+						Toast.makeText(this, this.getString(R.string.
+								monitorinstanceview_cannotsave), Toast.LENGTH_LONG).show();
 					}
 				} catch (SQLException exception) {
 					Log.e(TAG, exception.getMessage());

@@ -17,4 +17,5 @@
 <string name="ec2singleinstance_menu_startinstance">Iniciar Instancia</string>
 <string name="ec2singleinstance_menu_modifysecgroup">Modificar Grupo de Seguridad</string>
 <string name="ec2singleinstance_menu_ssh">Conectar (SSH)</string>
+<string name="ec2singleinstance_cannotcontrol">Could not start/stop instance.</string>
 </resources>
