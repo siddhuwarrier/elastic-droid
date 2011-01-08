@@ -93,11 +93,21 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 	 * have the activity killed.
 	 */
 	private boolean killActivityOnError;
+	/**
+	 * boolean to indicate if any of the individual instances in this list have had
+	 * their states changed.
+	 */
+	private boolean instanceStateChanged;
     
     /**The model result: an ArrayList of corresponding instances
      * Uses Serializable Instance and not AWS Instance. {@link SerializableInstance} 
      * */
     private ArrayList<SerializableInstance> instanceData;
+    
+    /**
+     * Logging Tag
+     */
+    private static final String TAG = "org.elasticdroid.EC2DisplayInstancesView"; 
 	
 	/**
 	 * This method is called when the activity is (re)started.
@@ -200,6 +210,8 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		//restore instance data if any
 		instanceData = (ArrayList<SerializableInstance>)stateToRestore.getSerializable("instanceData");
 		
+		//has the instance state been changed.
+		instanceStateChanged = stateToRestore.getBoolean("instanceStateChanged");
 		//was a progress dialog being displayed.
 		progressDialogDisplayed = stateToRestore.getBoolean("progressDialogDisplayed");
 		Log.v(this.getClass().getName() + ".onRestoreInstanceState", "progbar:" + 
@@ -277,6 +289,8 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		saveState.putBoolean("alertDialogDisplayed", alertDialogDisplayed);
 		//save the dialog msg
 		saveState.putString("alertDialogMessage", alertDialogMessage);
+		//were any of the instances' states changed by the user?
+		saveState.putBoolean("instanceStateChanged", instanceStateChanged);
 		
 		//if we have instance data, save it.
 		//but don't bother saving it if the model is not null, i.e. a new model
@@ -435,9 +449,9 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		displaySingleInstanceIntent.putExtra("selectedRegion", selectedRegion);
 		
 		//start the activity
-		startActivity(displaySingleInstanceIntent);
+		startActivityForResult(displaySingleInstanceIntent, 0); //second argument ignored.
 	}
-
+	
 	/**
 	 * Handle back button.
 	 */
@@ -449,7 +463,10 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 			Intent resultIntent = new Intent();
 			resultIntent.setType(this.getClass().getName());
 			
-			setResult(RESULT_CANCELED, resultIntent); //let the calling activity know that the user chose to 
+			Log.v(TAG, "Force Refresh: " + instanceStateChanged);
+			
+			resultIntent.putExtra("forceRefresh", instanceStateChanged);
+			setResult(RESULT_OK, resultIntent); //let the calling activity know that the user chose to 
 			//cancel
 		}
 		
@@ -490,6 +507,29 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 		}
 	}
 	
+	/**
+	 * Called when the following views return:
+	 * <ul>
+	 * 	<li> {@link EC2SingleInstanceView}
+	 * </ul>
+	 */
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent result) {
+		if (result.getType().equals(EC2SingleInstanceView.class.getName())) {
+			Log.v(TAG, "EC2 SingleInstanceView returned...");
+			
+			//if the list should be force refreshed, well, uhm, DO IT for chrissake.
+			if (result.getBooleanExtra("forceRefresh", false)) {
+				Log.v(TAG, "Forcing refresh of list as single instance just viewed has changed " +
+						"state.");
+				
+				instanceStateChanged = true;
+				
+				executeModel(); //force refresh
+			}
+		}
+	}
+
 	/** 
 	 * Handle cancel of progress dialog
 	 * @see android.content.DialogInterface.OnCancelListener#onCancel(android.content.

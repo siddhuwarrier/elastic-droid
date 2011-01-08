@@ -74,7 +74,7 @@ public abstract class GenericListActivity extends ListActivity implements OnCanc
 	}
 	
 	/**
-	 * Called each time a dialog is created.
+	 * Called each time a dialog is invoked.
 	 */
 	@Override
 	protected void onPrepareDialog(int id, Dialog dialog, Bundle ignore) {

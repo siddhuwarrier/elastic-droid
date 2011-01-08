@@ -34,6 +34,8 @@ import org.elasticdroid.utils.DialogConstants;
 import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 
 import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -117,6 +119,15 @@ public class EC2SingleInstanceView extends GenericListActivity {
      * executed.
      */
 	private Boolean isElasticIpAssigned;
+	/**
+	 * Is EC2InstanceModel being used for autorefreshing after starting/stopping instances
+	 */
+	private boolean autoRefresh;
+	/**
+	 * This boolean indicates we have changed the state of this instance since when it was first
+	 * displayed. This is to force the EC2DisplayInstancesView to update.
+	 */
+	private boolean instanceStateChanged;
 	
 	/**
 	 * Tag for logging
@@ -219,6 +230,16 @@ public class EC2SingleInstanceView extends GenericListActivity {
 		Log.v(TAG + ".onRestoreInstanceState", "progressDialogDisplayed:" + 
 				progressDialogDisplayed);
 		
+		//restore the instance if the instance has been saved. This is for when we
+		//may have changed the state of the instance due to start/stop operations by the
+		//ControlInstancesModel.
+		if (stateToRestore.getSerializable("instance") != null) {
+			instance = (SerializableInstance)stateToRestore.getSerializable("instance");
+		}
+		
+		//restore the boolean that indicates if state has changed.
+		instanceStateChanged = stateToRestore.getBoolean("instanceStateChanged");
+		
 		//check if the key exists before assigning it.
 		//This is because getBoolean returns false if key doesn't exist.
 		//See onSaveInstanceState(). It shows that isElasticIpAssigned is not always saved.
@@ -237,6 +258,7 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			elasticIpsModel.setActivity(this);//tell the model of the new activity created
 			
 			ec2InstancesModel = null; //set EC2 instances model to null (redundant assignment)
+			controlInstancesModel = null; //set ControlInstancesModel to null (redundant assn)
 		}
 		else if (retained instanceof EC2InstancesModel) {
 			Log.i(TAG + ".onRestoreInstanceState()","Reclaiming previous " +
@@ -244,14 +266,14 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			
 			ec2InstancesModel = (EC2InstancesModel) retained;
 			ec2InstancesModel.setActivity(this);
+		}
+		else if (retained instanceof ControlInstancesModel) {
+			Log.i(TAG, "Reclaiming ControlInstancesModel");
 			
-			elasticIpsModel = null; //set the ElasticIP model to null (redundant assignment)
+			controlInstancesModel = (ControlInstancesModel) retained;
+			controlInstancesModel.setActivity(this);
 		}
 		else {
-			//set both models to null
-			elasticIpsModel = null;
-			ec2InstancesModel = null;
-			
 			Log.v(TAG,"No model object, or model finished before activity " +
 					"was recreated.");
 			
@@ -318,10 +340,15 @@ public class EC2SingleInstanceView extends GenericListActivity {
 		
 		//save if progress dialog is being displayed.
 		saveState.putBoolean("progressDialogDisplayed", progressDialogDisplayed);
-		
+		//save if instance state has been changed
+		saveState.putBoolean("instanceStateChanged", instanceStateChanged);
 		//save whether there is an elastic IP assigned to this instance IF it has been initialised
 		if (isElasticIpAssigned != null) {
 			saveState.putBoolean("isElasticIpAssigned", isElasticIpAssigned);
+		}
+		
+		if (instance != null) {
+			saveState.putSerializable("instance", instance);
 		}
 	}
 	
@@ -341,6 +368,11 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			//the user has asked the single instance view to be refreshed
 			ec2InstancesModel.setActivityNull();
 			return ec2InstancesModel;
+		}
+		else if (controlInstancesModel != null) {
+			//the user has asked for the instance to be stopped or restarted.
+			controlInstancesModel.setActivityNull();
+			return controlInstancesModel;
 		}
 		
 		return null;
@@ -382,6 +414,44 @@ public class EC2SingleInstanceView extends GenericListActivity {
 	}
 	
 	/**
+	 * Execute ControlInstancesModel
+	 */
+	private void executeControlInstancesModel() {
+		instanceStateChanged = true;
+		Log.v(TAG, "Instance state changed: " + instanceStateChanged);
+		
+		if (instance.getStateCode() == InstanceStateConstants.RUNNING) {
+			controlInstancesModel = new ControlInstancesModel(this, connectionData, true);
+			
+			//execute model
+			controlInstancesModel.execute(instance.getInstanceId());
+		}
+		else if (instance.getStateCode() == InstanceStateConstants.STOPPED) {
+			controlInstancesModel = new ControlInstancesModel(this, connectionData, false);
+			
+			//execute model
+			controlInstancesModel.execute(instance.getInstanceId());
+		}
+	}
+	
+	/**
+	 * Keep refreshing the EC2 Instance model until the state is as expected 
+	 */
+	private void autoRefreshEC2InstanceModel(int expectedState) {
+		//create a new filter
+		Filter singleInstanceFilter = new Filter("instance-id").withValues(new String[]{
+				instance.getInstanceId()
+		});
+		Log.v(TAG, "Expected instance state: " + expectedState);
+		
+		autoRefresh = true;//set autorefresh to true so that progress dialog is not displayed.
+		
+		ec2InstancesModel = new EC2InstancesModel(this, connectionData, selectedRegion, 
+				expectedState);
+		ec2InstancesModel.execute(singleInstanceFilter); //this will now auto-refresh till done.
+	}
+	
+	/**
 	 * Process results from model
 	 * @param Object, which can be a List<Address> or exceptions
 	 * 
@@ -404,7 +474,7 @@ public class EC2SingleInstanceView extends GenericListActivity {
 		}
 		
 		//irrespective of the model, if cancelled, display the cancelled toast.
-		if (result == null) {
+		if ((result == null) && (!autoRefresh)) {
 			Toast.makeText(this, Html.fromHtml(this.getString(R.string.cancelled)), Toast.
 					LENGTH_LONG).show();
 			
@@ -493,7 +563,7 @@ public class EC2SingleInstanceView extends GenericListActivity {
 	@SuppressWarnings("unchecked")
 	private void processEC2InstanceModelResult(Object result) {
 		ec2InstancesModel = null; //set model to null
-		
+		autoRefresh = false; //set autorefresh to false even if it already was faslse
 		// dismiss the progress dialog if displayed. Check redundant
 		if (progressDialogDisplayed) {
 			progressDialogDisplayed = false;
@@ -554,6 +624,7 @@ public class EC2SingleInstanceView extends GenericListActivity {
 		
 		//if successful it would have returned a ArrayList<InstanceStateChange>.
 		if (result instanceof List<?>) {
+			int expectedState = -1;
 			//there's only going to be one entry in the list, but nevertheless...
 			for (InstanceStateChange change : (List<InstanceStateChange>) result) {
 				
@@ -563,14 +634,25 @@ public class EC2SingleInstanceView extends GenericListActivity {
 					//set the state code and state name
 					instance.setStateCode(change.getCurrentState().getCode());
 					instance.setStateName(change.getCurrentState().getName());
+					//get the state we should eventually get to
+					if (change.getPreviousState().getCode() == InstanceStateConstants.STOPPED) {
+						expectedState = InstanceStateConstants.RUNNING;
+					}
+					else {
+						expectedState = InstanceStateConstants.STOPPED;
+					}
 				}
 			}
-			//TODO start refresh until state is not equal to expected state.
-			//i.e. running if stopped, stopped if running.
-			Log.v(TAG, "ICH BIN HIER!!!");
+			
 			//populate the list
 			setListAdapter(new EC2SingleInstanceAdapter(this, R.layout.ec2singleinstance, 
 					instance, isElasticIpAssigned));
+			
+			//start refresh until state is not equal to expected state.
+			//i.e. running if stopped, stopped if running.
+			if (expectedState >= 0) {
+				autoRefreshEC2InstanceModel(expectedState);
+			}
 		}
 		else if (result instanceof AmazonServiceException) {
 			// if a server error
@@ -716,25 +798,14 @@ public class EC2SingleInstanceView extends GenericListActivity {
 				return false;
 			}
 			
-			if (instance.getStateCode() == InstanceStateConstants.RUNNING) {
-				controlInstancesModel = new ControlInstancesModel(this, connectionData, true);
-				
-				//execute model
-				controlInstancesModel.execute(instance.getInstanceId());
-			}
-			else if (instance.getStateCode() == InstanceStateConstants.STOPPED) {
-				controlInstancesModel = new ControlInstancesModel(this, connectionData, false);
-				
-				//execute model
-				controlInstancesModel.execute(instance.getInstanceId());
-			}
+			executeControlInstancesModel(); //execute control instances model to start/stop instance			
 			return true;
 			
 		default:
 			return super.onOptionsItemSelected(selectedItem);
 		}
 	}
-	
+
 	/**
 	 * Handle back button.
 	 * If back button is pressed, UI should die.
@@ -743,6 +814,17 @@ public class EC2SingleInstanceView extends GenericListActivity {
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		//do not allow user to return to previous screen on pressing back button
 		if (keyCode == KeyEvent.KEYCODE_BACK) {
+			Intent resultIntent = new Intent();
+			resultIntent.setType(this.getClass().getName());
+			Log.v(TAG, "Force refresh: " + instanceStateChanged);
+			resultIntent.putExtra("forceRefresh", instanceStateChanged);
+			
+			//if EC2 instances model is stil running autorefresh, cancel it. 
+			if (ec2InstancesModel != null) {
+				ec2InstancesModel.cancel(true);
+			}
+			
+			setResult(RESULT_OK, resultIntent); //return result to calling party
 			finish();  
 		}
 		
@@ -853,10 +935,11 @@ class EC2SingleInstanceAdapter extends ArrayAdapter<RowData> {
 					getStateCode() == InstanceStateConstants.TERMINATED)) {
 				instanceStatusIcon.setImageResource(R.drawable.red_light);				
 			}
-			else if (instance.getStateCode() == InstanceStateConstants.SHUTTING_DOWN) {
-				instanceStatusIcon.setImageResource(R.drawable.yellow_light);
-			}
-			else if (instance.getStateCode() == InstanceStateConstants.PENDING) {
+			//instance is between starting and stopping/terminating.
+			else if ( (instance.getStateCode() == InstanceStateConstants.SHUTTING_DOWN) 
+					||(instance.getStateCode() == InstanceStateConstants.PENDING) 
+					||(instance.getStateCode() == InstanceStateConstants.STOPPING)) 
+					{
 				instanceStatusIcon.setImageResource(R.drawable.yellow_light);
 			}
 			break;

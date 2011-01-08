@@ -868,13 +868,27 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 				+ resultCode);
 		
 		//check which class returned the result intent
-		if (data.resolveType(this).equals(EC2DisplayInstancesView.class.toString().split(" ")[1])) {
+		if (data.getType().equals(EC2DisplayInstancesView.class.getName())) {
 			switch (resultCode) {
-				case RESULT_ERROR:
-					Log.e(this.getClass().getName()+"onActivityResult", data.getStringExtra("EXCEPTION_MSG"));
-					finish(); //kill the app off.
-					break;
+			case RESULT_ERROR:
+				Log.e(this.getClass().getName()+"onActivityResult", data.getStringExtra("EXCEPTION_MSG"));
+				finish(); //kill the app off.
+				break;
+			case RESULT_OK:
+				Log.v(this.getClass().getName(), "EC2DisplayInstancesView returned successfully.");
+				
+				if (data.getBooleanExtra("forceRefresh", false)) {
+					Log.v(this.getClass().getName(), "Force dashboard refresh");
+					//get region data if necessary
+					if (regionData == null) {
+						executeRetrieveRegionModel();
+						//this will execute EC2DashboardModel automagically.
+					} else {
+						executeEC2DashboardModel();
+					}
+				}
 			}
+			
 		}
 		else {
 			switch (resultCode) {

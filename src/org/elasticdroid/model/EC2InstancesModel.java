@@ -27,6 +27,7 @@ import org.elasticdroid.model.ds.SerializableInstance;
 import org.elasticdroid.model.tpl.GenericModel;
 import org.elasticdroid.tpl.GenericActivity;
 import org.elasticdroid.tpl.GenericListActivity;
+import org.elasticdroid.utils.DialogConstants;
 
 import android.util.Log;
 
@@ -54,9 +55,18 @@ public class EC2InstancesModel extends GenericModel<Filter, Void, Object> {
 	private static final String TAG = "org.elasticdroid.model.EC2InstancesModel";
 	/** Selected region */
 	private String selectedRegion;
+	/** The expected instance state code at which to stop autorefreshing */
+	private Integer expectedInstanceStateCode;
+	/** The maximum backoff period for the binary exponential backoff algo used with autorefresh.
+	 * In milliseconds */
+	private static final long MAX_BACKOFF_PERIOD = 30000;
+	
 	/**
 	 * Start a new EC2InstancesModel object from a GenericListActivity
-	 * @param genericActivity Of type GenericActivity
+	 * 
+	 * @param genericActivity Of type GenericListActivity
+	 * @param connectionData the data to use to connect to AWS.
+	 * @param selectedRegion the selected region.
 	 */
 	public EC2InstancesModel(GenericListActivity genericActivity, HashMap<String, String>
 		connectionData, String selectedRegion) {
@@ -67,7 +77,10 @@ public class EC2InstancesModel extends GenericModel<Filter, Void, Object> {
 	
 	/**
 	 * Start a new ElasticIPsModel object from a GenericActivity
-	 * @param genericActivity
+	 * 
+	 * @param genericActivity Of type GenericActivity
+	 * @param connectionData the data to use to connect to AWS.
+	 * @param selectedRegion the selected region.
 	 */
 	public EC2InstancesModel(GenericActivity genericActivity, HashMap<String, String>
 		connectionData, String selectedRegion) {
@@ -76,6 +89,75 @@ public class EC2InstancesModel extends GenericModel<Filter, Void, Object> {
 		this.selectedRegion = selectedRegion;
 	}
 	
+	/**
+	 * Overloaded GenericActivity contructor which is used to enable autorefresh until state
+	 * changes to the specified state.
+	 * 
+	 * @param genericActivity Of type GenericActivity
+	 * @param connectionData the data to use to connect to AWS.
+	 * @param selectedRegion the selected region.
+	 * @param expectedInstanceStateCode the instance state code at which we should stop
+	 * auto-refreshing. 
+	 */
+	public EC2InstancesModel(GenericActivity genericActivity, HashMap<String, String> 
+	connectionData, String selectedRegion, int expectedInstanceStateCode) {
+		super(genericActivity);
+		this.connectionData = connectionData;
+		this.selectedRegion = selectedRegion;
+		this.expectedInstanceStateCode = expectedInstanceStateCode;
+	}
+	
+	/**
+	 * Overloaded contructor which is used to enable autorefresh until state
+	 * changes to the specified state (uses GenericListActivity).
+	 * 
+	 * @param genericActivity Of type GenericActivity
+	 * @param connectionData the data to use to connect to AWS.
+	 * @param selectedRegion the selected region.
+	 * @param expectedInstanceStateCode the instance state code at which we should stop
+	 * auto-refreshing.
+	 */
+	public EC2InstancesModel(GenericListActivity genericListActivity, HashMap<String, String> 
+	connectionData, String selectedRegion, int expectedInstanceStateCode) {
+		super(genericListActivity);
+		this.connectionData = connectionData;
+		this.selectedRegion = selectedRegion;
+		this.expectedInstanceStateCode = expectedInstanceStateCode;
+	}
+	
+	/** 
+	 * Execute the model in the background thread.
+	 * Calls @link{EC2InstancesModel#getInstances}.
+	 * 
+	 * @see android.os.AsyncTask#doInBackground(Params[])
+	 */
+	@Override
+	protected Object doInBackground(Filter... filters) {
+		//if expectedInstanceStateCode is not null and a single INSTANCE filter is passed,
+		//start the waitForInstanceStateChange method
+		if (expectedInstanceStateCode != null) {
+			if (filters.length != 1) {
+				return new IllegalArgumentException("Filter length cannot be greater than 1" +
+						"for auto-refresh.");
+			}
+			
+			if (!filters[0].getName().equals("instance-id")) {
+				return new IllegalArgumentException("Can only auto-refresh filters of type" +
+						"\"instance-id\".");
+			}
+			
+			if (filters[0].getValues().size() != 1) {
+				return new IllegalArgumentException("Cannot auto-refresh more than 1 instance."); 
+			}
+			
+			//if all ofthese conditions are met, start the waitForInstanceStateChange(...) method
+			return waitForInstanceStateChange(filters[0]);
+		}
+		else {
+			return getInstances(filters);
+		}
+	}
+
 	/**
 	 * 
 	 * @param filters
@@ -159,15 +241,79 @@ public class EC2InstancesModel extends GenericModel<Filter, Void, Object> {
 		return serInstances;
 	}
 	
-	/** 
-	 * Execute the model in the background thread.
-	 * Calls @link{EC2InstancesModel#getInstances}.
+	/**
+	 * Called in *UI Thread* before doInBackground executes in a separate thread.
 	 * 
-	 * @see android.os.AsyncTask#doInBackground(Params[])
+	 * Overriden to prevent progress dialog from being shown if expected Instance State Code
+	 * is null
 	 */
 	@Override
-	protected Object doInBackground(Filter... filters) {
+	protected void onPreExecute() {
+		if (expectedInstanceStateCode == null) {
+			if (!listActivityUsed) {
+				activity.showDialog(DialogConstants.PROGRESS_DIALOG.ordinal()); //the argument is 
+				//not used
+			}
+			else {
+				listActivity.showDialog(DialogConstants.PROGRESS_DIALOG.ordinal()); //the argument  
+				//is not used
+			}
+		}
+		else {
+			Log.v(TAG, "not displaying progress dialog as autorefresh operation being execd.");
+		}
+	}
+	
+	/**
+	 * Wait for instance state change. This can be used to repeatedly refresh a single instance
+	 * until its state changes from startState to endState
+	 * @param filters
+	 */
+	@SuppressWarnings("unchecked")
+	public Object waitForInstanceStateChange(Filter filter) {
+		ArrayList<SerializableInstance> serInstances;
+		//exponentialBackoff period to use
+		long backoffPeriod = 50; 
+		long sleepPeriod;
+		//teh power of 2 to use in the binary exponential backoff algo 
+		int multiplier = 0;
 		
-		return getInstances(filters);
+		//keep refreshing till the state of the instance is as expected.
+		while(true) {
+			Object result = getInstances(filter);
+			
+			if (result instanceof ArrayList<?>) {
+				serInstances = (ArrayList<SerializableInstance>) result;
+				
+				//we know the list will have a size() = 1.
+				if (serInstances.get(0).getStateCode() == expectedInstanceStateCode) {
+					//stop auto-refreshing if the state of the instance is as expected
+					return result;
+				}
+				else { //the instance is still not in the right state.
+					//use the exponential backoff algo to sleep the thread for a specific period
+					sleepPeriod = backoffPeriod * (int)((Math.random()* Math.pow(2, multiplier)));
+					Log.v(TAG, "Backoff: Sleep for " + sleepPeriod + "msecs");
+					
+					//if hte backoff interval is getting too long, just call the autorefresh off.
+					if (sleepPeriod >= MAX_BACKOFF_PERIOD) {
+						return null;
+					}
+					
+					try {
+						Thread.sleep(sleepPeriod);
+					} catch (InterruptedException e) {
+						return null; //if interrupted, just stop executing
+					}
+				}
+			}
+			else {
+				//not expected result; probably exception.
+				//return the result and let the view worry about it.
+				return result;
+			}
+			
+			multiplier ++; //increase the binary exponential backoff algo multiplier
+		}
 	}
 }
