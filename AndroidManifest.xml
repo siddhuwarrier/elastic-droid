@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest package="org.elasticdroid"
       android:versionCode="3"
-      android:versionName="0.3" android:installLocation="preferExternal" xmlns:android="http://schemas.android.com/apk/res/android">
+      android:versionName="0.3" xmlns:android="http://schemas.android.com/apk/res/android">
       
 <application android:icon="@drawable/icon" android:label="@string/app_name" android:debuggable="true" android:allowClearUserData="true">
         
@@ -62,7 +62,36 @@
 	
     <activity 
     	android:label="" android:name=".testharness.TestListActivity">
+	</activity>	
+	
+	<!--  widget stuff -->
+	<receiver android:name=".widgets.MonitorInstanceWidget">
+		<intent-filter>
+          <action android:name="MONITORINSTANCEWIDGET_UPDATE" />
+      	</intent-filter>
+		<intent-filter>
+			<action
+				android:name="android.appwidget.action.APPWIDGET_UPDATE" 
+			/>	
+		</intent-filter>
+	   <meta-data
+		   android:name="android.appwidget.provider"
+		   android:resource="@xml/monitorinstancewidget_info" 
+		/>
+	</receiver>
+	
+	
+	 <activity 
+    	android:label="" android:name=".MonitorInstanceWidgetConfig">
+    	<intent-filter>
+			<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />	
+		</intent-filter>
 	</activity>
+	
+	<!-- Service to query Monitoring Instance -->        
+	<service android:name=".widgets.MonitorInstanceWidget$MonitorService" />
+		
+	    
 </application>
 
 

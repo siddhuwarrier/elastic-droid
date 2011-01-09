@@ -821,6 +821,7 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			
 			//if EC2 instances model is stil running autorefresh, cancel it. 
 			if (ec2InstancesModel != null) {
+				ec2InstancesModel.setActivityNull(); //tell the model the activity is goign bye bye
 				ec2InstancesModel.cancel(true);
 			}
 			

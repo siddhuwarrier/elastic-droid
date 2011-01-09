@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="monitorinstancewidget_title">Monitor Instance Widget</string>
+	<string name="monitorinstancewidget_configcanceled">Configuration of Monitor Instance Widget 
+	cancelled. No instances will be displayed.</string>
+</resources>
