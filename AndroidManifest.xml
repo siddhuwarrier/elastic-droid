@@ -82,14 +82,14 @@
 	
 	
 	 <activity 
-    	android:label="" android:name=".MonitorInstanceWidgetConfig">
+    	android:label="" android:name=".MonitorInstanceWidgetConfigView">
     	<intent-filter>
 			<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />	
 		</intent-filter>
 	</activity>
 	
 	<!-- Service to query Monitoring Instance -->        
-	<service android:name=".widgets.MonitorInstanceWidget$MonitorService" />
+	<service android:name=".service.MonitorService" />
 		
 	    
 </application>

@@ -4,6 +4,6 @@
 	android:minWidth="294dp"
 	android:minHeight="220dp"
 	android:initialLayout="@layout/monitorinstancewidget"
-	android:updatePeriodMillis="60000"
-	android:configure="org.elasticdroid.MonitorInstanceWidgetConfig"
+	android:configure="org.elasticdroid.MonitorInstanceWidgetConfigView"
+	android:label="Elastic Droid: EC2 Instance Monitoring Widget"
   />

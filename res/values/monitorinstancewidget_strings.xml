@@ -3,4 +3,13 @@
 	<string name="monitorinstancewidget_title">Monitor Instance Widget</string>
 	<string name="monitorinstancewidget_configcanceled">Configuration of Monitor Instance Widget 
 	cancelled. No instances will be displayed.</string>
+	
+	<!--  config stuff -->
+	<string name="monitorinstancewidget_config_title">Configure Monitor Instance Widget</string>
+	<string name="monitorinstancewidget_usernamespinner">Username: </string>
+	<string name="monitorinstancewidget_regionspinner">Region: </string>
+	<string name="monitorinstancewidget_instancespinner">Monitored Instance: </string>
+	<string name="monitorinstancewidget_measurespinner">Monitored Measure: </string>
+	<string name="monitorinstancewidget_durationspinner">Duration: </string>
+	<string name="monitorinstancewidget_saveconfig">Save</string>
 </resources>

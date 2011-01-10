@@ -25,6 +25,7 @@ import org.elasticdroid.utils.DialogConstants;
 
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.app.Service;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -41,6 +42,7 @@ public abstract class GenericModel<T,U,V> extends AsyncTask<T, U, V> {
 	protected GenericActivity activity;
 	/** The list activity to call */
 	protected GenericListActivity listActivity;
+	
 	/** Boolean to indicate if listActivity is used instead*/
 	protected boolean listActivityUsed;
 	
