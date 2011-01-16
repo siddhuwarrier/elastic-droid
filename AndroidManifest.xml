@@ -62,36 +62,7 @@
 	
     <activity 
     	android:label="" android:name=".testharness.TestListActivity">
-	</activity>	
-	
-	<!--  widget stuff -->
-	<receiver android:name=".widgets.MonitorInstanceWidget">
-		<intent-filter>
-          <action android:name="MONITORINSTANCEWIDGET_UPDATE" />
-      	</intent-filter>
-		<intent-filter>
-			<action
-				android:name="android.appwidget.action.APPWIDGET_UPDATE" 
-			/>	
-		</intent-filter>
-	   <meta-data
-		   android:name="android.appwidget.provider"
-		   android:resource="@xml/monitorinstancewidget_info" 
-		/>
-	</receiver>
-	
-	
-	 <activity 
-    	android:label="" android:name=".widgets.MonitorInstanceWidgetConfigView">
-    	<intent-filter>
-			<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />	
-		</intent-filter>
-	</activity>
-	
-	<!-- Service to query Monitoring Instance -->        
-	<service android:name=".service.MonitorService" />
-		
-	    
+	</activity>	    
 </application>
 
 
