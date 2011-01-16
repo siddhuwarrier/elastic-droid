@@ -94,7 +94,7 @@ public class DefaultRegionView extends ListActivity {
 		}
     	//use the custom adapter to display the list of regions.
     	DefaultRegionAdapter regionsListAdapter = new DefaultRegionAdapter(this,
-    			R.layout.regionspinnerdropdownitem,
+    			R.layout.customspinnerdropdownitem,
     			Arrays.asList(regionData.toArray()).toArray(new String[regionData.size()]),
     			defaultRegion);
     	
@@ -173,7 +173,7 @@ class DefaultRegionAdapter extends ArrayAdapter<String> {
 		if (regionRow == null) {
 			LayoutInflater inflater = (LayoutInflater) context.getSystemService
 				(Context.LAYOUT_INFLATER_SERVICE);
-			regionRow = inflater.inflate(R.layout.regionspinnerdropdownitem, parent, false);
+			regionRow = inflater.inflate(R.layout.customspinnerdropdownitem, parent, false);
 		}
 		
 		CheckedTextView regionCheckedTextView = (CheckedTextView) regionRow.findViewById

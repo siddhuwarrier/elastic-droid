@@ -82,7 +82,7 @@
 	
 	
 	 <activity 
-    	android:label="" android:name=".MonitorInstanceWidgetConfigView">
+    	android:label="" android:name=".widgets.MonitorInstanceWidgetConfigView">
     	<intent-filter>
 			<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />	
 		</intent-filter>

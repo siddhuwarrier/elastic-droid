@@ -109,7 +109,7 @@ public class MonitorInstanceWidget extends AppWidgetProvider {
 	public void onEnabled(Context context) {
 		Log.v(TAG, "Widget enabled");
 		//start the alarm
-		setAlarm(context);
+		//setAlarm(context);
 	}
 
 	/**

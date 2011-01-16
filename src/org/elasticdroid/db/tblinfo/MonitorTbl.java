@@ -34,6 +34,8 @@ public class MonitorTbl implements BaseColumns {
 	public static final String COL_USERNAME = "username";
 	/** column to hold the AWS ID of the resource to be monitored (instance or vol id) */
 	public static final String COL_AWSID = "awsid";
+	/** column to hold the AWS region for the resource */
+	public static final String COL_REGION = "region";
 	/** column to hold the default measurename for this resource */
 	public static final String COL_DEFAULTMEASURENAME = "defaultmeasurename";
 	/** column to hold the default duration for this resource */
@@ -45,7 +47,7 @@ public class MonitorTbl implements BaseColumns {
 	/** column to hold information on whether this resource should be added to the watch list */
 	public static final String COL_WATCH = "watch";
 	/** column to hold the resource type (instance or vol) */
-	public static final String COL_RESTYPE = "restype";
+	public static final String COL_RESTYPE = "restype";	
 	/** Foreign key references */	
 	public static final String FOREIGN_KEY_USERNAME = "Foreign Key (" + COL_USERNAME +  ") " +
 			"references " + LoginTbl.TBL_NAME + "(" + LoginTbl.COL_USERNAME + ") on delete cascade";

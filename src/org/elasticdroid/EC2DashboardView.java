@@ -615,9 +615,9 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 		
 		// populate the android spinner with region data
 		ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<String>(this,
-				R.layout.regionspinneritem, (String[]) regionData.keySet()
+				R.layout.customspinneritem, (String[]) regionData.keySet()
 						.toArray(new String[regionData.keySet().size()]));
-		spinnerAdapter.setDropDownViewResource(R.layout.regionspinnerdropdownitem);
+		spinnerAdapter.setDropDownViewResource(R.layout.customspinnerdropdownitem);
 	
 		// get the spinner and set the adapter as ITS adapter
 		Spinner regionSpinner = ((Spinner) findViewById(R.id.ec2DashboardRegionSpinner));

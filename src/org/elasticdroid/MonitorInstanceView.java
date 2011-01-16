@@ -490,8 +490,8 @@ public class MonitorInstanceView extends GenericActivity {
 				alertDialogMessage = this
 						.getString(R.string.loginview_no_connxn_dlg);
 				alertDialogDisplayed = true;
-				killActivityOnError = false;//do not kill activity on connectivity error. allow client 
-				//to retry.
+				killActivityOnError = false;//do not kill activity on connectivity error. allow 
+				// client to retry.
 			}
 		}
 		else if (metricsModel != null) {

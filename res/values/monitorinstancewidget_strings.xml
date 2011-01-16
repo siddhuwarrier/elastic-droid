@@ -5,11 +5,17 @@
 	cancelled. No instances will be displayed.</string>
 	
 	<!--  config stuff -->
-	<string name="monitorinstancewidget_config_title">Configure Monitor Instance Widget</string>
+	<string name="monitorinstancewidget_config_title">Pick Watched Instance to Display</string>
 	<string name="monitorinstancewidget_usernamespinner">Username: </string>
 	<string name="monitorinstancewidget_regionspinner">Region: </string>
-	<string name="monitorinstancewidget_instancespinner">Monitored Instance: </string>
+	<string name="monitorinstancewidget_instancespinner">Watched Instance: </string>
 	<string name="monitorinstancewidget_measurespinner">Monitored Measure: </string>
 	<string name="monitorinstancewidget_durationspinner">Duration: </string>
 	<string name="monitorinstancewidget_saveconfig">Save</string>
+	
+	<!-- error messages -->
+	<string name="monitorinstancewidget_nousers">No users found. Please use Elastic Droid to add 
+	a user. </string>
+	<string name="monitorinstancewidget_nowatchedinstances">No watched instances. 
+	Please add instances to your watch list using Elastic Droid, or choose another user.</string>
 </resources>

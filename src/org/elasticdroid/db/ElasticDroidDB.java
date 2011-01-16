@@ -22,6 +22,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Hashtable;
 
 import org.elasticdroid.db.tblinfo.LoginTbl;
@@ -50,7 +51,7 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 	/**Name of database */
 	private static final String DATABASE_NAME = "elasticdroid.db";
 	/** Database version */
-	private static final int DATABASE_VERSION = 7;
+	private static final int DATABASE_VERSION = 8;
 	/** Logging tag */
 	private static final String TAG = "org.elasticdroid.db.ElasticDroidDB";
 	/**
@@ -116,6 +117,10 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 			//drop table and recreate
 			db.execSQL("DROP table if exists " + MonitorTbl.TBL_NAME);
 			createMonitorTbl(db);
+		case 7:
+			//drop table and recreate
+			db.execSQL("DROP table if exists " + MonitorTbl.TBL_NAME);
+			createMonitorTbl(db);
 		}
 	}
 	
@@ -140,6 +145,7 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 	    		MonitorTbl._ID + " integer primary key autoincrement, " +   
 	    		MonitorTbl.COL_USERNAME + " text not null, " + 
 	    		MonitorTbl.COL_AWSID + " integer not null, "  + 
+	    		MonitorTbl.COL_REGION + " text not null, "  +
 	    		MonitorTbl.COL_RESTYPE + " integer not null, " +  
 	    		MonitorTbl.COL_DEFAULTMEASURENAME + " text not null, " + 
 	    		MonitorTbl.COL_DEFAULTDURATION + " integer not null, " +
@@ -336,6 +342,7 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 		//write in values
 		ContentValues insertValues = new ContentValues();
 		insertValues.put(MonitorTbl.COL_AWSID, awsId);
+		insertValues.put(MonitorTbl.COL_REGION, input.getRegion());
 		insertValues.put(MonitorTbl.COL_DEFAULTDURATION, input.getEndTime() - input.getStartTime());
 		insertValues.put(MonitorTbl.COL_DEFAULTMEASURENAME, input.getMeasureName());
 		insertValues.put(MonitorTbl.COL_NAMESPACE, input.getNamespace());
@@ -376,5 +383,69 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 		}
 		
 		return numAffectedRows;
+	}
+	
+	/**
+	 * Return the list of instances watched for this AWS username
+	 * @param username The username to retrieve the list of usernames.
+	 * @param resName Acceptable values: instance, volume
+	 * @return Hashmap of watched instances and the region of each watched instancem indexed by the
+	 * former
+	 */
+	public HashMap<String, String> getWatchedResources(String username, String resName) throws 
+		SQLException {
+		HashMap<String, String> watchedResources = new HashMap<String, String>();
+		
+		SQLiteDatabase db = this.getReadableDatabase(); //handle to the DB
+		Cursor resCursor; //the query cursor for resource type tbl
+		Cursor monitorCursor; //query cursor for monitor tabl
+		int resType; //the resource type for the resource name passed in
+		
+		//first, get the res ID for this resName
+		//then get the watched instances
+		try {
+			resCursor = db.query(ResourceTypeTbl.TBL_NAME, 
+					new String[]{ResourceTypeTbl.COL_RESTYPE}, 
+					ResourceTypeTbl.COL_RESNAME + "= ?", 
+					new String[]{resName}, 
+					null, 
+					null, 
+					null);
+			
+			if (resCursor.getCount() != 1) {
+				throw new SQLException("No data");
+			}
+			
+			resCursor.moveToFirst();
+			resType = resCursor.getInt(0);
+			
+			monitorCursor = db.query(MonitorTbl.TBL_NAME,
+					new String[]{MonitorTbl.COL_AWSID, MonitorTbl.COL_REGION},
+					MonitorTbl.COL_RESTYPE + "=?" + " AND " + MonitorTbl.COL_USERNAME + "=?" +
+					" AND "  + MonitorTbl.COL_WATCH + " = ?",
+					new String[]{String.valueOf(resType), username, String.valueOf(1)},
+					null,
+					null,
+					null
+			);
+					
+			//loop through the data in the cursor, and add watched resources data
+			//hashmap indexed by instance ID
+			while (monitorCursor.moveToNext()){
+				watchedResources.put(monitorCursor.getString(0), monitorCursor.getString(1));
+			}
+		}
+		catch(SQLException exception) {
+			throw exception;
+		}
+		finally {
+			db.close();
+		}
+		
+		Log.v(TAG, "ResType: " + resType);
+
+		
+		return watchedResources;
+		
 	}
 }
