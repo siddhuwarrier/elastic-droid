@@ -19,7 +19,6 @@
 package org.elasticdroid.widgets;
 
 import java.util.Date;
-import java.util.HashMap;
 
 import org.elasticdroid.service.MonitorService;
 
@@ -27,12 +26,10 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.util.Log;
-import android.widget.Toast;
 
 /**
  * The Monitor Instance Widget.
@@ -49,60 +46,13 @@ public class MonitorInstanceWidget extends AppWidgetProvider {
 	/** The update intent name */
 	public static String MONITORINSTANCEWIDGET_UPDATE = "MONITORINSTANCEWIDGET_UPDATE";
 	
-	/** The name of the shared preferences file */
-	public static String MONITORINSTANCE_WIDGET_PREFS = "elasticdroid_mi_widget_prefs";
-	
-	
 	/** The alarm manager */
 	private static AlarmManager alarmManager;
 	
 	/** THe pending intent that causes the update intent to be generated. */
 	private static PendingIntent pendingIntent;
 	
-	/** The connection data; shared across all instances of the MonitorInstanceWidget */
-	private static HashMap<String, String> connectionData;
-	
-	/** The selected region; shared across all instances of the MonitorInstanceWidget */
-	private static String region;	
-	
-	/** The selected instance ID; shared across all instances of the MonitorInstanceWidget */
-	private static String instanceId;
-	
 	/**
-	 * This method is called whenever a message is received from the Alarm Manager
-	 * which is used to set the alarm.
-	 */
-	@Override
-	 public void onReceive(Context context, Intent intent) {
-		super.onReceive(context, intent);
-		  
-		if(MONITORINSTANCEWIDGET_UPDATE.equals(intent.getAction())){
-			Log.v(TAG, "OnReceive(): update received.");
-			
-			if(intent.getExtras() != null) {
-				AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-				ComponentName thisAppWidget = new ComponentName(context.getPackageName(), 
-						MonitorInstanceWidget.class.getName());
-				int[] appWidgetIds = appWidgetManager.getAppWidgetIds(thisAppWidget);
-			    onUpdate(context, appWidgetManager, appWidgetIds);
-			}
-		}
-	 }
-	
-	/**
-	 * This method is called to update the app widget.
-	 * 
-	 * This method is called in this widget by onReceive.
-	 */
-	@Override
-    public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-    	super.onUpdate(context, appWidgetManager, appWidgetIds);
-    	Log.v(TAG, "Updating MonitorInstanceWidget...");
-    	
-    	context.startService(new Intent(context, MonitorService.class));
-    }
-    
-    /**
 	 * This method is called whenever the widget is first added to the homescreen.
 	 */
 	@Override
@@ -113,62 +63,125 @@ public class MonitorInstanceWidget extends AppWidgetProvider {
 	}
 
 	/**
-     * Cancel the alarm on widget being removed. This cancels the alarm manager if there is one.
-     */
-    @Override
-    public void onDisabled(Context context) {
-    	Log.v(TAG, "Disabling the widget...");
-    	Toast.makeText(context, "Disabling the widget..", Toast.LENGTH_LONG).show();
+	 * This method is called whenever a message is received from the Alarm Manager
+	 * which is used to set the alarm.
+	 */
+	@Override
+	 public void onReceive(Context context, Intent intent) {
+		super.onReceive(context, intent);
+		
+		String action = intent.getAction();
+		
+		Log.v(TAG, "onReceive: Action = " + action);
+		  
+		if(MONITORINSTANCEWIDGET_UPDATE.equals(intent.getAction())){
+			Log.v(TAG, "OnReceive(): update received.");
+			
+			if(intent.getExtras() != null) {
+				AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
+				int appWidgetId = intent.getExtras().getInt(AppWidgetManager.EXTRA_APPWIDGET_ID, 
+						AppWidgetManager.INVALID_APPWIDGET_ID);
+			    onUpdate(context, appWidgetManager, new int[]{appWidgetId});
+			}
+		}
+		else if (action.equals(AppWidgetManager.ACTION_APPWIDGET_DELETED)) {
+			//get the app widget ID
+			int appWidgetId = intent.getExtras().getInt(AppWidgetManager.EXTRA_APPWIDGET_ID, 
+					AppWidgetManager.INVALID_APPWIDGET_ID);
+			this.onDeleted(context, new int[]{appWidgetId});
+		}
+	 }
+	
+    /**
+	 * This method is called to update the app widget.
+	 * 
+	 * This method is called in this widget by onReceive.
+	 */
+	@Override
+    public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
+    	super.onUpdate(context, appWidgetManager, appWidgetIds);
+    	Log.v(TAG, "Updating MonitorInstanceWidget...");
     	
-    	if (alarmManager != null) {
-    		//cancel the alarm
-    		alarmManager.cancel(pendingIntent);
+    	//loop through all of the app widgets of this type created in the application
+    	for (int appWidgetId : appWidgetIds) {
+    		executeService(context, appWidgetId, false);
     	}
     }
     
-    /**
-	 * Set an alarm up to refresh the screen.
-	 * @param context
-	 */
-	private void setAlarm(Context context) {
-		Intent widgetIntent = new Intent(MonitorInstanceWidget.MONITORINSTANCEWIDGET_UPDATE);
-		
-		PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 
-				0, widgetIntent, 0);
-		
-		AlarmManager alarmManager = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
-		alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, new Date().getTime(), 20*1000, 
-				pendingIntent);
-		
-		//have the widget save the alarm info
-		saveAlarmInfo(alarmManager, pendingIntent);
+    @Override
+	public void onDeleted(Context context, int[] appWidgetIds) {
+	    Log.v(TAG, "Deleting widgets...");
+	    
+	    for (int appWidgetId : appWidgetIds) {
+	    	Log.v(TAG, "Cancelling alarm for app widget ID: " + appWidgetId);
+	    	cancelAlarm(context, appWidgetId);
+	    	Log.v(TAG, "Stopping service...");
+	    	executeService(context, appWidgetId, true);
+	    }
 	}
-
-	/**
-     * Save the preferences set by the user. This method is called by the widget configurator.
-     * @param context The context that is handling the appwidget
-     * @param connectionData AWS connection data
-     * @param region AWS region
-     * @param instanceId AWS instance ID
+    
+    private void executeService(Context context, int appWidgetId, boolean requestStop) {
+		Log.v(TAG, "Creating a service intent");
+		Intent serviceIntent = new Intent(context, MonitorService.class);
+		//the service shouldn't stop
+		serviceIntent.putExtra(MonitorService.FLAG_REQUEST_STOP, requestStop);
+		serviceIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+    	//run the update only if the alarm has been set. This prevents the service from 
+		//executing when the user first creates the widget and is configuring it.
+    	context.startService(serviceIntent);
+    }
+    
+    /**
+     * Sets an alarm to post a broadcast pending intent for updating a particular appWidgetId
+     * 
+     * @param context
+     *            the Context to set the alarm under
+     * @param appWidgetId
+     *            the widget identifier for this alarm
+     * @param updateRateSeconds
+     *            the amount of time between alarms
      */
-    public static void setPreferences(Context context, HashMap<String, String> connectionData, 
-    		String region, String instanceId) {
-    	MonitorInstanceWidget.connectionData = connectionData;
-    	MonitorInstanceWidget.region = region;
-    	MonitorInstanceWidget.instanceId = instanceId;
-    	//TODO save to SharedPreferences?
-    	
-    	SharedPreferences sharedPreferences = context.getSharedPreferences(
-    			"", 0);
-    	
-    	SharedPreferences.Editor edit = sharedPreferences.edit();
-    	edit.putString("username", connectionData.get("username"));
-    	edit.putString("accessKey", connectionData.get("accessKey"));
-    	edit.putString("secretAccessKey", connectionData.get("secretAccessKey"));
-    	edit.putString("region", region);
-    	edit.putString("instanceId", instanceId);
-    	
-    	edit.commit();
+    public static void setAlarm(Context context, int appWidgetId) {
+        Intent widgetUpdate = new Intent();
+        widgetUpdate.setAction(MONITORINSTANCEWIDGET_UPDATE);
+        widgetUpdate.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, new int[] { appWidgetId });
+        
+        //create a pending intent
+        PendingIntent newPending = PendingIntent.getBroadcast(context, 0, widgetUpdate, 
+        		PendingIntent.FLAG_UPDATE_CURRENT);
+
+		SharedPreferences prefs = context.getSharedPreferences(
+				MonitorInstanceWidgetConfigView.MONITORINSTANCEWIDGET_SHARED_PREF,
+				Context.MODE_PRIVATE);
+		
+		//create an alarm only if the config is valid
+		if (prefs.getBoolean("configValid", false)) {
+	        // schedule the updating
+			Log.v(TAG, "Scheduling...");
+	        AlarmManager alarms = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            alarms.setRepeating(
+            		AlarmManager.RTC_WAKEUP, 
+            		new Date().getTime(), 
+            		prefs.getLong("interval", 30000), 
+            		newPending);
+		}
+    }
+    
+    /**
+     * 
+     * @param context
+     */
+    private void cancelAlarm(Context context, int appWidgetId) {
+        Intent widgetUpdate = new Intent();
+        widgetUpdate.setAction(MONITORINSTANCEWIDGET_UPDATE);
+        widgetUpdate.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, new int[] { appWidgetId });
+
+        //create a pending intent
+        PendingIntent newPending = PendingIntent.getBroadcast(context, 0, widgetUpdate, 
+        		PendingIntent.FLAG_UPDATE_CURRENT);
+        
+        AlarmManager alarms = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        alarms.cancel(newPending);
     }
     
     /**

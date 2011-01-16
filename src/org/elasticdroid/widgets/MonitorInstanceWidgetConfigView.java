@@ -18,6 +18,11 @@
  */
 package org.elasticdroid.widgets;
 
+import static org.elasticdroid.utils.MonitoringDurations.LAST_DAY;
+import static org.elasticdroid.utils.MonitoringDurations.LAST_HOUR;
+import static org.elasticdroid.utils.MonitoringDurations.LAST_SIX_HOURS;
+import static org.elasticdroid.utils.MonitoringDurations.LAST_TWELVE_HOURS;
+
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,24 +32,28 @@ import org.elasticdroid.R;
 import org.elasticdroid.db.ElasticDroidDB;
 import org.elasticdroid.model.CloudWatchMetricsModel;
 import org.elasticdroid.tpl.GenericActivity;
-import org.elasticdroid.utils.CloudWatchInput;
 import org.elasticdroid.utils.DialogConstants;
 
+import android.app.AlarmManager;
 import android.app.AlertDialog;
+import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.text.Html;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
-import android.widget.SpinnerAdapter;
 import android.widget.Toast;
 import android.widget.AdapterView.OnItemSelectedListener;
 
@@ -62,7 +71,7 @@ import com.amazonaws.services.cloudwatch.model.Dimension;
  * 9 Jan 2011
  */
 public class MonitorInstanceWidgetConfigView extends GenericActivity implements 
-	OnItemSelectedListener {
+	OnItemSelectedListener, OnClickListener {
 	
 	/** hashtable to store userdata (username, accesskey, secret accesskey) keyed by username*/
 	private Hashtable<String, ArrayList<String>> userData; 
@@ -171,6 +180,7 @@ public class MonitorInstanceWidgetConfigView extends GenericActivity implements
 				});
 		
 		//add a listener for the Save button
+		((Button)findViewById(R.id.monitorInstanceWidgetSaveConfig)).setOnClickListener(this);
 	}
 	
 	/**
@@ -449,6 +459,24 @@ public class MonitorInstanceWidgetConfigView extends GenericActivity implements
 	}
 	
 	/**
+	 * Handle the event of the save button being clicked.
+	 */
+	@Override
+	public void onClick(View v) {
+		//first off, save all of the data collected into a shared preferences object
+		saveSharedPreferences();
+		
+		//create a result intent and send it to the widget
+		Intent resultValue = new Intent();
+		resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+		setResult(RESULT_OK, resultValue);
+		
+		MonitorInstanceWidget.setAlarm(getApplicationContext(), appWidgetId);
+		
+		finish();
+	}
+
+	/**
 	 * Queries the SQLite database for the list of watched instances and saves it in the 
 	 * watchedInstances member variable
 	 */
@@ -521,9 +549,30 @@ public class MonitorInstanceWidgetConfigView extends GenericActivity implements
 			instancesSpinner.setAdapter(instancesAdapter);
 			instancesSpinner.setOnItemSelectedListener(this);
 			instancesSpinner.setSelection(selectedWatchedInstancePos);
+			
+			//enable it!
+			Log.v(TAG, "Enable watched instances spinner...");
+			instancesSpinner.setEnabled(true);
 		}
 		else {
-			Log.v(TAG, "No data in watched instances.");
+			Log.v(TAG, "No data in watched instances. Clearing measures...");
+		
+			measureNames = null; //redundant assignment
+			populateMeasureSpinner(); //clear measure spinner
+			
+			//set an alarm up
+			alertDialogMessage = this.getString(R.string.monitorinstancewidget_nowatchedinstances);
+			alertDialogDisplayed = true;
+			killActivityOnError = false;
+			
+			Log.v(TAG, "Disable watched instances spinner...");
+			instancesSpinner.setEnabled(false);
+		}
+		
+		//if failed, then display dialog box.
+		if ((alertDialogDisplayed) && !(alertDialogBox.isShowing())){
+			alertDialogBox.setMessage(alertDialogMessage);
+			alertDialogBox.show();
 		}
 	}
 
@@ -537,6 +586,9 @@ public class MonitorInstanceWidgetConfigView extends GenericActivity implements
 		
 		if ( (measureNames == null) || (measureNames.size() == 0) ) {
 			Log.v(TAG, "No measures data!");
+			
+			Log.v(TAG, "Disable measures spinner...");
+			measureSpinner.setEnabled(false);
 		}
 		else {
 			ArrayAdapter<String> measuresAdapter = new ArrayAdapter<String>(
@@ -550,6 +602,9 @@ public class MonitorInstanceWidgetConfigView extends GenericActivity implements
 			measureSpinner.setAdapter(measuresAdapter);
 			measureSpinner.setOnItemSelectedListener(this);
 			measureSpinner.setSelection(selectedMeasurePos);
+			
+			Log.v(TAG, "Enable measures spinner...");
+			measureSpinner.setEnabled(true);
 		}
 	}
 
@@ -569,38 +624,60 @@ public class MonitorInstanceWidgetConfigView extends GenericActivity implements
 	/**
 	 * Utility method to save shared preferences.
 	 */
-	private void saveSharedPreferences(HashMap<String, String> connectionData, String 
-			selectedRegion, String instanceId, CloudWatchInput cloudWatchInput) {
-		//get an editor for the shared preferences
+	private void saveSharedPreferences() {
+		//create a Shared Preferences object, and get an editor for it.
 		SharedPreferences.Editor preferencesEditor = this.getSharedPreferences(
 				MONITORINSTANCEWIDGET_SHARED_PREF,
 				MODE_PRIVATE)
-				.edit();
+			.edit();
 		
-		//we cannot put serializables into preferencesEditor. Bugger.
-		preferencesEditor.putString("username", connectionData.get("username"));
-		preferencesEditor.putString("accessKey", connectionData.get("accessKey"));
-		preferencesEditor.putString("secretAccessKey", connectionData.get("secretAccessKey"));
+		//get all of the preferences data we need to save
+		String selectedUsername = ((Spinner)findViewById(R.id.
+				monitorInstanceWidgetConfigUsernameSpinner)).getSelectedItem().toString();
+		String selectedInstance = ((Spinner)findViewById(R.id.
+				monitorInstanceWidgetConfigWatchedInstanceSpinner)).getSelectedItem().toString();
+		String selectedRegion = watchedInstances.get(selectedInstance);
+		String selectedMeasure = ((Spinner)findViewById(R.id.
+				monitorInstanceWidgetConfigMeasureSpinner)).getSelectedItem().toString();
+		String selectedDurationStr = ((Spinner)findViewById(R.id.
+				monitorInstanceWidgetConfigDurationSpinner)).getSelectedItem().toString();
 		
-		//write the selected region in
-		preferencesEditor.putString("selectedRegion", selectedRegion);
-		//write the selected instance ID in
-		preferencesEditor.putString("instanceId", instanceId);
-		//write the CloudWatchInput details, such as start time, end time, namespace etc
-		preferencesEditor.putString("measureName", cloudWatchInput.getMeasureName());
-		preferencesEditor.putLong("startTime", cloudWatchInput.getStartTime());
-		preferencesEditor.putLong("endTime", cloudWatchInput.getEndTime());
-		preferencesEditor.putInt("period", cloudWatchInput.getPeriod());
-		preferencesEditor.putString("namespace", cloudWatchInput.getNamespace());
-	
-		//we cannot write arraylist in. So we will have to write in multiple Strings.
-		//this *SUCKS*!
-		//TODO this is nasty. Can anybody think of anything better?
-		int count = 0; //count to add to each statistic
-		//write the stats in
-		for (String statistic : cloudWatchInput.getStatistics()) {
-			preferencesEditor.putString("statistic_" + count++, statistic);
+		//TODO period is currently hard coded to 5 minutes for development purposes
+		long selectedPeriod = 300000;
+		//TODO refresh interval is currently hard coded to 30 seconds for dev purposes
+		long selectedInterval = 30000;
+		
+		//get the integer duration
+		long selectedDuration = 0;
+		if (selectedDurationStr.equals(LAST_HOUR.getString(this))) {
+			selectedDuration = LAST_HOUR.getDuration();
 		}
+		else if (selectedDurationStr.equals(LAST_SIX_HOURS.getString(this))) {
+			selectedDuration = LAST_SIX_HOURS.getDuration();
+		}
+		else if (selectedDurationStr.equals(LAST_TWELVE_HOURS.getString(this))) {
+			selectedDuration = LAST_TWELVE_HOURS.getDuration();
+		}
+		else if (selectedDurationStr.equals(LAST_DAY.getString(this))) {
+			selectedDuration = LAST_DAY.getDuration(); 
+		}
+		
+		//write all of this data into the preferences editor
+		preferencesEditor.putString("username", selectedUsername);
+		preferencesEditor.putString("instance", selectedInstance);
+		preferencesEditor.putString("region", selectedRegion);
+		preferencesEditor.putString("measure", selectedMeasure);
+		preferencesEditor.putLong("duration", selectedDuration);
+		preferencesEditor.putLong("period", selectedPeriod);
+		preferencesEditor.putLong("interval", selectedInterval);
+		//TODO statistics is hard-coded to Average
+		preferencesEditor.putString("statistics", "Average");
+		
+		//mark the config as valid
+		preferencesEditor.putBoolean("configValid", true);
+		
+		//commit the changes to the preferences
+		preferencesEditor.commit();
 	}
 
 	/**
@@ -610,36 +687,4 @@ public class MonitorInstanceWidgetConfigView extends GenericActivity implements
 	public void onCancel(DialogInterface dialog) {
 		metricsModel.cancel(true);
 	}
-	
-	/*
-	 * 		int appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
-	     Intent intent = getIntent();
-	     Bundle extras = intent.getExtras();
-	     if (extras != null) {
-	         appWidgetId = extras.getInt(
-	                 AppWidgetManager.EXTRA_APPWIDGET_ID,
-	                 AppWidgetManager.INVALID_APPWIDGET_ID);
-	     }
-	  
-	     // If they gave us an intent without the widget id, just bail.
-	     if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
-	    	 Log.v(TAG, "EPIC FAIL!");
-	         finish();
-	     }		
-	 * 
-	 * final Context context = MonitorInstanceWidgetConfig.this;
-		AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);		
-	 * Intent widgetIntent = new Intent(MonitorInstanceWidget.MONITORINSTANCEWIDGET_UPDATE);
-		PendingIntent pendingIntent = PendingIntent.getBroadcast(MonitorInstanceWidgetConfig.this, 
-				0, widgetIntent, 0);
-		AlarmManager alarmManager = (AlarmManager)getSystemService(ALARM_SERVICE);
-		alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, new Date().getTime(), 20*1000, 
-				pendingIntent);
-		
-		MonitorInstanceWidget.saveAlarmInfo(alarmManager, pendingIntent);
-		Intent resultValue = new Intent();
-		resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
-		setResult(RESULT_OK, resultValue);
-		finish();
-	 */
 }
