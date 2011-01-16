@@ -752,28 +752,39 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			Intent sshConnectorIntent = new Intent();
 			sshConnectorIntent.setClassName("org.elasticdroid","org.elasticdroid.SshConnectorView");
 			
-			//not using IP address as theoretically DHCP lease can expire when connecting
-			//if Elastic IP is not used.
-			sshConnectorIntent.putExtra("hostname", instance.getPublicDnsName());
-			List<String> secGroupNames = instance.getSecurityGroupNames();
-			//breaking 100 character per line unwritten rule here as the code looks better this way
-			sshConnectorIntent.putExtra("securityGroups", 
-					secGroupNames.toArray(new String[secGroupNames.size()]));
-			sshConnectorIntent.putExtra("selectedRegion", selectedRegion);
-			sshConnectorIntent.putExtra(
-					"org.elasticdroid.EC2DashboardView.connectionData",
-					connectionData); // aws connection info
-			//start the activity
-			startActivity(sshConnectorIntent);
-			
+			//if the user deallocates Elastic IP address in the middle of all of this you won't have
+			//a public DNS name. Just issue an error and fuck off.
+			if (instance.getPublicDnsName() == null) {
+				alertDialogMessage = this.getString(R.string.ec2singleinstance_nopublicdns);
+				alertDialogDisplayed = true;
+				killActivityOnError = true;
+				instanceStateChanged = true; //force refresh of Display Instances list.
+				
+				alertDialogBox.setMessage(alertDialogMessage);
+				alertDialogBox.show();
+			}
+			else {
+				//not using IP address as theoretically DHCP lease can expire when connecting
+				//if Elastic IP is not used.
+				sshConnectorIntent.putExtra("hostname", instance.getPublicDnsName());
+				List<String> secGroupNames = instance.getSecurityGroupNames();
+				//breaking 100 character per line unwritten rule here as the code looks better this way
+				sshConnectorIntent.putExtra("securityGroups", 
+						secGroupNames.toArray(new String[secGroupNames.size()]));
+				sshConnectorIntent.putExtra("selectedRegion", selectedRegion);
+				sshConnectorIntent.putExtra(
+						"org.elasticdroid.EC2DashboardView.connectionData",
+						connectionData); // aws connection info
+				//start the activity
+				startActivity(sshConnectorIntent);
+			}
 			return true;
 			
 		case R.id.singleinstance_menuitem_refresh:
 			//create the model and launch it with the filter
-			if (isElasticIpAssigned == null) {
-				Log.v(TAG, "Elastic IP check has not been done. Redo!");
-				executeElasticIpModel();
-			}
+			//execute Elastic IP model as well as EC2 instance model
+			//this is because Elastic IPs may have been assigned/deassigned. 
+			executeElasticIpModel();
 			executeEC2InstanceModel();
 			return true;
 			
@@ -1031,12 +1042,29 @@ class EC2SingleInstanceAdapter extends ArrayAdapter<RowData> {
 				if (isElasticIpAssigned) {
 					instanceMetricTextView.setText(context.getString(R.string.
 							ec2singleinstance_elastic_ip));
-					instanceDataTextView.setText(Html.fromHtml(instance.getPublicIpAddress()));
+					
+					//to handle bug: http://code.google.com/p/elastic-droid/issues/detail?id=13
+					//AWS doesn't seem to assign public DNS names to instances that
+					//have their Elastic IPs removed midway.
+					if (instance.getPublicIpAddress() != null) {
+						instanceDataTextView.setText(Html.fromHtml(instance.getPublicIpAddress()));
+					}
+					else {
+						instanceDataTextView.setText(context.getString(R.string.
+								ec2singleinstance_nopublicdns));
+					}
 				}
 				else {
 					instanceMetricTextView.setText(context.getString(R.string.
 							ec2singleinstance_public_ip));
-					instanceDataTextView.setText(Html.fromHtml(instance.getPublicIpAddress()));				
+					
+					if (instance.getPublicIpAddress() != null) {
+						instanceDataTextView.setText(Html.fromHtml(instance.getPublicIpAddress()));
+					}
+					else {
+						instanceDataTextView.setText(context.getString(R.string.
+								ec2singleinstance_nopublicdns));
+					}
 				}
 			}
 			else {

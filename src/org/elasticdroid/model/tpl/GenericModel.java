@@ -151,11 +151,18 @@ public abstract class GenericModel<T,U,V> extends AsyncTask<T, U, V> {
 	protected void onCancelled () {
 		Log.v(this.getClass().getName(), "Cancelled!");
 		//call the model results with a null
+		//do not call processModelResults if the user has already reset the activity or
+		//list activity to null. This can happen if hte user presses the back button in a
+		//view that is executing a model in the background WITHOUT the progress dialog displaying.
 		if (listActivityUsed) {
-			listActivity.processModelResults(null);
+			if (listActivity != null) {
+				listActivity.processModelResults(null);
+			}
 		}
 		else {
-			activity.processModelResults(null);
+			if (activity != null) {
+				activity.processModelResults(null);
+			}
 		}
 	}
 }

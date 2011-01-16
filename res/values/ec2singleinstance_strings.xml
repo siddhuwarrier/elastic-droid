@@ -18,4 +18,5 @@
 <string name="ec2singleinstance_menu_modifysecgroup">Modify Security Group</string>
 <string name="ec2singleinstance_menu_ssh">Connect (SSH)</string>
 <string name="ec2singleinstance_cannotcontrol">Could not start/stop instance.</string>
+<string name="ec2singleinstance_nopublicdns">Instance has no public DNS.</string>
 </resources>
