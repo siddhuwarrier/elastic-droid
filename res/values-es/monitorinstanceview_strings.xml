@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="monitorinstanceview_graphtype">Graph Options</string>
-	<string name="monitorinstanceview_measure">Measure</string>
-	<string name="monitorinstanceview_duration">Duration</string>
+	<string name="monitorinstanceview_graphtype">Opciones de Gráfica</string>
+	<string name="monitorinstanceview_measure">Medida</string>
+	<string name="monitorinstanceview_duration">Duración</string>
 	<string-array name="monitorinstanceview_duration_array">
-		<item>Last hour</item>
-		<item>Last 6 hours</item>
-		<item>Last 12 hours</item>
-		<item>Last 24 hours</item>
+		<item>Última Hora</item>
+		<item>Últimas 6 horas</item>
+		<item>Últimas 12 horas</item>
+		<item>Últimas 24 horas</item>
 	</string-array>
-	<string name="monitorinstanceview_interval">Sample interval (min)</string>
-	<string name="monitorinstanceview_change">Change</string>
-	<string name="monitorinstanceview_nodata">No data found for period.</string>
-	<string name="monitorinstanceview_default">Set as default</string>
-	<string name="monitorinstanceview_watch">Watch this instance</string>
-	<string name="monitorinstanceview_watch_alert">This instance is now being watched. From 
-	the next release, you will be able to access watched instances more easily.</string>
-	<string name="monitorinstanceview_cannotsave">Could not save monitoring defaults to DB</string>
+	<string name="monitorinstanceview_interval">Intervalo de Muestreo (min)</string>
+	<string name="monitorinstanceview_change">Cambio</string>
+	<string name="monitorinstanceview_nodata">No hay datos para el período.</string>
+	<string name="monitorinstanceview_default">Ajustar como valor por defecto</string>
+	<string name="monitorinstanceview_watch">Observar esta instancia</string>
+	<string name="monitorinstanceview_watch_alert">Esta instancia se está observando. A 
+	partir de la siguiente entrega, podrá acceder a las instancias observadas de manera más sencilla.
+	</string>
+	<string name="monitorinstanceview_cannotsave">No se pudieron guardar los ajustes de monitoreo a la BD.</string>
+	<string name="monitorinstanceview_nomeasures">No se encontraron mediciones.</string>
 </resources>
