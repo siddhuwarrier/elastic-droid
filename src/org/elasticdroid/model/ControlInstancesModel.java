@@ -33,51 +33,133 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
-import com.amazonaws.services.ec2.model.InstanceStateChange;
+import com.amazonaws.services.ec2.model.CreateTagsRequest;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
 import com.amazonaws.services.ec2.model.StartInstancesResult;
 import com.amazonaws.services.ec2.model.StopInstancesRequest;
 import com.amazonaws.services.ec2.model.StopInstancesResult;
+import com.amazonaws.services.ec2.model.Tag;
 
 /**
- * Model to allow user to start and stop instances
+ * Model to allow user to control instance attributes:
+ * <ul>
+ * 	<li>Start instance</li>
+ * 	<li>Stop instance </li>
+ * 	<li>Set/change instance tag (tag key = name) </li>
+ * </ul>
  * @author siddhu
  *
  * 7 Jan 2011
  */
 public class ControlInstancesModel extends GenericModel<String, Void, Object> {
 	
+	/** 
+	 * Enumeration to indicate type of control to perform 
+	 * */
+	public static enum ControlType {
+		START_INSTANCE,
+		STOP_INSTANCE,
+		TAG_INSTANCE
+	}
 	/** The connection Data for AWS */
 	private HashMap<String, String> connectionData;
-	/** Boolean to indicate whether to stop an instance or start it */
-	private boolean stop;
+	
+	/** The operation to perform with this particular object */
+	private ControlType operationType;
+	
 	/** Logging tag */
 	private static final String TAG = "org.elasticdroid.model.ControlInstancesModel";
+	
+	/** The EC2 tags to create, if any. Used only with @link{ControlType#TAG_INSTANCE} */
+	private ArrayList<Tag> ec2Tags;
+	
 	/**
-	 * Initialise the model by supplying connection data
+	 * Initialise the model by supplying connection data to start/stop instances
+	 * 
+	 * DO NOT USE THIS CONSTRUCTOR IF YOU ARE GOING TO TAG AN INSTANCE! YOU WILL GET AN ILLEGAL
+	 * ARGUMENT EXCEPTION WHEN YOU EXECUTE IN BACKGROUND.
 	 * 
 	 * @param activity
+	 * @param connectionData The AWS connection data
+	 * @param operation Type: Start instance, stop instance, or tag instance. 
 	 */
 	public ControlInstancesModel(GenericActivity activity, HashMap<String, String> connectionData
-			, boolean stop) {
+			, ControlType operationType) {
 		super(activity);
 		
 		this.connectionData = connectionData;
-		this.stop = stop;
+		this.operationType = operationType;
+		//set the tag to null
+		this.ec2Tags = null;
 	}
 
 	/**
-	 * Initialise the model by supplying connection data
+	 * Initialise the model by supplying connection data to start/stop instances
 	 * 
-	 * @param activity
+	 * DO NOT USE THIS CONSTRUCTOR IF YOU ARE GOING TO TAG AN INSTANCE! YOU WILL GET AN ILLEGAL
+	 * ARGUMENT EXCEPTION WHEN YOU EXECUTE IN BACKGROUND.
+	 * 
+	 * @param listActivity
+	 * @param connectionData The AWS connection data
+	 * @param operation Type: Start instance, stop instance, or tag instance.
 	 */
 	public ControlInstancesModel(GenericListActivity listActivity, HashMap<String, String> 
-		connectionData, boolean stop) {
+		connectionData, ControlType operationType) {
 		super(listActivity);
 		
 		this.connectionData = connectionData;
-		this.stop = stop;
+		this.operationType = operationType;
+		//set the tag to null
+		this.ec2Tags = null;
 	}
+	
+	/**
+	 * Initialise the model by supplying connection data to tag instances. Requires additional
+	 * argument specifying the tag to use.
+	 * 
+	 * @param activity
+	 * @param connectionData The AWS connection data
+	 * @param operation Type: Start instance, stop instance, or tag instance.
+	 * @param ec2Tagnames: The list of tagnames to assign the instances.
+	 */
+	public ControlInstancesModel(GenericActivity activity, HashMap<String, String> connectionData
+			, ControlType operationType, List<String> ec2Tagnames) {
+		super(activity);
+		
+		this.connectionData = connectionData;
+		this.operationType = operationType;
+		
+		ec2Tags = new ArrayList<Tag>();
+		//create a list of Tags.
+		for (String ec2Tagname : ec2Tagnames) {
+			ec2Tags.add(new Tag("Name", ec2Tagname));
+		}
+	}
+
+	/**
+	 * Initialise the model by supplying connection data to start/stop instances. Requires 
+	 * additional argument specifying the tag to use
+	 * 
+	 * @param listActivity
+	 * @param connectionData The AWS connection data
+	 * @param operation Type: Start instance, stop instance, or tag instance.
+	 * @param ec2Tagnames: The list of tagnames to assign the instances.
+	 */
+	public ControlInstancesModel(GenericListActivity listActivity, HashMap<String, String> 
+		connectionData, ControlType operationType, List<String> ec2Tagnames) {
+		super(listActivity);
+		
+		this.connectionData = connectionData;
+		this.operationType = operationType;
+
+		ec2Tags = new ArrayList<Tag>();
+		//create a list of Tags.
+		for (String ec2Tagname : ec2Tagnames) {
+			ec2Tags.add(new Tag("Name", ec2Tagname));
+		}
+	}
+	
+	
 	
 	/**
 	 * @param instances List of instances to stop or start
@@ -94,7 +176,13 @@ public class ControlInstancesModel extends GenericModel<String, Void, Object> {
 		}
 		
 		//call controlInstances to do the actual job.
-		return controlInstances(Arrays.asList(instances));
+		if ((operationType == ControlType.START_INSTANCE) && 
+				(operationType == ControlType.STOP_INSTANCE)) {
+			return controlInstances(Arrays.asList(instances));
+		}
+		else {
+			return tagInstance(Arrays.asList(instances));
+		}
 	}
 	
 	/**
@@ -107,8 +195,8 @@ public class ControlInstancesModel extends GenericModel<String, Void, Object> {
 	 * <ul>
 	 * 	<li>newInstanceStates: Returns a list of stateCodes and state names for all of the instances
 	 * 	</li>
-	 * 	<li> </li>
-	 * 	<li> </li>
+	 * 	<li> AmazonServiceException</li>
+	 * 	<li> AmazonClientException</li>
 	 * </ul>
 	 * 
 	 */
@@ -130,7 +218,7 @@ public class ControlInstancesModel extends GenericModel<String, Void, Object> {
 		}
 		
 		//if you want to start an instance
-		if (!stop) {
+		if (operationType == ControlType.START_INSTANCE) {
 			StartInstancesRequest request = new StartInstancesRequest(instances);
 			StartInstancesResult result = null;
 			try {
@@ -168,5 +256,55 @@ public class ControlInstancesModel extends GenericModel<String, Void, Object> {
 		}
 		
 		return null;
+	}
+	
+	/**
+	 * Create/override tags of key name for the instances.
+	 * @param instances: list of instances
+	 * @return
+	 * <ul>
+	 * 	<li> true: to indicate success in reassigning the tags </li>
+	 * 	<li>IllegalArgumentException: If the number of instances != number of tags</li>
+	 * <li>AmazonServicesException: Serverside issues with AWS</li>
+	 * <li>AmazonClientException: (Probably) connectivity issues</li>
+	 * </ul>
+	 */
+	public Object tagInstance(List<String> instances) {
+		
+		if (instances.size() != ec2Tags.size()) {
+			return new IllegalArgumentException("The number of instances should be equal to be " +
+					"the number");
+		}
+		//create credentials using the BasicAWSCredentials class
+		BasicAWSCredentials credentials = new BasicAWSCredentials(connectionData.get("accessKey"),
+				connectionData.get("secretAccessKey"));
+		//create Amazon EC2 Client object, and set tye end point to the region. params[3]
+		//contains endpoint
+		AmazonEC2Client amazonEC2Client = new AmazonEC2Client(credentials);
+		
+		//override the default connection endpoint if provided.
+		if (connectionData.get("endpoint") != null) {
+			amazonEC2Client.setEndpoint(connectionData.get("endpoint"));
+		}
+		
+		//create a TagsRequest
+		for (String instance : instances) {
+			Log.v(TAG, "Tagging " + instance);
+		}
+		CreateTagsRequest request = new CreateTagsRequest(instances, ec2Tags);
+		
+		
+		//okay, tag the instance
+		try {
+			amazonEC2Client.createTags(request);
+		}
+		catch(AmazonServiceException amazonServiceException) {
+			return amazonServiceException;
+		}
+		catch(AmazonClientException amazonClientException) {
+			return amazonClientException;
+		}
+		
+		return new Boolean(true); //return true to indicate success!
 	}
 }

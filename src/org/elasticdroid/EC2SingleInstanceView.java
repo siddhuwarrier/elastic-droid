@@ -27,6 +27,7 @@ import java.util.List;
 import org.elasticdroid.model.ControlInstancesModel;
 import org.elasticdroid.model.EC2InstancesModel;
 import org.elasticdroid.model.ElasticIPsModel;
+import org.elasticdroid.model.ControlInstancesModel.ControlType;
 import org.elasticdroid.model.ds.SerializableAddress;
 import org.elasticdroid.model.ds.SerializableInstance;
 import org.elasticdroid.tpl.GenericListActivity;
@@ -34,8 +35,6 @@ import org.elasticdroid.utils.DialogConstants;
 import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
 
 import android.app.AlertDialog;
-import android.app.Dialog;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -196,17 +195,6 @@ public class EC2SingleInstanceView extends GenericListActivity {
 		setContentView(R.layout.ec2singleinstance); //tell the activity to set the xml file
 		
 		this.setTitle(connectionData.get("username")+ " (" + selectedRegion +")"); //set title
-		
-		//set the rest of the UI elements
-		//if there is no tag called "name" (case insensitive), set instance ID
-		if (instance.getTag() == null) {
-			((TextView)findViewById(R.id.ec2SingleInstanceName)).setText(Html.fromHtml(String.format(
-					this.getString(R.string.ec2singleinstance_tag), instance.getInstanceId())));
-		}
-		else {
-			((TextView)findViewById(R.id.ec2SingleInstanceName)).setText(Html.fromHtml(String.format(
-					this.getString(R.string.ec2singleinstance_tag), instance.getTag())));			
-		}
 	}
 	
 	/**
@@ -294,6 +282,17 @@ public class EC2SingleInstanceView extends GenericListActivity {
 		super.onResume(); //call superclass onResume()
 		
 		Log.v(TAG + ".onResume()", "onResume");
+		
+		//set the rest of the UI elements
+		//if there is no tag called "Name" (case sensitive), set instance ID
+		if (instance.getTag() == null) {
+			((TextView)findViewById(R.id.ec2SingleInstanceName)).setText(Html.fromHtml(String.format(
+					this.getString(R.string.ec2singleinstance_tag), instance.getInstanceId())));
+		}
+		else {
+			((TextView)findViewById(R.id.ec2SingleInstanceName)).setText(Html.fromHtml(String.format(
+					this.getString(R.string.ec2singleinstance_tag), instance.getTag())));			
+		}
 		
 		//don't execute ElasticIpModel if instance is stopped or summat
 		if (instance.getStateCode() != InstanceStateConstants.RUNNING) {
@@ -415,21 +414,33 @@ public class EC2SingleInstanceView extends GenericListActivity {
 	
 	/**
 	 * Execute ControlInstancesModel
+	 * @param Do we wish to tag this instance, or start/restart it.
 	 */
-	private void executeControlInstancesModel() {
+	private void executeControlInstancesModel(boolean tag) {
 		instanceStateChanged = true;
 		Log.v(TAG, "Instance state changed: " + instanceStateChanged);
 		
-		if (instance.getStateCode() == InstanceStateConstants.RUNNING) {
-			controlInstancesModel = new ControlInstancesModel(this, connectionData, true);
-			
-			//execute model
-			controlInstancesModel.execute(instance.getInstanceId());
+		if (!tag) {
+			if (instance.getStateCode() == InstanceStateConstants.RUNNING) {
+				controlInstancesModel = new ControlInstancesModel(this, connectionData, 
+						ControlType.STOP_INSTANCE);
+				
+				//execute model
+				controlInstancesModel.execute(instance.getInstanceId());
+			}
+			else if (instance.getStateCode() == InstanceStateConstants.STOPPED) {
+				controlInstancesModel = new ControlInstancesModel(this, connectionData, 
+						ControlType.START_INSTANCE);
+				
+				//execute model
+				controlInstancesModel.execute(instance.getInstanceId());
+			}
 		}
-		else if (instance.getStateCode() == InstanceStateConstants.STOPPED) {
-			controlInstancesModel = new ControlInstancesModel(this, connectionData, false);
+		else {
+			Log.v(TAG, "Tagging instance...");
+			controlInstancesModel = new ControlInstancesModel(this, connectionData, 
+					ControlType.TAG_INSTANCE, Arrays.asList(new String[]{instance.getTag()}));
 			
-			//execute model
 			controlInstancesModel.execute(instance.getInstanceId());
 		}
 	}
@@ -575,6 +586,10 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			Log.v(TAG, "Result size: " + ((ArrayList<SerializableInstance>) result).size());
 			instance = ((ArrayList<SerializableInstance>) result).get(0);
 			
+			//change the title, just in case
+			((TextView)findViewById(R.id.ec2SingleInstanceName)).setText(Html.fromHtml(String.format(
+					this.getString(R.string.ec2singleinstance_tag), instance.getTag())));
+			
 			if (isElasticIpAssigned != null) {
 				//populate the list
 				setListAdapter(new EC2SingleInstanceAdapter(this, R.layout.ec2singleinstance, 
@@ -653,6 +668,9 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			if (expectedState >= 0) {
 				autoRefreshEC2InstanceModel(expectedState);
 			}
+		}
+		else if (result instanceof Boolean) {
+			Log.v(TAG, "Successfully tagged instance.");
 		}
 		else if (result instanceof AmazonServiceException) {
 			// if a server error
@@ -809,7 +827,22 @@ public class EC2SingleInstanceView extends GenericListActivity {
 				return false;
 			}
 			
-			executeControlInstancesModel(); //execute control instances model to start/stop instance			
+			executeControlInstancesModel(false); //execute control instances model 
+			//to start/stop instance			
+			return true;
+		
+		case R.id.singleinstance_menuitem_tag:
+			Intent startIntent = new Intent();
+			startIntent.setClassName("org.elasticdroid", "org.elasticdroid.TagView");
+			
+			Log.v(TAG, "Instance ID: " + instance.getInstanceId());
+			startIntent.putExtra("instanceId", instance.getInstanceId());
+			if (instance.getTag() != null) {
+				startIntent.putExtra("tag", instance.getTag());
+			}
+			
+			startActivityForResult(startIntent, 0); //second arg ignored
+			
 			return true;
 			
 		default:
@@ -865,6 +898,17 @@ public class EC2SingleInstanceView extends GenericListActivity {
 			else if (ec2InstancesModel != null) {
 				ec2InstancesModel.cancel(true);
 			}
+		}
+	}
+	
+	/**
+	 * Called when the tag changer returns.
+	 */
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent resultIntent) {
+		if (resultCode == RESULT_OK) {
+			instance.setTag(resultIntent.getStringExtra("tag"));
+			executeControlInstancesModel(true);
 		}
 	}
 }
@@ -1029,7 +1073,7 @@ class EC2SingleInstanceAdapter extends ArrayAdapter<RowData> {
 			instanceDataTextView.setText(Html.fromHtml(securityGroupString));
 			instanceStatusIcon.setImageResource(R.drawable.ic_lock_lock);
 			break;
-			
+		
 		case AMI_ID:
 			instanceMetricTextView.setText(context.getString(R.string.ec2singleinstance_ami));
 			instanceDataTextView.setText(Html.fromHtml(instance.getImageId()));
@@ -1118,3 +1162,4 @@ enum RowData {
 	AMI_ID,
 	IP_ADDRESS;
 }
+

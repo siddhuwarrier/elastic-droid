@@ -115,7 +115,9 @@ public class SerializableInstance implements Serializable {
 		//save the value of the tag to tagName. If not, set to null
 		tagName = null; //set to null by default
 		for (Tag tag : instance.getTags()) {
-			if (tag.getKey().equalsIgnoreCase("name")) {
+			//do not use ignore case, cuz otherwise when we tag instances using ElDroid we coul
+			//end up with multiple. If that doesn't make sense, please please trust me.
+			if (tag.getKey().equals("Name")) {
 				tagName = tag.getValue();
 				break;
 			}
@@ -240,5 +242,13 @@ public class SerializableInstance implements Serializable {
 	 */
 	public void setStateName(String stateName) {
 		this.stateName = stateName;
+	}
+	
+	/**
+	 * Set the tag for this {@link SerializableInstance}
+	 * @param {@link SerializableInstance#tagName}
+	 */
+	public void setTag(String tag) {
+		this.tagName = tag;
 	}
 }

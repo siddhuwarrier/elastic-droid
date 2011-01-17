@@ -24,6 +24,12 @@
 		android:enabled="false" 
 		android:icon="@drawable/ic_menu_stop"/>
 		
+	<item android:id="@+id/singleinstance_menuitem_tag" 
+		android:title="@string/ec2singleinstance_menu_tag" 
+		android:visible="true" 
+		android:enabled="true" 
+		android:icon="@drawable/tag"/>
+		
 	<item android:id="@+id/singleinstance_menuitem_altersecgroup" 
 		android:title="@string/ec2singleinstance_menu_modifysecgroup" 
 		android:visible="true" 

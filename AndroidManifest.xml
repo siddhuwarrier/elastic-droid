@@ -60,6 +60,11 @@
     	android:theme="@android:style/Theme.Dialog">
 	</activity>
 	
+	<activity 
+    	android:label="" android:name=".TagView"
+    	android:theme="@android:style/Theme.Dialog">
+	</activity>
+	
     <activity 
     	android:label="" android:name=".testharness.TestListActivity">
 	</activity>	    
