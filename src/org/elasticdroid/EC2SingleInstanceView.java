@@ -438,8 +438,17 @@ public class EC2SingleInstanceView extends GenericListActivity {
 		}
 		else {
 			Log.v(TAG, "Tagging instance...");
-			controlInstancesModel = new ControlInstancesModel(this, connectionData, 
+			
+			
+			if (instance.getTag() != null) {
+				controlInstancesModel = new ControlInstancesModel(this, connectionData, 
 					ControlType.TAG_INSTANCE, Arrays.asList(new String[]{instance.getTag()}));
+			}
+			//send an empty array over
+			else {
+				controlInstancesModel = new ControlInstancesModel(this, connectionData, 
+						ControlType.TAG_INSTANCE, Arrays.asList(new String[]{}));				
+			}
 			
 			controlInstancesModel.execute(instance.getInstanceId());
 		}
@@ -907,7 +916,14 @@ public class EC2SingleInstanceView extends GenericListActivity {
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent resultIntent) {
 		if (resultCode == RESULT_OK) {
-			instance.setTag(resultIntent.getStringExtra("tag"));
+			if (!resultIntent.getStringExtra("tag").trim().equals("")) {
+				instance.setTag(resultIntent.getStringExtra("tag"));
+			}
+			//the user deleted the tag.
+			else {
+				instance.setTag(null);
+			}
+			
 			executeControlInstancesModel(true);
 		}
 	}

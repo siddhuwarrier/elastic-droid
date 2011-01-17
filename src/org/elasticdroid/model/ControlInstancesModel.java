@@ -34,6 +34,7 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
+import com.amazonaws.services.ec2.model.DeleteTagsRequest;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
 import com.amazonaws.services.ec2.model.StartInstancesResult;
 import com.amazonaws.services.ec2.model.StopInstancesRequest;
@@ -181,7 +182,14 @@ public class ControlInstancesModel extends GenericModel<String, Void, Object> {
 			return controlInstances(Arrays.asList(instances));
 		}
 		else {
-			return tagInstance(Arrays.asList(instances));
+			if (ec2Tags.size() == 0) {
+				Log.v(TAG, "Deleting tags...");
+				return deleteTags(Arrays.asList(instances));
+			}
+			else {
+				//tag instance otherwise.
+				return tagInstance(Arrays.asList(instances));
+			}
 		}
 	}
 	
@@ -269,8 +277,7 @@ public class ControlInstancesModel extends GenericModel<String, Void, Object> {
 	 * <li>AmazonClientException: (Probably) connectivity issues</li>
 	 * </ul>
 	 */
-	public Object tagInstance(List<String> instances) {
-		
+	public Object tagInstance(List<String> instances) {		
 		if (instances.size() != ec2Tags.size()) {
 			return new IllegalArgumentException("The number of instances should be equal to be " +
 					"the number");
@@ -297,6 +304,44 @@ public class ControlInstancesModel extends GenericModel<String, Void, Object> {
 		//okay, tag the instance
 		try {
 			amazonEC2Client.createTags(request);
+		}
+		catch(AmazonServiceException amazonServiceException) {
+			return amazonServiceException;
+		}
+		catch(AmazonClientException amazonClientException) {
+			return amazonClientException;
+		}
+		
+		return new Boolean(true); //return true to indicate success!
+	}
+	
+	public Object deleteTags(List<String> instances) {
+		
+		//create credentials using the BasicAWSCredentials class
+		BasicAWSCredentials credentials = new BasicAWSCredentials(connectionData.get("accessKey"),
+				connectionData.get("secretAccessKey"));
+		//create Amazon EC2 Client object, and set tye end point to the region. params[3]
+		//contains endpoint
+		AmazonEC2Client amazonEC2Client = new AmazonEC2Client(credentials);
+		
+		//override the default connection endpoint if provided.
+		if (connectionData.get("endpoint") != null) {
+			amazonEC2Client.setEndpoint(connectionData.get("endpoint"));
+		}
+		
+		//create empty tags for each of the instances from which the name tag is to be deleted.
+		for (String instance : instances) {
+			Log.v(TAG, "Tagging " + instance);
+			//create a tag with Name for each instance from which Name tag is to be deleted.
+			ec2Tags.add(new Tag("Name"));
+		}
+
+		DeleteTagsRequest request = new DeleteTagsRequest(instances);
+		request.setTags(ec2Tags);
+
+		//okay, tag the instance
+		try {
+			amazonEC2Client.deleteTags(request);
 		}
 		catch(AmazonServiceException amazonServiceException) {
 			return amazonServiceException;

@@ -65,7 +65,7 @@ public class TagView extends Activity implements OnClickListener {
 		
 		this.setContentView(R.layout.tag);
 
-		this.setTitle("Set Tag for" + instanceId);
+		this.setTitle("Set Tag for " + instanceId);
 		
 		//set the OK button to read OK (in English at least)
 		Button okButton = ((Button)findViewById(R.id.okButton));
