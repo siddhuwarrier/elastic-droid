@@ -177,7 +177,7 @@ public class ControlInstancesModel extends GenericModel<String, Void, Object> {
 		}
 		
 		//call controlInstances to do the actual job.
-		if ((operationType == ControlType.START_INSTANCE) && 
+		if ((operationType == ControlType.START_INSTANCE) ||
 				(operationType == ControlType.STOP_INSTANCE)) {
 			return controlInstances(Arrays.asList(instances));
 		}

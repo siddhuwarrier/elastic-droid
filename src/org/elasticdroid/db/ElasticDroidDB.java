@@ -54,7 +54,7 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 	/** Name of database */
 	private static final String DATABASE_NAME = "elasticdroid.db";
 	/** Database version */
-	private static final int DATABASE_VERSION = 8;
+	private static final int DATABASE_VERSION = 9;
 	/** Logging tag */
 	private static final String TAG = "org.elasticdroid.db.ElasticDroidDB";
 
