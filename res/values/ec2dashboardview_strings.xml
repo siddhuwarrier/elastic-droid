@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 <string name="ec2dashview_title">EC2 Dashboard</string>
+<string name="ec2dashview_instancegroups"><b>Instance Groups: </b></string>
 <string name="ec2dashview_runninginstances"><b>Running Instances: </b></string>
 <string name="ec2dashview_stoppedinstances"><b>Stopped Instances: </b></string>
 <string name="ec2dashview_elasticip"><b>Elastic IPs: </b></string>
@@ -10,4 +11,5 @@
 Please file a bug report.</b></string>
 <string name="ec2dashview_region">Region:</string>
 <string name="dashboard_menu_default_region">Set default region</string>
+
 </resources>

@@ -23,10 +23,12 @@ import static org.elasticdroid.utils.ResultConstants.RESULT_ERROR;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import org.elasticdroid.db.ElasticDroidDB;
 import org.elasticdroid.model.EC2DashboardModel;
 import org.elasticdroid.model.RetrieveRegionModel;
+import org.elasticdroid.model.orm.InstanceGroup;
 import org.elasticdroid.tpl.GenericListActivity;
 import org.elasticdroid.utils.DialogConstants;
 import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
@@ -60,6 +62,7 @@ import com.amazonaws.AmazonServiceException;
  * The EC2 Dashboard shall display a ListView that contains the following
  * information:
  * <ul>
+ * <li>Number of instance groups.</li>
  * <li>Number of running instances.</li>
  * <li>Number of stopped instances.</li>
  * <li>AMIs (query AMIs, view AMIs registered by you).</li>
@@ -301,6 +304,9 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 
 		// restore default region
 		selectedRegion = stateToRestore.getString("selectedRegion");
+		Log.v(this.getClass().getName(),
+				"onRestoreInstanceState:selectedRegion="
+						+ selectedRegion);
 	}
 
 	/**
@@ -501,7 +507,6 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 				}
 				
 				populateRegionSpinner();
-				
 			}
 			else if (result instanceof AmazonServiceException) {
 				// if a server error
@@ -581,6 +586,7 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 			alertDialogBox.show();// show error
 		}
 	}
+
 
 	/**
 	 * Private method to repopulate spinners. gets region data if absent
@@ -672,6 +678,21 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 	private void populateEC2Dashboard() {
 		ArrayList<String> dashboardItems = new ArrayList<String>();
 
+		//get the instance groups count and add it to the dashboard items
+		Log.i(this.getClass().getName(), "(username, region): ("+ connectionData.get("username") + "," + selectedRegion +")");
+		
+		int instanceGroupCount = 0;
+		try{
+			instanceGroupCount = getInstanceGroupCount();
+		} catch (SQLException exception) {
+			Log.e(this.getClass().getName(),
+							"Couldn't query for the group instances count.");
+			finish();
+		}
+		dashboardItems.add(this
+				.getString(R.string.ec2dashview_instancegroups)
+				+ instanceGroupCount);
+		
 		// add entries to dashboard items
 		dashboardItems.add(this
 				.getString(R.string.ec2dashview_runninginstances)
@@ -691,6 +712,20 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 				android.R.layout.simple_list_item_1,
 				(String[]) dashboardItems.toArray(new String[dashboardItems
 						.size()])));
+	}
+
+	/**
+	 * Private method that queries the db for the count of instance groups
+	 * 
+	 * @return the count of instance groups
+	 * @throws SQLException
+	 */
+	private int getInstanceGroupCount() throws SQLException {
+	
+		Log.i(this.getClass().getName(), "(username, region): ("+ connectionData.get("username") + "," + selectedRegion +")");
+		return new ElasticDroidDB(this)
+			.instanceGroupCount(connectionData.get("username"), selectedRegion);
+
 	}
 
 	/**
@@ -720,6 +755,19 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 		Intent displayListIntent = new Intent();
 		
 		if (selectedItem.equals(this.getString(
+				R.string.ec2dashview_instancegroups))) {
+			displayListIntent.setClassName("org.elasticdroid",
+			"org.elasticdroid.EC2DisplayInstanceGroupsView");
+			displayListIntent.putExtra(
+					"org.elasticdroid.EC2DashboardView.connectionData",
+					connectionData); // aws connection info
+			
+			Log.v(TAG + ".onListItemClick:",
+					"Will now show list of instance groups ");
+			
+			displayListIntent.putExtra("selectedRegion", selectedRegion); // selected region
+		}
+		else if (selectedItem.equals(this.getString(
 				R.string.ec2dashview_runninginstances))) {
 			displayListIntent.setClassName("org.elasticdroid",
 			"org.elasticdroid.EC2DisplayInstancesView");
