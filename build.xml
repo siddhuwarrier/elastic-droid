@@ -264,7 +264,7 @@
 	                <extra-parameters />
 	                <arg line="${verbose.option}" />
 	                <arg path="${out.dex.input.absolute.dir}" />
-	            	<fileset dir="${jar.libs.absolute.dir}" includes="*.jar" />
+	            	<!-- <fileset dir="${jar.libs.absolute.dir}" includes="*.jar" /> -->
 	                <path refid="out.dex.jar.input.ref" />
 	                <external-libs />
 	            </apply>
