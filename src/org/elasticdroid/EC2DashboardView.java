@@ -679,8 +679,6 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 		ArrayList<String> dashboardItems = new ArrayList<String>();
 
 		//get the instance groups count and add it to the dashboard items
-		Log.i(this.getClass().getName(), "(username, region): ("+ connectionData.get("username") + "," + selectedRegion +")");
-		
 		int instanceGroupCount = 0;
 		try{
 			instanceGroupCount = getInstanceGroupCount();
@@ -721,8 +719,6 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 	 * @throws SQLException
 	 */
 	private int getInstanceGroupCount() throws SQLException {
-	
-		Log.i(this.getClass().getName(), "(username, region): ("+ connectionData.get("username") + "," + selectedRegion +")");
 		return new ElasticDroidDB(this)
 			.instanceGroupCount(connectionData.get("username"), selectedRegion);
 
