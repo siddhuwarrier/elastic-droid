@@ -29,6 +29,9 @@ package org.elasticdroid.model.orm;
  * 17 Ene 2011
  */
 import java.io.Serializable;
+import java.util.Set;
+
+import org.elasticdroid.model.ds.SerializableInstance;
 
 public class InstanceGroup implements Serializable {
 
@@ -38,18 +41,36 @@ public class InstanceGroup implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	/**
+	 * The instance group id
+	 */
+	private long id;
+	
+	/**
 	 * The instance group name
 	 */
 	private String groupName;
+	
+	/**
+	 * The instances belonging to the group
+	 */
+	private Set<SerializableInstance> instances;
 	
 	/**
 	 * Constructor to create an instance group
 	 * 
 	 * @param groupName
 	 */
-	public InstanceGroup(String groupName) {
+	public InstanceGroup(long id, String groupName) {
 		super();
 		this.groupName = groupName;
+	}
+	
+	public long getId() {
+		return id;
+	}
+
+	public void setId(long id) {
+		this.id = id;
 	}
 
 	public void setGroupName(String groupName) {
@@ -58,6 +79,14 @@ public class InstanceGroup implements Serializable {
 
 	public String getGroupName() {
 		return groupName;
+	}
+
+	public void setInstances(Set<SerializableInstance> instances) {
+		this.instances = instances;
+	}
+
+	public Set<SerializableInstance> getInstances() {
+		return instances;
 	}
 	
 }

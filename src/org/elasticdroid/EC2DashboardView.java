@@ -22,13 +22,12 @@ import static org.elasticdroid.utils.ResultConstants.RESULT_ERROR;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.HashMap; 
 
 import org.elasticdroid.db.ElasticDroidDB;
 import org.elasticdroid.model.EC2DashboardModel;
+import org.elasticdroid.model.EC2InstancesModel;
 import org.elasticdroid.model.RetrieveRegionModel;
-import org.elasticdroid.model.orm.InstanceGroup;
 import org.elasticdroid.tpl.GenericListActivity;
 import org.elasticdroid.utils.DialogConstants;
 import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
@@ -754,14 +753,16 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 				R.string.ec2dashview_instancegroups))) {
 			displayListIntent.setClassName("org.elasticdroid",
 			"org.elasticdroid.EC2DisplayInstanceGroupsView");
+			
+			displayListIntent.putExtra("selectedRegion", selectedRegion); // selected region
 			displayListIntent.putExtra(
 					"org.elasticdroid.EC2DashboardView.connectionData",
 					connectionData); // aws connection info
+
 			
 			Log.v(TAG + ".onListItemClick:",
-					"Will now show list of instance groups ");
+					"Will now show list of instance groups with connection data " + connectionData);
 			
-			displayListIntent.putExtra("selectedRegion", selectedRegion); // selected region
 		}
 		else if (selectedItem.equals(this.getString(
 				R.string.ec2dashview_runninginstances))) {
@@ -933,6 +934,13 @@ public class EC2DashboardView extends GenericListActivity implements OnItemSelec
 				}
 			}
 			
+		}
+		else if (data.getType().equals(EC2DisplayInstanceGroupsView.class.getName())) {
+			// RC
+			// it should only refresh the security groups count
+			// i'll go ahead and refresh everything
+			//TODO it should only refresh in case something changed 
+			defaultRegionChanged = true; 
 		}
 		else {
 			switch (resultCode) {

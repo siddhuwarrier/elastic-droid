@@ -514,10 +514,12 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 
 		SQLiteDatabase db = this.getReadableDatabase(); // handle to the DB
 
+		Log.v(TAG, "ListInstanceGroups (username, region): (" + username + "," + region + ")");
+		
 		// trying to get the instance groups
 		try {
 			Cursor igCursor = db.query(InstanceGroupTbl.TBL_NAME,
-					new String[] { InstanceGroupTbl.COL_GROUP_NAME },
+					new String[] { InstanceGroupTbl._ID, InstanceGroupTbl.COL_GROUP_NAME },
 					InstanceGroupTbl.COL_REGION + "= ? and "
 							+ InstanceGroupTbl.COL_USERNAME + " = ? ",
 					new String[] { region, username }, null, null, null);
@@ -528,7 +530,7 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 				// reading the instance group names
 				while (igCursor.moveToNext()) {
 					instanceGroups
-							.add(new InstanceGroup(igCursor.getString(0)));
+							.add(new InstanceGroup(igCursor.getLong(0), igCursor.getString(1)));
 				}
 			}
 		} finally {

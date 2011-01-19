@@ -51,6 +51,10 @@
 	</activity>
 	
 	<activity 
+    	android:label="" android:name=".EC2DisplayInstanceGroupsView">
+	</activity>
+	
+	<activity 
     	android:label="@string/regionsview_title" android:name=".DefaultRegionView"
     	android:theme="@android:style/Theme.Dialog">
 	</activity>
