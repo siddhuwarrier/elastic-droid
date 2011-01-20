@@ -18,6 +18,8 @@
  */
 package org.elasticdroid;
 
+import static org.elasticdroid.utils.ResultConstants.RESULT_ERROR;
+
 import java.util.HashMap;
 import java.util.List;
 
@@ -74,8 +76,7 @@ public class EC2DisplayInstanceGroupsView extends ListActivity {
 		try {
 			this.connectionData = (HashMap<String, String>) intent
 					.getSerializableExtra("org.elasticdroid.EC2DashboardView.connectionData");
-			this.selectedRegion = intent
-					.getStringExtra("selectedRegion");
+			this.selectedRegion = intent.getStringExtra("selectedRegion");
 		}
 		// the possible exceptions are NullPointerException: the Hashmap was not
 		// found, or
@@ -91,63 +92,116 @@ public class EC2DisplayInstanceGroupsView extends ListActivity {
 		// GUI
 		setContentView(R.layout.ec2instancegroups);
 		this.setTitle(selectedRegion);
-		
+
 		// get the list of instance groups from the database
-		Log.v(this.getClass().getName(), 
-				"Getting groups (username, region): (" + connectionData.get("username") + "," + selectedRegion + ")");
-		
-		instanceGroups = new ElasticDroidDB(this).listInstanceGroups(
-				connectionData.get("username"), selectedRegion);
+		Log.v(this.getClass().getName(), "Getting groups (username, region): ("
+				+ connectionData.get("username") + "," + selectedRegion + ")");
 
-
-		// Add New Instance Group to list of instance groups.
-		instanceGroups.add(new InstanceGroup(-1l, this
-				.getString(R.string.ec2instancegroupsview_new_instance_groups)));
-
-		// add the usernames to the list adapter to display
-		setListAdapter(new InstanceGroupAdapter(this, R.layout.ec2instancegroupsrow,
-				instanceGroups));
+		loadInstanceGroups();
 	}
-	
+
 	/**
 	 * Overriden listen method to capture clicks on List Item
 	 */
 	@Override
 	protected void onListItemClick(ListView list, View v, int position, long id) {
-		InstanceGroup selectedInstanceGroup = (InstanceGroup) list.getItemAtPosition(position);
-		
-		Log.v(this.getClass().getName(), "Item selected: " + selectedInstanceGroup.getGroupName());
-		
-		//if the user wants a new user.
-		if (selectedInstanceGroup.getGroupName().equals(
-				this.getString(R.string.ec2instancegroupsview_new_instance_groups))) {
-			Log.v(this.getClass().getName(), "Launching new instance group dialog");		
-			//the intent should carry the username and region
-			//launch new instance group dialog
-		}
-		else {
-			Log.v(this.getClass().getName(), "Display group instance");			
-			//show instances list
-			//the intent should carry the connection data and the group id
+		InstanceGroup selectedInstanceGroup = (InstanceGroup) list
+				.getItemAtPosition(position);
+
+		Log.v(this.getClass().getName(), "Item selected: "
+				+ selectedInstanceGroup.getGroupName());
+
+		Intent intent = new Intent();
+		// if the user wants a new instance group.
+		if (selectedInstanceGroup
+				.getGroupName()
+				.equals(this.getString(
+						R.string.ec2instancegroupsview_new_instance_groups))) {
+			// launch new instance group dialog
+			Log.v(this.getClass().getName(),
+					"Launching new instance group dialog");
+			intent.setClassName("org.elasticdroid",
+			"org.elasticdroid.InstanceGroupEditView");
+			
+			intent.putExtra("selectedRegion", selectedRegion); // selected region
+			intent.putExtra(
+					"org.elasticdroid.EC2DashboardView.connectionData",
+					connectionData); // aws connection info
+			
+			//TODO move the following statement after the if-then-else
+			startActivityForResult(intent, 0); //second arg ignored.
+
+		} else {
+			Log.v(this.getClass().getName(), "Display group instance");
+			// show instances list
+			// the intent should carry the connection data and the group id
 		}
 	}
-	
+
 	/**
 	 * Handle back button.
 	 */
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		//do not allow user to return to previous screen on pressing back button
+		// do not allow user to return to previous screen on pressing back
+		// button
 		if (keyCode == KeyEvent.KEYCODE_BACK) {
-			//return the failure to the mama class 
+			// return the failure to the mama class
 			Intent resultIntent = new Intent();
 			resultIntent.setType(this.getClass().getName());
-			
-			setResult(RESULT_CANCELED, resultIntent); //let the calling activity know that the user chose to 
-			//cancel
+
+			setResult(RESULT_CANCELED, resultIntent); // let the calling
+														// activity know that
+														// the user chose to
+			// cancel
 		}
-		
+
 		return super.onKeyDown(keyCode, event);
+	}
+
+	/**
+	 * Called when the default region setter returns.
+	 */
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		Log.v(this.getClass().getName() + "onActivityResult()",
+				"result intent from : " + data.resolveType(this));
+		Log.v(this.getClass().getName() + "onActivityResult()", "test: "
+				+ EC2DisplayInstancesView.class.toString());
+		Log.v(this.getClass().getName(), "Subactivity returned with result: "
+				+ resultCode);
+
+		// check which class returned the result intent
+		if (data.getType().equals(EC2DisplayInstancesView.class.getName())) {
+			switch (resultCode) {
+			case RESULT_ERROR:
+				Log.e(this.getClass().getName() + "onActivityResult",
+						data.getStringExtra("EXCEPTION_MSG"));
+				finish(); // kill the app off.
+				break;
+			case RESULT_OK:
+				Log.v(this.getClass().getName(),
+						"InstanceGroupEditView returned successfully.");
+
+				loadInstanceGroups();
+			}
+
+		}
+	}
+
+	private void loadInstanceGroups() {
+		instanceGroups = new ElasticDroidDB(this).listInstanceGroups(
+				connectionData.get("username"), selectedRegion);
+
+		// Add New Instance Group to list of instance groups.
+		instanceGroups
+				.add(new InstanceGroup(
+						-1l,
+						this.getString(R.string.ec2instancegroupsview_new_instance_groups)));
+
+		// add the usernames to the list adapter to display
+		setListAdapter(new InstanceGroupAdapter(this,
+				R.layout.ec2instancegroupsrow, instanceGroups));
 	}
 }
 
@@ -203,13 +257,15 @@ class InstanceGroupAdapter extends ArrayAdapter<InstanceGroup> {
 		// set main text view
 		TextView textViewHeadline = (TextView) instanceGroupDataRow
 				.findViewById(R.id.instanceGroupHeadline);
-		//TODO add instance count
-		// TextView textViewDetails =
-		// (TextView)instanceGroupDataRow.findViewById(R.id.instanceDetails);
-
+		TextView textViewDetails =
+		 (TextView)instanceGroupDataRow.findViewById(R.id.instanceGroupDetails);
+		
+		
 		InstanceGroup instanceGroup = instanceGroupsData.get(position);
 		textViewHeadline.setText(instanceGroup.getGroupName());
-
+		if(instanceGroup.getInstanceIds()!=null){ 
+			textViewDetails.setText(instanceGroup.getInstanceIds().size() + " " + R.string.ec2instancegroupsview_instances);
+		}
 		return instanceGroupDataRow;
 	}
 

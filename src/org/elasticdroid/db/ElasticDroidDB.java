@@ -23,10 +23,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Set;
 
 import org.elasticdroid.db.tblinfo.InstanceGroupTbl;
+import org.elasticdroid.db.tblinfo.InstanceTbl;
 import org.elasticdroid.db.tblinfo.LoginTbl;
 import org.elasticdroid.db.tblinfo.MonitorTbl;
 import org.elasticdroid.db.tblinfo.ResourceTypeTbl;
@@ -86,6 +89,7 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 		createResourceTypeTbl(db);
 		createMonitorTbl(db);
 		createInstanceGroupTbl(db);
+		createInstanceTbl(db);
 	}
 
 	/**
@@ -132,6 +136,7 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 			createMonitorTbl(db);
 		case 8:
 			createInstanceGroupTbl(db);
+			createInstanceTbl(db);
 		}
 	}
 
@@ -161,6 +166,16 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 				+ InstanceGroupTbl.COL_GROUP_NAME + " text not null, "
 				+ InstanceGroupTbl.FOREIGN_KEY_USERNAME + ");");
 	}
+	
+	private void createInstanceTbl(SQLiteDatabase db) {
+		db.execSQL("Create TABLE " + InstanceTbl.TBL_NAME + "("
+				+ InstanceTbl._ID + " integer primary key autoincrement, "
+				+ InstanceTbl.COL_INSTANCEID + " text not null, "
+				+ InstanceTbl.COL_INSTANCEGROUPID + " integer not null, "
+				+ InstanceTbl.FOREIGN_KEY_INSTANCEGROUPID + ");");
+		
+	}
+
 
 	private void createMonitorTbl(SQLiteDatabase db) {
 		db.execSQL("Create TABLE " + MonitorTbl.TBL_NAME + "(" + MonitorTbl._ID
@@ -446,6 +461,8 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 				watchedResources.put(monitorCursor.getString(0),
 						monitorCursor.getString(1));
 			}
+			
+			monitorCursor.close();
 		} catch (SQLException exception) {
 			throw exception;
 		} finally {
@@ -490,7 +507,8 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 
 			igCursor.moveToFirst();
 			count = igCursor.getInt(0);
-
+			igCursor.close();
+			
 		} catch (SQLException exception) {
 			throw exception;
 		} finally {
@@ -527,11 +545,27 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 			if (igCursor.getCount() >= 1) {
 				igCursor.moveToFirst();
 
-				// reading the instance group names
+				// reading the instance group names and instance ids
 				while (igCursor.moveToNext()) {
-					instanceGroups
-							.add(new InstanceGroup(igCursor.getLong(0), igCursor.getString(1)));
+					InstanceGroup instanceGroup = new InstanceGroup(
+							igCursor.getLong(0), igCursor.getString(1));
+					Set<String> instances = new HashSet<String>();
+					
+					Cursor iCursor = db.query(InstanceTbl.TBL_NAME,
+							new String[] { InstanceTbl.COL_INSTANCEID},
+							InstanceTbl.COL_INSTANCEGROUPID + "= ?",
+							new String[] { instanceGroup.getId().toString() }, 
+							null, null, null);
+					iCursor.moveToFirst();
+					while(iCursor.moveToNext()) {
+						instances.add(iCursor.getString(0));
+					}
+					iCursor.close();
+					
+					instanceGroup.setInstanceIds(instances);
+					instanceGroups.add(instanceGroup);
 				}
+				igCursor.close();
 			}
 		} finally {
 			db.close();

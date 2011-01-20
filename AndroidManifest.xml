@@ -55,6 +55,10 @@
 	</activity>
 	
 	<activity 
+    	android:label="" android:name=".InstanceGroupEditView">
+	</activity>
+	
+	<activity 
     	android:label="@string/regionsview_title" android:name=".DefaultRegionView"
     	android:theme="@android:style/Theme.Dialog">
 	</activity>
