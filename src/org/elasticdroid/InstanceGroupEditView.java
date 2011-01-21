@@ -9,13 +9,11 @@ import org.elasticdroid.model.EC2InstancesModel;
 import org.elasticdroid.model.ds.SerializableInstance;
 import org.elasticdroid.tpl.GenericListActivity;
 import org.elasticdroid.utils.DialogConstants;
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
+
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.DialogInterface.OnCancelListener;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
@@ -28,7 +26,10 @@ import android.widget.CheckedTextView;
 import android.widget.ListView;
 import android.widget.Toast;
 
-public class InstanceGroupEditView extends GenericListActivity implements OnCancelListener {
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
+
+public class InstanceGroupEditView extends GenericListActivity {
 
 	/** The selected region */
 	private String selectedRegion;
@@ -55,6 +56,11 @@ public class InstanceGroupEditView extends GenericListActivity implements OnCanc
      * Uses Serializable Instance and not AWS Instance. {@link SerializableInstance} 
      * */
     private ArrayList<SerializableInstance> instanceData;
+    
+    /**
+     * Logging tag
+     */
+    private static final String TAG = "org.elasticdroid.InstanceGroupEditView";
 	
 	@SuppressWarnings("unchecked")
 	@Override
@@ -113,8 +119,7 @@ public class InstanceGroupEditView extends GenericListActivity implements OnCanc
 					}
 				});
 		
-		//set the content view
-		setContentView(R.layout.instancegroupedit);
+		//set the content view		setContentView(R.layout.instancegroupedit);
 		//set the title
 		this.setTitle(connectionData.get("username") + " (" + selectedRegion +")");
 		
@@ -172,8 +177,11 @@ public class InstanceGroupEditView extends GenericListActivity implements OnCanc
 		
 			//if we have instance data, reload the list
 			if (instanceData != null) {
-				setListAdapter(new SelectableInstanceDisplayAdapter(this, R.layout.selectableinstancerow, 
-						instanceData));
+				setListAdapter(new SelectableInstanceDisplayAdapter(
+						this, 
+						R.layout.selectableinstancerow, 
+						instanceData)
+				);
 			}
 		}
 	}
@@ -253,17 +261,14 @@ public class InstanceGroupEditView extends GenericListActivity implements OnCanc
 	}
 	
 	
-	/** 
-	 * Handle cancel of progress dialog
-	 * @see android.content.DialogInterface.OnCancelListener#onCancel(android.content.
-	 * DialogInterface)
+	//private methods
+	/**
+	 * Execute the model to retrieve EC2 instance data for the selected region. The model
+	 * runs in a different thread and calls processModelResults when done.
 	 */
-	@Override
-	public void onCancel(DialogInterface dialog) {
-		//this cannot be called UNLESS the user has the model running.
-		//i.e. the prog bar is visible
-		progressDialogDisplayed = false;
-		ec2InstancesModel.cancel(true);
+	private void executeModel() {
+		ec2InstancesModel = new EC2InstancesModel(this, connectionData, selectedRegion);		
+		ec2InstancesModel.execute();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -300,8 +305,14 @@ public class InstanceGroupEditView extends GenericListActivity implements OnCanc
 				if (instanceData.size() != 0) {
 					//add the instances to the list adapter to display.
 					Log.v(this.getClass().getName(), "populating the list");
-					setListAdapter(new SelectableInstanceDisplayAdapter(this, R.layout.selectableinstancerow, 
-							instanceData));
+					setListAdapter(new SelectableInstanceDisplayAdapter(
+							this, 
+							R.layout.selectableinstancerow, 
+							instanceData)
+					);
+					
+					getListView().setFocusable(false);
+					getListView().setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
 				}
 				//if no data found, just show a String adapter
 				else {
@@ -363,24 +374,17 @@ public class InstanceGroupEditView extends GenericListActivity implements OnCanc
 		return super.onKeyDown(keyCode, event);
 	}
 	
-	/**
-	 * Handle the selection of a given instance, and pass the relevant SerializableInstance object
-	 * on.
+	/** 
+	 * Handle cancel of progress dialog
+	 * @see android.content.DialogInterface.OnCancelListener#onCancel(android.content.
+	 * DialogInterface)
 	 */
 	@Override
-	protected void onListItemClick(ListView list, View v, int position, long id) {
-		Log.v(this.getClass().getName()+".onListItemClick()", "onListItemClick");
-
-	}
-	
-	//private methods
-	/**
-	 * Execute the model to retrieve EC2 instance data for the selected region. The model
-	 * runs in a different thread and calls processModelResults when done.
-	 */
-	private void executeModel() {
-		ec2InstancesModel = new EC2InstancesModel(this, connectionData, selectedRegion);		
-		ec2InstancesModel.execute();
+	public void onCancel(DialogInterface dialog) {
+		//this cannot be called UNLESS the user has the model running.
+		//i.e. the prog bar is visible
+		progressDialogDisplayed = false;
+		ec2InstancesModel.cancel(true);
 	}
 	
 }
@@ -397,6 +401,9 @@ class SelectableInstanceDisplayAdapter extends ArrayAdapter<SerializableInstance
 	private ArrayList<SerializableInstance> instanceData;
 	/** Context; typically the Activity that sets an object of this class as the Adapter */
 	private Context context;
+	/**Logging tag */
+	private static String TAG = 
+		"org.elasticdroid.InstanceGroupEditView$SelectableInstanceDisplayAdapter";
 	/**
 	 * @param context
 	 * @param textViewResourceId
@@ -426,8 +433,15 @@ class SelectableInstanceDisplayAdapter extends ArrayAdapter<SerializableInstance
 			instanceDataRow = inflater.inflate(R.layout.selectableinstancerow, parent, false);
 		}
 		//set main text view
-		CheckedTextView checkedTextView = (CheckedTextView)instanceDataRow.findViewById(R.id.checkedInstanceTextView);
-		checkedTextView.setText(instanceData.get(position).getTag());
+		CheckedTextView checkedTextView = (CheckedTextView)instanceDataRow.findViewById(R.id.
+				CheckedTextView01);
+		
+		if (instanceData.get(position).getTag() != null) {
+			checkedTextView.setText(instanceData.get(position).getTag());
+		}
+		else {
+			checkedTextView.setText(instanceData.get(position).getInstanceId());
+		}
 		
 		return instanceDataRow;
 	}

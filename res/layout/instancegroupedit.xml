@@ -4,57 +4,17 @@
   android:layout_width="fill_parent"
   android:layout_height="fill_parent">
   
-   	<TextView
-        android:id="@+id/instanceGroupTextView"
+ 	<TextView
+        android:id="@+id/instanceGroupsTitleTextView"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:textSize="24.5sp"
-        android:text="@string/ec2instancegroupsview_new_instance_groups"/>
-        
-        <ScrollView android:id="@+id/RelativeScrollView"
+        android:text="@string/ec2instancegroupsview_title"
+        android:paddingBottom="20sp"
+        />
+	<ListView android:id="@id/android:list"
 		android:layout_width="fill_parent"
-		android:layout_height="fill_parent">
-    
-	    <!--  Relative Layout for the input form -->
-		<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-		    android:layout_width="fill_parent"
-		    android:layout_height="fill_parent"
-		    android:padding="20sp">
-		    <TextView
-		        android:id="@+id/groupnameTextView"
-		        android:layout_width="fill_parent"
-		        android:layout_height="wrap_content"
-		        android:text="@string/ec2instancegroupsview_groupname"/>
-		    <EditText
-		        android:id="@+id/groupnameEntry"
-		        android:layout_width="fill_parent"
-		        android:layout_height="wrap_content"
-		        android:layout_below="@id/groupnameTextView"/>
-		        
-		    <TextView
-		        android:id="@+id/instancesTextView"
-		        android:layout_marginTop="5sp"
-		        android:layout_width="fill_parent"
-		        android:layout_height="wrap_content"
-		        android:layout_below="@id/groupnameEntry"
-		        android:text="@string/ec2instancegroupsview_instances"/>
-		     
-		    <ListView android:id="@id/android:list"
-               android:layout_width="fill_parent"
-               android:layout_height="wrap_content"
-               android:layout_below="@id/instancesTextView"
-               android:layout_weight="1"
-               android:drawSelectorOnTop="false"/>
-		        
-		    <!-- Buttons -->
-		    <Button
-		        android:id="@+id/saveInstanceGroupButton"
-		        android:layout_width="fill_parent"
-		        android:layout_height="wrap_content"
-		        android:layout_below="@id/android:list"
-		        android:layout_marginTop="10sp"
-		        android:text="@string/ec2instancegroupsview_save" />
-		</RelativeLayout>
-	</ScrollView>
-  
+		android:layout_height="wrap_content"
+		android:layout_weight="1"
+		android:drawSelectorOnTop="false"/>
 </LinearLayout>

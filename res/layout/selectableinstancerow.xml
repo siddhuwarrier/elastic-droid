@@ -3,12 +3,13 @@
   xmlns:android="http://schemas.android.com/apk/res/android"
   android:layout_width="fill_parent"
   android:layout_height="fill_parent">
-
-
-<CheckedTextView android:text="@+id/checkedInstanceTextView" 
-	android:id="@+id/CheckedTextView01" 
-	android:layout_width="wrap_content"
- 	android:layout_height="wrap_content"
-  	android:layout_gravity="center_vertical">
- </CheckedTextView>
+	 <CheckedTextView 
+	 android:id="@+id/CheckedTextView01" 
+	 android:layout_width="fill_parent" 
+	 android:layout_height="?android:attr/listPreferredItemHeight" 
+	 android:textAppearance="?android:attr/textAppearanceLarge" 
+	 android:gravity="center_vertical" 
+	 android:checkMark="?android:attr/listChoiceIndicatorMultiple" 
+	 android:paddingLeft="6dip" 
+	 android:paddingRight="6dip"/>
 </LinearLayout>
