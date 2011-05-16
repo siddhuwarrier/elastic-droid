@@ -2,9 +2,12 @@ package org.elasticdroid;
 
 import static org.elasticdroid.utils.ResultConstants.RESULT_ERROR;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
+import org.elasticdroid.db.ElasticDroidDB;
 import org.elasticdroid.model.EC2InstancesModel;
 import org.elasticdroid.model.ds.SerializableInstance;
 import org.elasticdroid.tpl.GenericListActivity;
@@ -17,13 +20,22 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.view.ViewGroup.LayoutParams;
 import android.widget.ArrayAdapter;
 import android.widget.CheckedTextView;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.amazonaws.AmazonClientException;
@@ -60,7 +72,7 @@ public class InstanceGroupEditView extends GenericListActivity {
     /**
      * Logging tag
      */
-    private static final String TAG = "org.elasticdroid.InstanceGroupEditView";
+    private static final String TAG = InstanceGroupEditView.class.getName();
 	
 	@SuppressWarnings("unchecked")
 	@Override
@@ -119,7 +131,8 @@ public class InstanceGroupEditView extends GenericListActivity {
 					}
 				});
 		
-		//set the content view		setContentView(R.layout.instancegroupedit);
+		//set the content view
+		setContentView(R.layout.instancegroupedit);
 		//set the title
 		this.setTitle(connectionData.get("username") + " (" + selectedRegion +")");
 		
@@ -182,6 +195,9 @@ public class InstanceGroupEditView extends GenericListActivity {
 						R.layout.selectableinstancerow, 
 						instanceData)
 				);
+				
+				getListView().setItemsCanFocus(false);
+				getListView().setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
 			}
 		}
 	}
@@ -311,7 +327,7 @@ public class InstanceGroupEditView extends GenericListActivity {
 							instanceData)
 					);
 					
-					getListView().setFocusable(false);
+					getListView().setItemsCanFocus(false);
 					getListView().setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
 				}
 				//if no data found, just show a String adapter
@@ -387,6 +403,130 @@ public class InstanceGroupEditView extends GenericListActivity {
 		ec2InstancesModel.cancel(true);
 	}
 	
+	/**
+	 * Handle the selection of a given instance, and pass the relevant SerializableInstance object
+	 * on.
+	 */
+	@Override
+	protected void onListItemClick(ListView list, View v, int position, long id) {
+		Log.d(TAG, "Position clicked: " + position);
+		
+		/*getListView().setItemChecked(position, !getListView().isItemChecked(position));
+		getListView().isItemChecked(position);*/
+	}
+	
+	/**
+	 * Overridden method to display the menu on press of the menu key
+	 * 
+	 * Inflates and shows menu for displayed instances view.
+	 */
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.instancegroup_menu, menu);
+		return true;
+	}
+	
+	/**
+	 * Overriden method to handle selection of menu item
+	 */
+	@Override
+	public boolean onOptionsItemSelected(MenuItem selectedItem) {
+		switch (selectedItem.getItemId()) {
+		
+		case R.id.instancegroup_menuitem_save:
+			saveInstanceGroupDataToDb();
+			return true;
+		
+		default:
+			return super.onOptionsItemSelected(selectedItem);
+		}
+	}
+	
+	private List<String> instanceIds;
+	/**
+	 * Method to save instance group data to DB.
+	 */
+	private void saveInstanceGroupDataToDb() {
+		instanceIds = new ArrayList<String>();
+		
+		ListView instancesListView = getListView();
+		for (int listItemPos = 0; listItemPos < instancesListView.getCount(); listItemPos ++) {
+			
+			
+			if (getListView().isItemChecked(listItemPos)) {
+				Log.d(TAG, "Adding instnace : " + instanceData.get(listItemPos).getInstanceId() + " to " +
+						"group");
+				instanceIds.add(instanceData.get(listItemPos).getInstanceId());
+			}
+		}
+		
+		Log.d(TAG, "Adding " + instanceIds.size() + " instances...");
+		
+		if (instanceIds.size() == 0) {
+			alertDialogMessage = getString(R.string.ec2instancegroupsview_select_instance);
+			alertDialogDisplayed = true;
+			killActivityOnError = false;
+		}
+		else {
+			
+			AlertDialog.Builder groupNameDialog = new AlertDialog.Builder(this);
+			// Set an EditText view to get user input 
+			LinearLayout groupNameDialogLayout = new LinearLayout(this);
+			groupNameDialogLayout.setOrientation(LinearLayout.VERTICAL);
+			final EditText groupNameInput = new EditText(this);
+			groupNameInput.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+			TextView groupNameTextView = new TextView(this);
+			groupNameTextView.setText(getString(R.string.ec2instancegroupsview_input));
+			groupNameTextView.setPadding(0, 0, 0, 10);
+			groupNameTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22.0f);
+			groupNameTextView.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+			
+			groupNameDialogLayout.addView(groupNameTextView);
+			groupNameDialogLayout.addView(groupNameInput);
+			groupNameDialog.setView(groupNameDialogLayout);
+			//set the listener up.
+			groupNameDialog.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int whichButton) {
+					String newGroupName = groupNameInput.getText().toString();
+					  //write to DB
+					try {
+						new ElasticDroidDB(getApplicationContext()).writeInstanceGroupsToDb(connectionData.get("username"),
+							selectedRegion, 
+							newGroupName, 
+							instanceIds);
+					
+						Toast.makeText(
+								getApplicationContext(), 
+								getApplicationContext().getString(R.string.ec2instancegroupsview_new_group_notification), 
+								Toast.LENGTH_LONG)
+								.show();
+						
+					} catch (SQLException e) {
+						alertDialogMessage = "Group creation failed: " + e.getLocalizedMessage();
+							alertDialogDisplayed = true;
+							killActivityOnError = true;
+					}
+					
+					//display alert dialog if requested
+					if (alertDialogDisplayed) {
+						alertDialogBox.setMessage(alertDialogMessage);
+						alertDialogBox.show();
+					}
+				}
+			});
+			
+			groupNameDialog.show();
+			
+		}
+		
+		//display alert dialog if requested
+		if (alertDialogDisplayed) {
+			alertDialogBox.setMessage(alertDialogMessage);
+			alertDialogBox.show();
+		}
+
+	}
 }
 
 /**
@@ -395,7 +535,7 @@ public class InstanceGroupEditView extends GenericListActivity {
  *
  * 18 Jan 2010
  */
-class SelectableInstanceDisplayAdapter extends ArrayAdapter<SerializableInstance>{
+class SelectableInstanceDisplayAdapter extends ArrayAdapter<SerializableInstance> implements OnClickListener{
 
 	/** Instance list */
 	private ArrayList<SerializableInstance> instanceData;
@@ -443,6 +583,16 @@ class SelectableInstanceDisplayAdapter extends ArrayAdapter<SerializableInstance
 			checkedTextView.setText(instanceData.get(position).getInstanceId());
 		}
 		
+		checkedTextView.setOnClickListener(this);
+		
 		return instanceDataRow;
+	}
+
+	@Override
+	public void onClick(View checkedView) {
+		CheckedTextView checkedTextView = (CheckedTextView) checkedView;
+		Log.d(TAG, "Clicked: " + checkedTextView.getText().toString());
+		checkedTextView.setChecked(!checkedTextView.isChecked());
+		
 	}
 }

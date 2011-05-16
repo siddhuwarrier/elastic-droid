@@ -5,4 +5,8 @@
 <string name="ec2instancegroupsview_groupname">Group Name</string>
 <string name="ec2instancegroupsview_instances">Instances</string>
 <string name="ec2instancegroupsview_save">Save</string>
+<string name="ec2instancegroupsview_edit">Select instances</string>
+<string name="ec2instancegroupsview_new_group_notification">New instance group created...</string>
+<string name="ec2instancegroupsview_select_instance">Please select at least one instance to add to the group.</string>
+<string name="ec2instancegroupsview_input">Group name:</string>
 </resources>

@@ -3,7 +3,6 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="tests/src"/>
 	<classpathentry kind="src" path="gen"/>
-	<classpathentry exported="true" kind="lib" path="libs/aws-java-sdk-1.0.14.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/commons-codec-1.3.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/commons-httpclient-3.0.1.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/jackson-core-asl-1.4.3.jar"/>
@@ -12,5 +11,6 @@
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
 	<classpathentry kind="lib" path="libs/achartengine-0.6.0.r119.jar"/>
+	<classpathentry kind="lib" path="libs/aws-java-sdk-1.0.14.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

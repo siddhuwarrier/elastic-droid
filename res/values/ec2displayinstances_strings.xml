@@ -8,5 +8,6 @@
 <string name="ec2displayinstances_os"><i>OS:</i> %1$s</string>
 <string name="ec2displayinstances_rundays">Started %1$.1f days ago</string>
 <string name="ec2displayinstances_runhrs">Started %1$.1f hrs ago</string>
+<string name="ec2displayinstances_menu_no_instances">No instances found.</string>
 <string name="ec2displayinstances_menu_refresh">Refresh</string>
 </resources>

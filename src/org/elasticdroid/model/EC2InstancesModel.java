@@ -204,8 +204,8 @@ public class EC2InstancesModel extends GenericModel<Filter, Void, Object> {
 			return new IllegalArgumentException("Invalid region passed to model.");
 		}
 		
-		Log.v(TAG + "doInBackground()", "endpoint for region : " + 
-				connectionData.get("region") + "=" + regions.get(0).getEndpoint());
+		Log.v(TAG + ".doInBackground()", "endpoint for region : " + 
+				selectedRegion + "=" + regions.get(0).getEndpoint());
 		//set the endpoint
 		amazonEC2Client.setEndpoint(regions.get(0).getEndpoint());
 		
@@ -233,7 +233,6 @@ public class EC2InstancesModel extends GenericModel<Filter, Void, Object> {
 			//note to self: List is an interface ArrayList implements.
 			//for each reservation, get the list of instances associated
 			for (Instance instance: reservation.getInstances()) {
-				
 				serInstances.add(new SerializableInstance(instance, securityGroups));
 			}
 		}

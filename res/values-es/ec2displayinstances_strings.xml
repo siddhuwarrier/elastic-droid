@@ -9,4 +9,6 @@
 <string name="ec2displayinstances_rundays">Iniciada hace %1$.1f días</string>
 <string name="ec2displayinstances_runhrs">Iniciada hace %1$.1f hrs</string>
 <string name="ec2displayinstances_menu_refresh">Actualizar</string>
+<!--  To translate -->
+<string name="ec2displayinstances_menu_no_instances">No instances found.</string>
 </resources>

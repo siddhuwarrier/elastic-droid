@@ -61,6 +61,7 @@ public class InstanceGroup implements Serializable {
 	 */
 	public InstanceGroup(long id, String groupName) {
 		super();
+		this.id = id;
 		this.groupName = groupName;
 	}
 	

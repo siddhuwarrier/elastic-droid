@@ -28,8 +28,8 @@ import java.util.HashMap;
 import org.elasticdroid.model.EC2InstancesModel;
 import org.elasticdroid.model.ds.SerializableInstance;
 import org.elasticdroid.tpl.GenericListActivity;
-import org.elasticdroid.utils.DialogConstants;
 import org.elasticdroid.utils.AWSConstants.InstanceStateConstants;
+import org.elasticdroid.utils.DialogConstants;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -129,6 +129,10 @@ public class EC2DisplayInstancesView extends GenericListActivity {
     	try {
     		this.connectionData = (HashMap<String, String>)intent.getSerializableExtra(
     				"org.elasticdroid.EC2DashboardView.connectionData");
+    		
+    		if (connectionData == null) {
+    			Log.d(TAG, "Connection data null.");
+    		}
     	}
     	//the possible exceptions are NullPointerException: the Hashmap was not found, or
     	//ClassCastException: the argument passed is not Hashmap<String, String>. In either case,
@@ -390,8 +394,10 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 				}
 				//if no data found, just show a String adapter
 				else {
-					setListAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, 
-							new String[]{"No instances found."}));
+					
+					ArrayAdapter<String> listAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, 
+							new String[]{getString(R.string.ec2displayinstances_menu_no_instances)});
+					setListAdapter(listAdapter);
 				}
 			}
 			else if (result instanceof AmazonServiceException) {
@@ -435,6 +441,10 @@ public class EC2DisplayInstancesView extends GenericListActivity {
 	 */
 	@Override
 	protected void onListItemClick(ListView list, View v, int position, long id) {
+		if (instanceData.size() <= position) {
+			return;
+		}
+		
 		Intent displaySingleInstanceIntent = new Intent();
 		displaySingleInstanceIntent.setClassName("org.elasticdroid",
 			"org.elasticdroid.EC2SingleInstanceView");

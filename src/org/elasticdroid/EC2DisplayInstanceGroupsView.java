@@ -215,6 +215,9 @@ class InstanceGroupAdapter extends ArrayAdapter<InstanceGroup> {
 
 	/** Instance Groups list */
 	private List<InstanceGroup> instanceGroupsData;
+	/** Tag */
+	private static final String TAG = InstanceGroupAdapter.class.getName();
+	
 	/**
 	 * Context; typically the Activity that sets an object of this class as the
 	 * Adapter
@@ -262,9 +265,11 @@ class InstanceGroupAdapter extends ArrayAdapter<InstanceGroup> {
 		
 		
 		InstanceGroup instanceGroup = instanceGroupsData.get(position);
+		Log.d(TAG, "Instance grp: " + instanceGroup.getGroupName());
 		textViewHeadline.setText(instanceGroup.getGroupName());
 		if(instanceGroup.getInstanceIds()!=null){ 
-			textViewDetails.setText(instanceGroup.getInstanceIds().size() + " " + R.string.ec2instancegroupsview_instances);
+			textViewDetails.setText(instanceGroup.getInstanceIds().size() + " " + context.getString(R.string.
+					ec2instancegroupsview_instances));
 		}
 		return instanceGroupDataRow;
 	}

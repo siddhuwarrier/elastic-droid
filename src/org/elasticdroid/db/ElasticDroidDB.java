@@ -41,6 +41,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteStatement;
 import android.util.Log;
 
 /**
@@ -163,14 +164,14 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 				+ InstanceGroupTbl._ID + " integer primary key autoincrement, "
 				+ InstanceGroupTbl.COL_USERNAME + " text not null, "
 				+ InstanceGroupTbl.COL_REGION + " text not null, "
-				+ InstanceGroupTbl.COL_GROUP_NAME + " text not null, "
+				+ InstanceGroupTbl.COL_GROUP_NAME + " text not null unique, "
 				+ InstanceGroupTbl.FOREIGN_KEY_USERNAME + ");");
 	}
 	
 	private void createInstanceTbl(SQLiteDatabase db) {
 		db.execSQL("Create TABLE " + InstanceTbl.TBL_NAME + "("
 				+ InstanceTbl._ID + " integer primary key autoincrement, "
-				+ InstanceTbl.COL_INSTANCEID + " text not null, "
+				+ InstanceTbl.COL_INSTANCEID + " text not null unique, "
 				+ InstanceTbl.COL_INSTANCEGROUPID + " integer not null, "
 				+ InstanceTbl.FOREIGN_KEY_INSTANCEGROUPID + ");");
 		
@@ -342,7 +343,7 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 
 		int resType; // the resource type (id in ResourceTypeTbl) for the
 						// resName passed in.
-		SQLiteDatabase db = this.getReadableDatabase();
+		SQLiteDatabase db = this.getWritableDatabase();
 		// get the res ID for this resName
 		Cursor queryCursor;
 		try {
@@ -541,9 +542,12 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 					InstanceGroupTbl.COL_REGION + "= ? and "
 							+ InstanceGroupTbl.COL_USERNAME + " = ? ",
 					new String[] { region, username }, null, null, null);
+			
+			Log.d(TAG, "Number of instance groups: " + igCursor.getCount());
 
 			if (igCursor.getCount() >= 1) {
-				igCursor.moveToFirst();
+				
+				Log.d(TAG, "Instance groups found...");
 
 				// reading the instance group names and instance ids
 				while (igCursor.moveToNext()) {
@@ -556,9 +560,11 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 							InstanceTbl.COL_INSTANCEGROUPID + "= ?",
 							new String[] { instanceGroup.getId().toString() }, 
 							null, null, null);
-					iCursor.moveToFirst();
+					
+					Log.d(TAG, iCursor.getCount() + " Instances found in this instance group...");
+					
 					while(iCursor.moveToNext()) {
-						instances.add(iCursor.getString(0));
+						Log.d(TAG, "Insertion of instance: " + instances.add(iCursor.getString(0)));
 					}
 					iCursor.close();
 					
@@ -574,5 +580,69 @@ public class ElasticDroidDB extends SQLiteOpenHelper {
 		Log.v(TAG, "Number of instance groups found: " + instanceGroups.size());
 
 		return instanceGroups;
+	}
+	
+	/**
+	 * Write new instance group to Db
+	 * @param awsUsername
+	 * @param region
+	 * @param groupName
+	 * @param instanceIds
+	 */
+	public void writeInstanceGroupsToDb(String awsUsername, String region, String groupName, 
+			List<String> instanceIds) throws SQLException {
+		
+		SQLiteDatabase db = this.getWritableDatabase();
+		SQLiteStatement bulkInsert = null;
+		
+		try {
+			//create a new group in the InstanceGroupTbl
+			ContentValues insertValues = new ContentValues();
+			insertValues.put(InstanceGroupTbl.COL_USERNAME, awsUsername);
+			insertValues.put(InstanceGroupTbl.COL_REGION, region);
+			insertValues.put(InstanceGroupTbl.COL_GROUP_NAME, groupName);
+			
+			db.insert(InstanceGroupTbl.TBL_NAME, null, insertValues);
+			
+			//query the DB to get the group ID
+			Cursor resultCursor = db.query(
+					InstanceGroupTbl.TBL_NAME,
+					new String[]{InstanceGroupTbl._ID},
+					InstanceGroupTbl.COL_GROUP_NAME + "=?",
+					new String[]{groupName},
+					null,
+					null,
+					null);
+					
+			if (resultCursor.getCount() != 1) {
+				Log.e(TAG, "Insert failed.");
+				return;
+			}
+			resultCursor.moveToFirst();
+			long instanceGroupId = resultCursor.getLong(0);
+			
+			//use the instance group ID to write the data into the InstanceTbl
+			String bulkInsertString = "insert into " + InstanceTbl.TBL_NAME + "(" +
+			InstanceTbl.COL_INSTANCEGROUPID + ", " + InstanceTbl.COL_INSTANCEID + ") values(?,?)";
+			
+			Log.d(TAG, "Bulk insert statement: " + bulkInsertString);
+			
+			bulkInsert = db.compileStatement(bulkInsertString);
+			
+			short idx;
+			for (String instanceId : instanceIds) {
+				Log.d(TAG, "Writing " + instanceId + " to DB...");
+				idx = 1;
+				bulkInsert.bindLong(idx ++, instanceGroupId);
+				bulkInsert.bindString(idx ++, instanceId);
+				bulkInsert.execute();
+			}
+		}
+		finally {
+			db.close();
+			if (bulkInsert != null) {
+				bulkInsert.close();
+			}
+		}
 	}
 }
