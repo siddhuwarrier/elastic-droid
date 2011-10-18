@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="gen"/>
+	<classpathentry kind="src" path="tests/src"/>
+	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
+	<classpathentry kind="lib" path="libs/aws-android-sdk-1.0.1-autoscaling.jar"/>
+	<classpathentry kind="lib" path="libs/aws-android-sdk-1.0.1-cloudwatch.jar"/>
+	<classpathentry kind="lib" path="libs/aws-android-sdk-1.0.1-core.jar"/>
+	<classpathentry kind="lib" path="libs/aws-android-sdk-1.0.1-ec2.jar"/>
+	<classpathentry kind="lib" path="libs/aws-android-sdk-1.0.1-elb.jar"/>
+	<classpathentry kind="lib" path="libs/aws-android-sdk-1.0.1-s3.jar"/>
+	<classpathentry kind="lib" path="libs/aws-android-sdk-1.0.1-sdb.jar"/>
+	<classpathentry kind="lib" path="libs/aws-android-sdk-1.0.1-ses.jar"/>
+	<classpathentry kind="lib" path="libs/aws-android-sdk-1.0.1-sns.jar"/>
+	<classpathentry kind="lib" path="libs/aws-android-sdk-1.0.1-sqs.jar"/>
+	<classpathentry kind="lib" path="libs/ormlite-android-4.27.jar"/>
+	<classpathentry kind="lib" path="libs/ormlite-core-4.27.jar"/>
+	<classpathentry kind="lib" path="tests/libs/robotium-solo-2.5.jar"/>
+	<classpathentry kind="lib" path="libs/android-support-v4.jar"/>
+	<classpathentry kind="lib" path="libs/pipeline.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

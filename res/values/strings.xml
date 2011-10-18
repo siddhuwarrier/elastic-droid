@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Elastic Droid</string>
+    <!--  login view strings -->
+    <string name="aws_account">AWS Account</string>
+    <string name="aws_access_key">AWS Access Key</string>
+    <string name="aws_secret_access_key">AWS Secret Access Key</string>
+    <string name="welcome_msg">AWS Credentials</string>
+    <string name="login">Sign In</string>
+    
+    <string name="progressdialog_message">Loading...</string>
+    
+    <string name="invalid_credentials">Invalid AWS credentials</string>
+    <string name="invalid_or_empty_data">Invalid or empty login data</string>
+    <string name="no_connxn">No Internet Connection</string>
+</resources>

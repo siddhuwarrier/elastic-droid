@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+       
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical"
+	android:paddingLeft="10sp"
+	android:paddingRight="10sp"
+	android:layout_marginTop="10sp"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent">
+	
+	<TextView
+        android:id="@+id/loginTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="21sp"
+        android:textStyle="bold"
+        android:hint="@string/welcome_msg"
+        android:paddingBottom="8sp"
+        android:layout_marginBottom="16sp"/>
+        
+    <EditText
+        android:id="@+id/awsAccountEntry"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:hint="@string/aws_account"
+        android:paddingBottom="8sp"
+        android:layout_marginBottom="16sp"/>
+        
+    <EditText
+        android:id="@+id/awsAccessKey" 
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:paddingTop="8sp"
+        android:paddingBottom="8sp"
+        android:layout_marginBottom="16sp"
+		android:hint="@string/aws_access_key" />
+    <EditText
+        android:id="@+id/awsSecretAccessKey" 
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:paddingTop="8sp"
+        android:paddingBottom="8sp"
+        android:layout_marginBottom="16sp"
+		android:hint="@string/aws_secret_access_key" 
+        android:inputType="textPassword" />
+        
+    <!-- Buttons -->
+    <Button
+        android:id="@+id/loginButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/login"
+		android:paddingTop="16sp"
+		android:paddingBottom="16sp"
+		android:layout_marginTop="42sp"
+		android:layout_marginLeft="18sp"
+		android:layout_marginRight="21sp"
+        android:textSize="21sp"
+        android:textStyle="bold"
+        android:layout_below="@+id/captchaLayout"/>
+		
+</LinearLayout>
