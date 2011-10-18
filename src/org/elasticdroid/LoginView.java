@@ -1,11 +1,10 @@
 package org.elasticdroid;
 
-import org.elasticdroid.tpl.GenericFragmentActivity;
-
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
 
-public class LoginView extends GenericFragmentActivity {
+public class LoginView extends FragmentActivity {
     /**
      * Called when the activity is first created.
      * 
@@ -21,10 +20,5 @@ public class LoginView extends GenericFragmentActivity {
 	@Override
 	public void onResume() {
 		super.onResume();
-	}
-
-	@Override
-	public void onCancel(DialogInterface dialog) {
-		//TODO nothing to do here yet...
 	}
 }

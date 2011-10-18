@@ -18,10 +18,6 @@ public class LoginModel extends PipelineContextAdaptor {
 		return user;
 	}
 	
-	public void setUser(User user) {
-		this.user = user;
-	}
-	
 	public void setLoginResult(LoginResult loginResult) {
 		this.loginResult = loginResult;
 	}

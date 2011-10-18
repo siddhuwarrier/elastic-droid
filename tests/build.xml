@@ -41,6 +41,46 @@
         <pathelement path="${sdk.dir}/tools/lib/androidprefs.jar" />
     </path>
 	
+	<target name="coverage" depends="-set-coverage-classpath, -install-instrumented, install"
+	description="Runs the tests against the instrumented code and generates
+	code coverage report">
+
+	<run-tests-helper emma.enabled="true">
+	<extra-instrument-args>
+	<arg value="-e" />
+	<arg value="coverageFile" />
+	<arg value="${emma.dump.file}" />
+
+	</extra-instrument-args>
+	</run-tests-helper>
+
+	<echo>Downloading coverage file into project directory...</echo>
+	<exec executable="${adb}" failonerror="true">
+	<arg line="${adb.device.arg}" />
+	<arg value="pull" />
+	<arg value="${emma.dump.file}" />
+	<arg value="${emma.report.dir}/coverage.ec" />
+	</exec>
+	<echo>Extracting coverage report…</echo>
+	<emma>
+	<report sourcepath="${tested.project.absolute.dir}/${source.dir}"
+	verbosity="${verbosity}">
+	<!-- TODO: report.dir or something like should be introduced if necessary -->
+	<infileset dir="${emma.report.dir}">
+	<include name="coverage.ec" />
+	<include name="coverage.em" />
+	</infileset>
+	<!-- TODO: reports in other, indicated by user formats -->
+	<html outfile="${emma.report.dir}/coverage.html" />
+	</report>
+	</emma>
+	<echo>Cleaning up temporary files…</echo>
+	<delete dir="${instrumentation.absolute.dir}" />
+	<delete file="${emma.report.dir}/coverage.ec" />
+	<delete file="${emma.report.dir}/coverage.em" />
+	<echo>Saving the report file in ${emma.report.dir}/coverage.html</echo>
+	</target>
+	
 	
     <taskdef name="setup"
         classname="com.android.ant.SetupTask"

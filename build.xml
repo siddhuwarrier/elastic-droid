@@ -66,6 +66,20 @@
 			<mapper type="glob" from="*.dot" to="*.png"/>
 		</apply>
 	</target>
+	
+	<target name="-emma-instrument" depends="compile">
+	<echo>[OVERRIDE] Instrumenting classes from ${out.absolute.dir}/classes…</echo>
+	<echo>EMMA will create meta data file in ${emma.report.dir}/coverage.em</echo>
+	<!-- It only instruments class files, not any external libs -->
+	<emma enabled="true">
+	<instr verbosity="${verbosity}"
+	mode="overwrite"
+	instrpath="${out.absolute.dir}/classes"
+	outdir="${out.absolute.dir}/classes"
+	metadatafile="${emma.report.dir}/coverage.em">
+	</instr>
+	</emma>
+	</target>
 
     <taskdef name="setup"
         classname="com.android.ant.SetupTask"
